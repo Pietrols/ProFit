@@ -1,8 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
   output   = "../src/generated/prisma"
@@ -10,4 +5,204 @@ generator client {
 
 datasource db {
   provider = "postgresql"
+}
+
+enum GoalMode {
+  BULKING
+  CUTTING
+  MAINTAINING
+}
+
+enum Equipment {
+  FULL_GYM
+  HOME_BASIC   // dumbbells, bands, bench
+  BODYWEIGHT
+}
+
+enum Difficulty {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  goalMode     GoalMode @default(MAINTAINING)
+  units        String   @default("kg") // "kg" | "lb"
+  equipment    Equipment @default(FULL_GYM)
+  bodyweightKg Float?
+  // Calibration: the app observes the first N sessions before coaching.
+  calibrated   Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  abilityProfiles AbilityProfile[]
+  splits          Split[]
+  sessions        WorkoutSession[]
+  mealItems       MealProfileItem[]
+  mealLogs        MealLog[]
+  insights        AiInsight[]
+}
+
+// Per-muscle-group level, not one global number (spec §4).
+// levelScore is 0–100; the AI writes it during calibration and updates it weekly.
+model AbilityProfile {
+  id          String   @id @default(cuid())
+  userId      String
+  muscleGroup String   // matches Exercise.primaryMuscles values
+  levelScore  Int
+  rationale   String?  // one-line AI justification, shown to the user
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, muscleGroup])
+}
+
+model Exercise {
+  id               String     @id @default(cuid())
+  name             String     @unique
+  primaryMuscles   String[]   // e.g. ["quads"], ["chest","front_delts"]
+  secondaryMuscles String[]
+  equipment        Equipment
+  difficulty       Difficulty
+  demoAssetUrl     String?    // Lottie/GIF URL — filled in Part 6
+  cues             String[]   // form cues
+  mistakes         String[]   // common mistakes
+
+  planned PlannedExercise[]
+  logs    ExerciseLog[]
+}
+
+model Split {
+  id       String  @id @default(cuid())
+  userId   String
+  name     String
+  isActive Boolean @default(false)
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  days     SplitDay[]
+}
+
+model SplitDay {
+  id       String @id @default(cuid())
+  splitId  String
+  dayIndex Int    // 0-based position in the rotation
+  label    String // "Push A", "Legs", "Upper"
+  split    Split  @relation(fields: [splitId], references: [id], onDelete: Cascade)
+  planned  PlannedExercise[]
+  sessions WorkoutSession[]
+
+  @@unique([splitId, dayIndex])
+}
+
+model PlannedExercise {
+  id           String   @id @default(cuid())
+  splitDayId   String
+  exerciseId   String
+  order        Int
+  targetSets   Int
+  repRangeLow  Int
+  repRangeHigh Int
+  splitDay     SplitDay @relation(fields: [splitDayId], references: [id], onDelete: Cascade)
+  exercise     Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@unique([splitDayId, order])
+}
+
+model WorkoutSession {
+  id         String    @id @default(cuid())
+  // Client generates the id (uuid) so offline sessions sync without collisions.
+  userId     String
+  splitDayId String?
+  startedAt  DateTime
+  endedAt    DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  splitDay   SplitDay? @relation(fields: [splitDayId], references: [id])
+  exercises  ExerciseLog[]
+}
+
+model ExerciseLog {
+  id          String    @id @default(cuid())
+  sessionId   String
+  exerciseId  String
+  startedAt   DateTime
+  endedAt     DateTime?
+  wasInjected Boolean   @default(false) // true if this was an AI variation injection
+  session     WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  exercise    Exercise  @relation(fields: [exerciseId], references: [id])
+  sets        SetLog[]
+}
+
+model SetLog {
+  id               String  @id @default(cuid())
+  exerciseLogId    String
+  setIndex         Int
+  weightKg         Float   // store kg always; convert for display
+  reps             Int
+  restSecondsAfter Int?    // measured by the rest timer
+  rpe              Int?    // optional 1–10
+  exerciseLog      ExerciseLog @relation(fields: [exerciseLogId], references: [id], onDelete: Cascade)
+
+  @@unique([exerciseLogId, setIndex])
+}
+
+// ---------- Diet ----------
+
+model MealProfileItem {
+  id          String  @id @default(cuid())
+  userId      String
+  name        String   // "Usual lunch"
+  description String   // "nshima, 2 pieces chicken, rape/greens"
+  portionUnit String   // "plate", "pieces", "cup" — the user's own units
+  estKcal     Int?
+  estProteinG Int?
+  estCarbsG   Int?
+  estFatG     Int?
+  archived    Boolean @default(false)
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs        MealLog[]
+}
+
+enum PortionModifier {
+  SMALLER
+  USUAL
+  BIGGER
+}
+
+model MealLog {
+  id            String   @id @default(cuid())
+  userId        String
+  date          String   // "YYYY-MM-DD" — calendar day, timezone-proof
+  itemId        String?
+  freeText      String?  // for one-off meals not in the profile
+  modifier      PortionModifier @default(USUAL)
+  note          String?  // "added an egg"
+  loggedAt      DateTime @default(now())
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  item          MealProfileItem? @relation(fields: [itemId], references: [id])
+
+  @@index([userId, date])
+}
+
+// ---------- AI ----------
+
+enum InsightType {
+  CALIBRATION
+  SPLIT_PROPOSAL
+  SESSION_DEBRIEF
+  VARIATION_INJECTION
+  DIET_POINTERS
+}
+
+model AiInsight {
+  id        String      @id @default(cuid())
+  userId    String
+  type      InsightType
+  payload   Json        // validated, structured AI output
+  accepted  Boolean?    // null = not yet acted on; rejections are training data
+  createdAt DateTime    @default(now())
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, type, createdAt])
 }
