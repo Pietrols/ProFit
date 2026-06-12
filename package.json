@@ -1,0 +1,26 @@
+{
+  "name": "profit",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "api": "npm run dev --workspace apps/api",
+    "mobile": "npm run start --workspace apps/mobile",
+    "db:migrate": "npm run db:migrate --workspace apps/api",
+    "db:seed": "npm run db:seed --workspace apps/api"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pietrols/ProFit.git"
+  },
+  "keywords": [],
+  "author": "Pietrols <kabambapeter3@gmail.com>",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Pietrols/ProFit/issues"
+  },
+  "homepage": "https://github.com/Pietrols/ProFit#readme"
+}
