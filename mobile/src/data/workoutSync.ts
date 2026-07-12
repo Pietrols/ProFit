@@ -16,10 +16,28 @@ export type WorkoutPoster = (
 export async function pushWorkouts(
   db: DbLike,
   post: WorkoutPoster,
-): Promise<{ pushed: number }> {
+): Promise<{ pushed: number; quarantined: number }> {
   const pending = await getUnsyncedSessions(db);
-  if (pending.length === 0) return { pushed: 0 };
-  const { synced } = await post(pending);
-  await markSessionsSynced(db, synced);
-  return { pushed: synced.length };
+  if (pending.length === 0) return { pushed: 0, quarantined: 0 };
+  try {
+    const { synced } = await post(pending);
+    await markSessionsSynced(db, synced);
+    return { pushed: synced.length, quarantined: 0 };
+  } catch (e) {
+    // Sync-conflict hardening: a 4xx (validation / ownership conflict) will
+    // never succeed on retry — quarantine the batch (synced = 2) so one bad
+    // row can't poison the queue forever. Network/5xx errors rethrow and
+    // the batch stays pending for the next attempt.
+    const status = (e as { status?: unknown }).status;
+    if (typeof status === 'number' && status >= 400 && status < 500 && status !== 429) {
+      for (const s of pending) {
+        await db.runAsync(
+          'UPDATE workout_sessions SET synced = 2 WHERE id = ?',
+          [s.id],
+        );
+      }
+      return { pushed: 0, quarantined: pending.length };
+    }
+    throw e;
+  }
 }

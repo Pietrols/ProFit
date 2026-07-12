@@ -1,7 +1,20 @@
-import React, { useState } from 'react';
+import { File, Paths } from 'expo-file-system';
+import * as Sharing from 'expo-sharing';
+import React, { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { NetworkError } from '../../api/client';
 import { Goal, TrainingContext, Units } from '../../api/types';
+import { listBodyweightLocal } from '../../data/bodyweightRepo';
+import { getDb } from '../../data/db';
+import { listMealsLocal } from '../../data/nutritionRepo';
+import { listSessionsLocal } from '../../data/workoutRepo';
+import { buildExportJson, buildSetsCsv } from '../settings/exportData';
+import {
+  applyReminders,
+  clearReminders,
+  loadReminderSettings,
+  WEEKDAY_LABELS,
+} from '../settings/reminders';
 import { useAppTheme } from '../../theme/ThemeContext';
 import {
   AccentRule,
@@ -31,6 +44,74 @@ export function ProfileScreen() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
+
+  // reminders + export
+  const [reminderDays, setReminderDays] = useState<string[]>([]);
+  const [reminderHour, setReminderHour] = useState<'7' | '12' | '18'>('18');
+  const [reminderNote, setReminderNote] = useState<string | null>(null);
+  const [exportNote, setExportNote] = useState<string | null>(null);
+
+  useEffect(() => {
+    loadReminderSettings().then((s) => {
+      if (s) {
+        setReminderDays(s.weekdays.map(String));
+        setReminderHour(String(s.hour) as '18');
+      }
+    });
+  }, []);
+
+  async function saveReminders() {
+    setReminderNote(null);
+    if (reminderDays.length === 0) {
+      await clearReminders();
+      setReminderNote('Reminders off.');
+      return;
+    }
+    const ok = await applyReminders({
+      weekdays: reminderDays.map(Number),
+      hour: Number(reminderHour),
+    }).catch(() => false);
+    setReminderNote(
+      ok
+        ? `Reminders set for ${reminderDays.length} day(s) at ${reminderHour}:00.`
+        : 'Notifications are blocked — allow them in system settings.',
+    );
+  }
+
+  async function exportData(format: 'json' | 'csv') {
+    setExportNote(null);
+    try {
+      const db = await getDb();
+      const sessions = (await listSessionsLocal(db)).map((r) => r.payload);
+      const stamp = new Date().toISOString().slice(0, 10);
+      let content: string;
+      let filename: string;
+      if (format === 'json') {
+        content = buildExportJson(
+          {
+            sessions,
+            bodyweight: await listBodyweightLocal(db),
+            meals: await listMealsLocal(db),
+          },
+          new Date().toISOString(),
+        );
+        filename = `profit-export-${stamp}.json`;
+      } else {
+        content = buildSetsCsv(sessions);
+        filename = `profit-sets-${stamp}.csv`;
+      }
+      const file = new File(Paths.cache, filename);
+      if (file.exists) file.delete();
+      file.create();
+      file.write(content);
+      if (await Sharing.isAvailableAsync()) {
+        await Sharing.shareAsync(file.uri);
+      }
+      setExportNote(`Exported ${filename}.`);
+    } catch {
+      setExportNote('Export failed — please try again.');
+    }
+  }
 
   const dirty =
     goal !== user.goal ||
@@ -122,8 +203,52 @@ export function ProfileScreen() {
         {section('Units', <ChipRow options={UNITS} value={units} onChange={setUnits} />)}
 
         <Button label="Save changes" onPress={save} busy={busy} disabled={!dirty} />
-        <View style={{ height: t.spacing.md }} />
+
+        <View style={{ height: t.spacing.xl }} />
+        <Heading>Session reminders</Heading>
+        <View style={{ marginTop: t.spacing.sm, gap: t.spacing.sm }}>
+          <ChipRow
+            options={['2', '3', '4', '5', '6', '7', '1'] as const}
+            value={null}
+            multiValues={reminderDays}
+            onChange={(d) =>
+              setReminderDays((prev) =>
+                prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
+              )
+            }
+            labels={Object.fromEntries(
+              Object.entries(WEEKDAY_LABELS).map(([k, v]) => [String(k), v]),
+            )}
+          />
+          <ChipRow
+            options={['7', '12', '18'] as const}
+            value={reminderHour}
+            onChange={setReminderHour}
+            labels={{ '7': '7:00', '12': '12:00', '18': '18:00' }}
+          />
+          <Button label="Save reminders" variant="ghost" onPress={saveReminders} />
+          {reminderNote ? (
+            <Text style={{ fontFamily: t.typography.body, fontSize: 13, color: t.colors.tx2 }}>
+              {reminderNote}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={{ height: t.spacing.xl }} />
+        <Heading>Your data</Heading>
+        <View style={{ marginTop: t.spacing.sm, gap: t.spacing.sm }}>
+          <Button label="Export everything (JSON)" variant="ghost" onPress={() => exportData('json')} />
+          <Button label="Export sets (CSV)" variant="ghost" onPress={() => exportData('csv')} />
+          {exportNote ? (
+            <Text style={{ fontFamily: t.typography.body, fontSize: 13, color: t.colors.tx2 }}>
+              {exportNote}
+            </Text>
+          ) : null}
+        </View>
+
+        <View style={{ height: t.spacing.xl }} />
         <Button label="Log out" onPress={logout} variant="danger" />
+        <View style={{ height: t.spacing.xxl }} />
       </ScrollView>
     </Screen>
   );

@@ -2,8 +2,10 @@ import { RouteProp, useNavigation, useRoute } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Crypto from 'expo-crypto';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { Modal, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
 import { api } from '../../api/client';
+import { findSubstitutes } from '../../data/exercisesRepo';
+import { hasCheckinToday, pushCheckins, saveCheckinLocal } from '../../data/recoveryRepo';
 import { getDb } from '../../data/db';
 import { getExercise } from '../../data/exercisesRepo';
 import { Exercise } from '../../data/types';
@@ -14,7 +16,8 @@ import {
   WorkoutSessionPayload,
 } from '../../data/workoutTypes';
 import { useAppTheme } from '../../theme/ThemeContext';
-import { Button, Heading, Screen } from '../../ui';
+import { Button, ChipRow, Heading, Screen } from '../../ui';
+import { COOLDOWNS, WARMUPS } from './warmups';
 import { useAuth, useUser } from '../auth/AuthContext';
 import { HomeStackParamList } from '../home/HomeStack';
 import { computeDelta, fromKg, toKg } from './computeDelta';
@@ -61,6 +64,10 @@ export function ActiveWorkoutScreen() {
   const [nudges, setNudges] = useState<string[]>([]);
   const [current, setCurrent] = useState(0);
   const [finishing, setFinishing] = useState(false);
+  const [checkinOpen, setCheckinOpen] = useState(false);
+  const [soreness, setSoreness] = useState<string | null>(null);
+  const [sleep, setSleep] = useState<string | null>(null);
+  const [swapOptions, setSwapOptions] = useState<Exercise[] | null>(null);
 
   // Build drafts from the plan day, resolving exercises from device SQLite.
   // When online, the AI (or its deterministic fallback) adjusts sets/reps and
@@ -146,22 +153,48 @@ export function ActiveWorkoutScreen() {
     if (!set.completed) setRest(restSecondsFor(exIdx));
   }
 
-  async function swapExercise(exIdx: number) {
-    const draft = drafts![exIdx];
-    const altId = draft.actual.homeAlternativeId;
-    if (!altId) {
-      Alert.alert('No alternative', 'This exercise has no curated alternative yet.');
-      return;
-    }
+  // Substitution engine: same-muscle, context-appropriate candidates.
+  async function openSwap(exIdx: number) {
     const db = await getDb();
-    const alt = await getExercise(db, altId);
-    if (!alt) return;
+    const options = await findSubstitutes(
+      db,
+      drafts![exIdx].actual,
+      user.defaultContext,
+    );
+    setSwapOptions(options);
+  }
+
+  function applySwap(alt: Exercise) {
     setDrafts((prev) =>
       prev!.map((e, i) =>
-        i === exIdx ? { ...e, actual: alt, swapReason: 'equipment' as const } : e,
+        i === current ? { ...e, actual: alt, swapReason: 'equipment' as const } : e,
       ),
     );
+    setSwapOptions(null);
   }
+
+  async function submitCheckin(skip: boolean) {
+    setCheckinOpen(false);
+    if (skip || soreness === null || sleep === null) return;
+    const db = await getDb();
+    await saveCheckinLocal(db, {
+      id: Crypto.randomUUID(),
+      soreness: Number(soreness),
+      sleepQuality: Number(sleep),
+      loggedAt: new Date().toISOString(),
+    });
+    if (session) {
+      pushCheckins(db, (rows) => api.syncCheckins(session.token, rows)).catch(() => {});
+    }
+  }
+
+  // One recovery check-in per day, asked as the session starts.
+  useEffect(() => {
+    (async () => {
+      const db = await getDb();
+      if (!(await hasCheckinToday(db))) setCheckinOpen(true);
+    })();
+  }, []);
 
   function skipExercise(exIdx: number) {
     setDrafts((prev) =>
@@ -292,6 +325,8 @@ export function ActiveWorkoutScreen() {
       )}
 
       <ScrollView showsVerticalScrollIndicator={false} style={{ marginTop: t.spacing.lg }}>
+        <ChecklistBlock block={WARMUPS[day.category]} defaultOpen={current === 0} />
+
         {/* Exercise pager */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
           <Pressable disabled={current === 0} onPress={() => setCurrent((c) => c - 1)}>
@@ -401,7 +436,7 @@ export function ActiveWorkoutScreen() {
 
           <View style={{ flexDirection: 'row', gap: t.spacing.sm, marginTop: t.spacing.md }}>
             <View style={{ flex: 1 }}>
-              <Button label="Swap" variant="ghost" onPress={() => swapExercise(current)} />
+              <Button label="Swap" variant="ghost" onPress={() => openSwap(current)} />
             </View>
             <View style={{ flex: 1 }}>
               <Button
@@ -413,10 +448,163 @@ export function ActiveWorkoutScreen() {
           </View>
         </View>
 
-        <View style={{ height: t.spacing.xl }} />
+        <View style={{ height: t.spacing.lg }} />
+        <ChecklistBlock
+          block={COOLDOWNS[day.category]}
+          defaultOpen={current === drafts.length - 1}
+        />
+        <View style={{ height: t.spacing.lg }} />
         <Button label="Finish workout" onPress={finish} busy={finishing} />
         <View style={{ height: t.spacing.xxl }} />
       </ScrollView>
+
+      {/* Recovery check-in — one per day, feeds deload logic */}
+      <Modal visible={checkinOpen} transparent animationType="fade">
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            justifyContent: 'center',
+            padding: t.spacing.xl,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: t.colors.s1,
+              borderRadius: t.radius.xl,
+              padding: t.spacing.lg,
+              gap: t.spacing.md,
+            }}
+          >
+            <Heading>Quick check-in</Heading>
+            <Text style={{ fontFamily: t.typography.body, fontSize: 13, color: t.colors.tx2 }}>
+              How sore are you? (1 fresh — 5 wrecked)
+            </Text>
+            <ChipRow options={['1', '2', '3', '4', '5'] as const} value={soreness as '1' | null} onChange={setSoreness} />
+            <Text style={{ fontFamily: t.typography.body, fontSize: 13, color: t.colors.tx2 }}>
+              How did you sleep? (1 awful — 5 great)
+            </Text>
+            <ChipRow options={['1', '2', '3', '4', '5'] as const} value={sleep as '1' | null} onChange={setSleep} />
+            <Button
+              label="Save"
+              onPress={() => submitCheckin(false)}
+              disabled={soreness === null || sleep === null}
+            />
+            <Button label="Skip" variant="ghost" onPress={() => submitCheckin(true)} />
+          </View>
+        </View>
+      </Modal>
+
+      {/* Substitution picker */}
+      <Modal visible={swapOptions !== null} transparent animationType="fade">
+        <View
+          style={{
+            flex: 1,
+            backgroundColor: 'rgba(0,0,0,0.6)',
+            justifyContent: 'center',
+            padding: t.spacing.xl,
+          }}
+        >
+          <View
+            style={{
+              backgroundColor: t.colors.s1,
+              borderRadius: t.radius.xl,
+              padding: t.spacing.lg,
+              gap: t.spacing.sm,
+            }}
+          >
+            <Heading>Swap exercise</Heading>
+            {swapOptions?.length === 0 ? (
+              <Text style={{ fontFamily: t.typography.body, color: t.colors.tx2 }}>
+                No matching alternative for your equipment — skip it instead.
+              </Text>
+            ) : (
+              swapOptions?.map((opt) => (
+                <Pressable
+                  key={opt.id}
+                  onPress={() => applySwap(opt)}
+                  style={({ pressed }) => ({
+                    backgroundColor: pressed ? t.colors.s3 : t.colors.s2,
+                    borderRadius: t.radius.md,
+                    padding: t.spacing.md,
+                  })}
+                >
+                  <Text style={{ fontFamily: t.typography.label, fontSize: 14, color: t.colors.tx }}>
+                    {opt.name}
+                  </Text>
+                  <Text style={{ fontFamily: t.typography.body, fontSize: 12, color: t.colors.tx3 }}>
+                    {opt.primaryMuscles.join(', ')} · {opt.equipment.join(', ')}
+                  </Text>
+                </Pressable>
+              ))
+            )}
+            <Button label="Cancel" variant="ghost" onPress={() => setSwapOptions(null)} />
+          </View>
+        </View>
+      </Modal>
     </Screen>
+  );
+}
+
+function ChecklistBlock({
+  block,
+  defaultOpen,
+}: {
+  block: { title: string; items: string[] };
+  defaultOpen: boolean;
+}) {
+  const t = useAppTheme();
+  const [open, setOpen] = useState(defaultOpen);
+  const [done, setDone] = useState<Set<number>>(new Set());
+  return (
+    <Pressable
+      onPress={() => setOpen((o) => !o)}
+      style={{
+        backgroundColor: t.colors.s1,
+        borderRadius: t.radius.lg,
+        padding: t.spacing.md,
+      }}
+    >
+      <Text
+        style={{
+          fontFamily: t.typography.heading,
+          fontSize: 15,
+          color: t.colors.tx2,
+          textTransform: 'uppercase',
+        }}
+      >
+        {block.title} {open ? '' : `· ${block.items.length} items`}
+      </Text>
+      {open &&
+        block.items.map((item, i) => (
+          <Pressable
+            key={i}
+            onPress={() =>
+              setDone((prev) => {
+                const next = new Set(prev);
+                if (next.has(i)) next.delete(i);
+                else next.add(i);
+                return next;
+              })
+            }
+            style={{ flexDirection: 'row', gap: t.spacing.sm, marginTop: t.spacing.sm }}
+          >
+            <Text style={{ fontFamily: t.typography.label, color: done.has(i) ? t.colors.green : t.colors.tx3 }}>
+              {done.has(i) ? '✓' : '○'}
+            </Text>
+            <Text
+              style={{
+                fontFamily: t.typography.body,
+                fontSize: 13,
+                color: done.has(i) ? t.colors.tx3 : t.colors.tx2,
+                textDecorationLine: done.has(i) ? 'line-through' : 'none',
+                flexShrink: 1,
+              }}
+            >
+              {item}
+            </Text>
+          </Pressable>
+        ))}
+    </Pressable>
   );
 }

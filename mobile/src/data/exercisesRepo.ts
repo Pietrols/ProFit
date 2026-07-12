@@ -111,6 +111,42 @@ export async function countExercises(db: DbLike): Promise<number> {
   return row?.n ?? 0;
 }
 
+/**
+ * Substitution engine (Phase 9): candidates that train the same primary
+ * muscle and fit the context's equipment. The curated home alternative
+ * ranks first, then same-category picks. Injury/equipment/preference swaps
+ * all draw from this list.
+ */
+export async function findSubstitutes(
+  db: DbLike,
+  exercise: Exercise,
+  context: 'home' | 'gym',
+  limit = 6,
+): Promise<Exercise[]> {
+  const pool = await searchExercises(
+    db,
+    context === 'home' ? { homeOnly: true } : {},
+  );
+  return pool
+    .filter(
+      (e) =>
+        e.id !== exercise.id &&
+        e.primaryMuscles.some((m) => exercise.primaryMuscles.includes(m)),
+    )
+    .sort((a, b) => {
+      const alt =
+        Number(b.id === exercise.homeAlternativeId) -
+        Number(a.id === exercise.homeAlternativeId);
+      if (alt !== 0) return alt;
+      const cat =
+        Number(b.category === exercise.category) -
+        Number(a.category === exercise.category);
+      if (cat !== 0) return cat;
+      return a.name.localeCompare(b.name);
+    })
+    .slice(0, limit);
+}
+
 export async function getMeta(db: DbLike, key: string): Promise<string | null> {
   const row = await db.getFirstAsync<{ value: string }>(
     'SELECT value FROM meta WHERE key = ?',

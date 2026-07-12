@@ -71,6 +71,16 @@ const MIGRATIONS: string[] = [
     created_at TEXT NOT NULL
   );
   `,
+  // v6 — recovery check-ins (soreness/sleep → deload logic)
+  `
+  CREATE TABLE IF NOT EXISTS recovery_checkins (
+    id TEXT PRIMARY KEY NOT NULL,
+    soreness INTEGER NOT NULL,
+    sleep_quality INTEGER NOT NULL,
+    logged_at TEXT NOT NULL,
+    synced INTEGER NOT NULL DEFAULT 0
+  );
+  `,
 ];
 
 export async function migrate(db: DbLike): Promise<void> {

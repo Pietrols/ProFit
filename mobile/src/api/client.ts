@@ -94,6 +94,16 @@ export const api = {
   getActivePlan: (token: string) =>
     request<{ plan: Plan | null }>('/plans/active', { token }),
 
+  syncCheckins: (
+    token: string,
+    checkins: { id: string; soreness: number; sleepQuality: number; loggedAt: string }[],
+  ) =>
+    request<{ synced: string[] }>('/recovery/sync', {
+      method: 'POST',
+      body: { checkins },
+      token,
+    }),
+
   sendChat: (token: string, message: string) =>
     request<{ reply: { id: string; role: 'assistant'; content: string; createdAt: string } }>(
       '/chat',

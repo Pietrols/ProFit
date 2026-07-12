@@ -295,23 +295,25 @@ export function EmptyView({ title, hint }: { title: string; hint?: string }) {
   );
 }
 
-/** Single-select chip row (goal, context, units pickers). */
+/** Chip row (goal, context, units pickers). Pass multiValues for multi-select. */
 export function ChipRow<T extends string>({
   options,
   value,
   onChange,
   labels,
+  multiValues,
 }: {
   options: readonly T[];
   value: T | null;
   onChange: (value: T) => void;
   labels?: Partial<Record<T, string>>;
+  multiValues?: string[];
 }) {
   const t = useAppTheme();
   return (
     <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: t.spacing.sm }}>
       {options.map((opt) => {
-        const active = opt === value;
+        const active = multiValues ? multiValues.includes(opt) : opt === value;
         return (
           <Pressable
             key={opt}
