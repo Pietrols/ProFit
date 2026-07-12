@@ -3,6 +3,7 @@ import express from "express";
 import { prisma } from "./db";
 import { errorHandler } from "./middleware/error";
 import { authRouter } from "./routes/auth.routes";
+import { bodyweightRouter } from "./routes/bodyweight.routes";
 import { exercisesRouter } from "./routes/exercises.routes";
 import { plansRouter } from "./routes/plans.routes";
 import { workoutsRouter } from "./routes/workouts.routes";
@@ -27,6 +28,7 @@ export function createApp() {
   app.use("/exercises", exercisesRouter);
   app.use("/plans", plansRouter);
   app.use("/workouts", workoutsRouter);
+  app.use("/bodyweight", bodyweightRouter);
 
   app.use(errorHandler);
   return app;

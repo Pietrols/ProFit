@@ -62,8 +62,21 @@ model User {
   updatedAt      DateTime        @updatedAt @map("updated_at")
   plans          Plan[]
   sessions       WorkoutSession[]
+  bodyweights    BodyweightEntry[]
 
   @@map("users")
+}
+
+// Offline-first bodyweight log; client-generated UUID ids, idempotent sync.
+model BodyweightEntry {
+  id       String   @id
+  userId   String   @map("user_id")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  weightKg Float    @map("weight_kg")
+  loggedAt DateTime @map("logged_at")
+
+  @@index([userId, loggedAt])
+  @@map("bodyweight_entries")
 }
 
 // Written on-device first, synced up in batches. Ids are client-generated
