@@ -1,4 +1,5 @@
-import { Exercise } from '../data/types';
+import { Plan } from '../data/planRepo';
+import { Exercise, ExerciseCategory } from '../data/types';
 import { AuthResponse, ProfileUpdate, User } from './types';
 
 // Android emulator reaches the host machine at 10.0.2.2; a physical device
@@ -78,4 +79,16 @@ export const api = {
         : '/exercises',
       { token },
     ),
+
+  createPlan: (
+    token: string,
+    input: {
+      name?: string;
+      context: 'home' | 'gym';
+      days: { category: ExerciseCategory }[];
+    },
+  ) => request<{ plan: Plan }>('/plans', { method: 'POST', body: input, token }),
+
+  getActivePlan: (token: string) =>
+    request<{ plan: Plan | null }>('/plans/active', { token }),
 };

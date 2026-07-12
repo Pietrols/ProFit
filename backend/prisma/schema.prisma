@@ -42,6 +42,7 @@ model Exercise {
   homeAlternativeId  String?          @map("home_alternative_id")
   homeAlternative    Exercise?        @relation("HomeAlternative", fields: [homeAlternativeId], references: [id])
   homeAlternativeFor Exercise[]       @relation("HomeAlternative")
+  planExercises      PlanExercise[]
   updatedAt          DateTime         @updatedAt @map("updated_at")
 
   @@map("exercises")
@@ -58,6 +59,49 @@ model User {
   units          Units           @default(kg)
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
+  plans          Plan[]
 
   @@map("users")
+}
+
+model Plan {
+  id        String          @id @default(uuid())
+  userId    String          @map("user_id")
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  context   TrainingContext
+  isActive  Boolean         @default(true) @map("is_active")
+  days      PlanDay[]
+  createdAt DateTime        @default(now()) @map("created_at")
+  updatedAt DateTime        @updatedAt @map("updated_at")
+
+  @@map("plans")
+}
+
+model PlanDay {
+  id        String           @id @default(uuid())
+  planId    String           @map("plan_id")
+  plan      Plan             @relation(fields: [planId], references: [id], onDelete: Cascade)
+  dayIndex  Int              @map("day_index")
+  name      String
+  category  ExerciseCategory
+  exercises PlanExercise[]
+
+  @@unique([planId, dayIndex])
+  @@map("plan_days")
+}
+
+model PlanExercise {
+  id          String   @id @default(uuid())
+  planDayId   String   @map("plan_day_id")
+  planDay     PlanDay  @relation(fields: [planDayId], references: [id], onDelete: Cascade)
+  order       Int
+  exerciseId  String   @map("exercise_id")
+  exercise    Exercise @relation(fields: [exerciseId], references: [id])
+  sets        Int
+  reps        String // "8-12", "5", "20-30 min", "AMRAP 12 min" — modality-flexible
+  restSeconds Int      @map("rest_seconds")
+
+  @@unique([planDayId, order])
+  @@map("plan_exercises")
 }

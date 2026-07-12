@@ -53,6 +53,34 @@ decided stack. Review and veto freely.
   minimal `DbLike` interface expo-sqlite satisfies — real SQLite semantics
   in unit tests, no native Expo modules needed.
 
+## Phase 3 — Plan Builder v1
+
+- **Plans are generated and stored server-side** (`POST /plans`,
+  `GET /plans/active`); building a plan therefore needs a connection. The
+  active plan is cached on device (JSON document in SQLite) so viewing —
+  and later starting a workout — works offline. Server-owned, device-cached,
+  never edited locally, so a blob beats normalized device tables.
+- **Templates select by muscle target, not by exercise id** (except
+  powerlifting SBD lifts and crossfit WODs, where the movement is the
+  prescription — those prefer exact ids and fall back to the curated home
+  alternative when the context disallows them).
+- **Split resolution in a custom mix**: each category's split is chosen by
+  how many days of that category the week has — 3 BB days in a 4-day custom
+  plan still resolve to PPL, the cardio day slots in as Steady State.
+- **Muscle-balance guard**: after filling slots, any major group (chest,
+  back, shoulders, quads, hams/glutes) left at zero for the week gets one
+  exercise appended to the lightest strength day — the "PPL×5 leaves legs
+  behind" driver from PROJECT.md, enforced by test.
+- **One active plan per user**; creating a new one deactivates the previous
+  (history kept in Postgres).
+- **Rep prescriptions are strings** ("8-12", "AMRAP 60 s",
+  "25-40 min zone 2") so all four modalities fit one shape; sets/rest are
+  numeric. Rest defaults follow PROJECT.md: 60–90 s hypertrophy, 3–5 min
+  powerlifting.
+- **Exercise variation** ("random injection to fight staleness") is
+  deferred to Phase 6 (AI layer) — v1 is deterministic on purpose so the
+  same inputs give the same reviewable plan.
+
 ## Phase 1 — Auth + profile
 
 - **JWT lifetime 30 days**, stateless, no refresh tokens. Right-sized for a

@@ -5,7 +5,7 @@ import React, { useState } from 'react';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { RegisterScreen } from '../features/auth/RegisterScreen';
 import { useAuth } from '../features/auth/AuthContext';
-import { HomeScreen } from '../features/home/HomeScreen';
+import { HomeStack } from '../features/home/HomeStack';
 import { LibraryStack } from '../features/library/LibraryStack';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
 import { useAppTheme } from '../theme/ThemeContext';
@@ -72,7 +72,7 @@ export function RootNav() {
           ),
         })}
       >
-        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen name="Home" component={HomeStack} />
         <Tab.Screen name="Library" component={LibraryStack} />
         <Tab.Screen name="Profile" component={ProfileScreen} />
       </Tab.Navigator>
