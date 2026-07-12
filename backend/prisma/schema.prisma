@@ -73,8 +73,28 @@ model User {
   bodyweights    BodyweightEntry[]
   mealProfile    MealProfileItem[]
   mealLogs       MealLog[]
+  chatMessages   ChatMessage[]
 
   @@map("users")
+}
+
+enum ChatRole {
+  user
+  assistant
+}
+
+// AI chat companion history — server-owned (chat requires connectivity),
+// cached on device for offline reading.
+model ChatMessage {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      ChatRole
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId, createdAt])
+  @@map("chat_messages")
 }
 
 enum MealType {

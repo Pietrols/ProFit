@@ -5,6 +5,7 @@ import { errorHandler } from "./middleware/error";
 import { aiRouter } from "./routes/ai.routes";
 import { authRouter } from "./routes/auth.routes";
 import { bodyweightRouter } from "./routes/bodyweight.routes";
+import { chatRouter } from "./routes/chat.routes";
 import { exercisesRouter } from "./routes/exercises.routes";
 import { nutritionRouter } from "./routes/nutrition.routes";
 import { plansRouter } from "./routes/plans.routes";
@@ -33,6 +34,7 @@ export function createApp() {
   app.use("/bodyweight", bodyweightRouter);
   app.use("/ai", aiRouter);
   app.use("/nutrition", nutritionRouter);
+  app.use("/chat", chatRouter);
 
   app.use(errorHandler);
   return app;

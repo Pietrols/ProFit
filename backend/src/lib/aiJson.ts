@@ -42,6 +42,26 @@ export function extractJson(raw: string): unknown {
   return JSON.parse(cleaned.slice(start, end + 1));
 }
 
+/**
+ * Free-text model call — the chat companion is the ONE place free text is
+ * allowed (everything else uses aiJson). Returns null when AI is disabled
+ * or the model fails; callers surface a "coach unavailable" state.
+ */
+export async function aiText(options: {
+  prompt: string;
+  system?: string;
+  transport?: AiTransport;
+}): Promise<string | null> {
+  const transport = options.transport ?? (aiEnabled() ? liveTransport : null);
+  if (!transport) return null;
+  try {
+    const text = (await transport(options.prompt, options.system)).trim();
+    return text.length > 0 ? text : null;
+  } catch {
+    return null;
+  }
+}
+
 export interface AiJsonResult<T> {
   value: T;
   /** whether the value came from the model or the deterministic fallback */
