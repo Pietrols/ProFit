@@ -1,5 +1,6 @@
 import { Plan } from '../data/planRepo';
 import { Exercise, ExerciseCategory } from '../data/types';
+import { WorkoutSessionPayload } from '../data/workoutTypes';
 import { AuthResponse, ProfileUpdate, User } from './types';
 
 // Android emulator reaches the host machine at 10.0.2.2; a physical device
@@ -91,4 +92,11 @@ export const api = {
 
   getActivePlan: (token: string) =>
     request<{ plan: Plan | null }>('/plans/active', { token }),
+
+  syncWorkouts: (token: string, sessions: WorkoutSessionPayload[]) =>
+    request<{ synced: string[] }>('/workouts/sync', {
+      method: 'POST',
+      body: { sessions },
+      token,
+    }),
 };

@@ -43,6 +43,7 @@ model Exercise {
   homeAlternative    Exercise?        @relation("HomeAlternative", fields: [homeAlternativeId], references: [id])
   homeAlternativeFor Exercise[]       @relation("HomeAlternative")
   planExercises      PlanExercise[]
+  sessionExercises   WorkoutSessionExercise[]
   updatedAt          DateTime         @updatedAt @map("updated_at")
 
   @@map("exercises")
@@ -60,8 +61,62 @@ model User {
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
   plans          Plan[]
+  sessions       WorkoutSession[]
 
   @@map("users")
+}
+
+// Written on-device first, synced up in batches. Ids are client-generated
+// UUIDs so the sync is idempotent: re-sending a session upserts, never dupes.
+model WorkoutSession {
+  id              String                   @id
+  userId          String                   @map("user_id")
+  user            User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  planId          String?                  @map("plan_id")
+  planDayId       String?                  @map("plan_day_id")
+  dayName         String                   @map("day_name")
+  category        ExerciseCategory
+  context         TrainingContext
+  startedAt       DateTime                 @map("started_at")
+  finishedAt      DateTime                 @map("finished_at")
+  durationSeconds Int                      @map("duration_seconds")
+  /// SessionDelta JSON — the planned-vs-actual summary the AI layer reads
+  delta           Json
+  exercises       WorkoutSessionExercise[]
+  createdAt       DateTime                 @default(now()) @map("created_at")
+  updatedAt       DateTime                 @updatedAt @map("updated_at")
+
+  @@index([userId, startedAt])
+  @@map("workout_sessions")
+}
+
+model WorkoutSessionExercise {
+  id                String         @id // client-generated UUID
+  sessionId         String         @map("session_id")
+  session           WorkoutSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  order             Int
+  plannedExerciseId String?        @map("planned_exercise_id")
+  actualExerciseId  String         @map("actual_exercise_id")
+  actualExercise    Exercise       @relation(fields: [actualExerciseId], references: [id])
+  skipped           Boolean
+  sets              WorkoutSet[]
+
+  @@unique([sessionId, order])
+  @@map("workout_session_exercises")
+}
+
+model WorkoutSet {
+  id                String                 @id // client-generated UUID
+  sessionExerciseId String                 @map("session_exercise_id")
+  sessionExercise   WorkoutSessionExercise @relation(fields: [sessionExerciseId], references: [id], onDelete: Cascade)
+  setIndex          Int                    @map("set_index")
+  plannedReps       String?                @map("planned_reps")
+  actualReps        Int?                   @map("actual_reps")
+  weightKg          Float?                 @map("weight_kg") // canonical kg; client converts
+  completed         Boolean
+
+  @@unique([sessionExerciseId, setIndex])
+  @@map("workout_sets")
 }
 
 model Plan {

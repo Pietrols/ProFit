@@ -15,6 +15,7 @@ import {
 } from '../../ui';
 import { useUser } from '../auth/AuthContext';
 import { usePlan } from '../plan/usePlan';
+import { useWorkoutSync } from '../workout/useWorkoutSync';
 import { HomeStackParamList } from './HomeStack';
 
 export function HomeScreen() {
@@ -22,6 +23,7 @@ export function HomeScreen() {
   const user = useUser();
   const nav = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
   const { status, plan, refresh } = usePlan();
+  useWorkoutSync(); // drain any offline-logged sessions on app entry
 
   return (
     <Screen>
@@ -57,7 +59,11 @@ export function HomeScreen() {
             {plan.name} · {plan.context}
           </Text>
           {plan.days.map((day) => (
-            <DayCard key={day.id} day={day} />
+            <DayCard
+              key={day.id}
+              day={day}
+              onStart={() => nav.navigate('ActiveWorkout', { day, planId: plan.id })}
+            />
           ))}
           <View style={{ height: t.spacing.md }} />
           <Button
@@ -72,7 +78,7 @@ export function HomeScreen() {
   );
 }
 
-function DayCard({ day }: { day: PlanDay }) {
+function DayCard({ day, onStart }: { day: PlanDay; onStart: () => void }) {
   const t = useAppTheme();
   const [open, setOpen] = React.useState(day.dayIndex === 0);
   return (
@@ -142,6 +148,7 @@ function DayCard({ day }: { day: PlanDay }) {
               </Text>
             </View>
           ))}
+          <Button label="Start workout" onPress={onStart} />
         </View>
       ) : (
         <Text

@@ -23,6 +23,16 @@ const MIGRATIONS: string[] = [
     value TEXT NOT NULL
   );
   `,
+  // v2 — offline-first workout sessions (device is source of truth until synced)
+  `
+  CREATE TABLE IF NOT EXISTS workout_sessions (
+    id TEXT PRIMARY KEY NOT NULL,
+    payload TEXT NOT NULL,      -- WorkoutSessionPayload JSON
+    finished_at TEXT NOT NULL,
+    synced INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX IF NOT EXISTS idx_sessions_unsynced ON workout_sessions(synced);
+  `,
 ];
 
 export async function migrate(db: DbLike): Promise<void> {

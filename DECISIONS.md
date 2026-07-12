@@ -81,6 +81,42 @@ decided stack. Review and veto freely.
   deferred to Phase 6 (AI layer) — v1 is deterministic on purpose so the
   same inputs give the same reviewable plan.
 
+## Phase 4 — Active workout + sync
+
+- **Idempotency via client-generated UUIDs.** The device mints the session,
+  exercise, and set ids; the server upserts on the session id and
+  delete-recreates nested rows in one transaction. Any replay (retry, dropped
+  ack, double tap) converges to the same rows. Local writes are
+  `INSERT OR REPLACE` on the same ids.
+- **Sync queue = a `synced` flag** on the local session row, flipped only
+  after the server acknowledges the id. Crash between POST and ack ⇒ harmless
+  replay. Push runs at app entry and after every finish; failures are silent
+  (offline is a normal state, not an error).
+- **Sessions are normalized in Postgres** (session → exercises → sets) so
+  Phase 5 strength curves/volume queries are plain SQL — **plus** a `delta`
+  JSONB column holding the typed `SessionDelta` (counts, skips, swaps with
+  reason, cutShort). The delta is the AI seam: computed on device by a pure,
+  unit-tested `computeDelta()`, Zod-validated at the boundary, stored
+  verbatim. On device the full payload is one JSON row — the device never
+  queries inside it.
+- **Weights stored in canonical kg** (`weight_kg`); the device converts
+  to/from the user's kg/lb setting at the edges.
+- **Swap targets the curated home alternative** (reason auto-set to
+  'equipment'); free swaps to arbitrary exercises and injury flags come with
+  the substitution engine (Phase 9 scope note in PROJECT.md §1.9).
+- **Planned weight is null in Phase 4** — v1 template plans prescribe
+  sets×reps only; load prescriptions arrive with the AI layer (Phase 6),
+  and the set shape already carries `plannedReps`/`weightKg` for it.
+- **In-progress sessions live in memory**, not SQLite; only finished
+  sessions persist. A crash mid-workout loses the in-flight entries —
+  accepted for v1, draft persistence is a small follow-up if it stings.
+- **Done-when verification**: unit tests (sync twice → no dupes, delta
+  shape), backend supertest (replay + corrected-resend convergence), and a
+  live rehearsal script (`mobile/scripts/e2e-sync-rehearsal.ts`) that drives
+  the real device data layer against the running backend through an
+  airplane-mode → reconnect → replay sequence. The literal airplane-mode
+  toggle on the S22 remains the manual check.
+
 ## Phase 1 — Auth + profile
 
 - **JWT lifetime 30 days**, stateless, no refresh tokens. Right-sized for a

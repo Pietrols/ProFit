@@ -5,6 +5,7 @@ import { errorHandler } from "./middleware/error";
 import { authRouter } from "./routes/auth.routes";
 import { exercisesRouter } from "./routes/exercises.routes";
 import { plansRouter } from "./routes/plans.routes";
+import { workoutsRouter } from "./routes/workouts.routes";
 import { profileRouter } from "./routes/profile.routes";
 
 export function createApp() {
@@ -25,6 +26,7 @@ export function createApp() {
   app.use("/me", profileRouter);
   app.use("/exercises", exercisesRouter);
   app.use("/plans", plansRouter);
+  app.use("/workouts", workoutsRouter);
 
   app.use(errorHandler);
   return app;

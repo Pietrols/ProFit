@@ -3,7 +3,8 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useState } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
 import { ApiError, NetworkError } from '../../api/client';
-import { ExerciseCategory, TrainingContext } from '../../data/types';
+import { TrainingContext } from '../../api/types';
+import { ExerciseCategory } from '../../data/types';
 import { useAppTheme } from '../../theme/ThemeContext';
 import {
   AccentRule,
