@@ -1,13 +1,39 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client"
-  output   = "../generated/prisma"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+enum Goal {
+  bulking
+  cutting
+  maintaining
+}
+
+enum TrainingContext {
+  home
+  gym
+}
+
+enum Units {
+  kg
+  lb
+}
+
+model User {
+  id             String          @id @default(uuid())
+  email          String          @unique
+  passwordHash   String          @map("password_hash")
+  displayName    String          @map("display_name")
+  goal           Goal            @default(maintaining)
+  trainingDays   Int             @default(3) @map("training_days")
+  defaultContext TrainingContext @default(gym) @map("default_context")
+  units          Units           @default(kg)
+  createdAt      DateTime        @default(now()) @map("created_at")
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+
+  @@map("users")
 }

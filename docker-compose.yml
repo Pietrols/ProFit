@@ -8,3 +8,11 @@ services:
       POSTGRES_DB: profit
     ports:
       - "5433:5432"
+      # Postgres.app (InventoryDB) also listens on 127.0.0.1:5433 and shadows the
+      # Docker mapping for loopback connections; 5434 is the reliable local port.
+      - "127.0.0.1:5434:5432"
+    volumes:
+      - profit_pgdata:/var/lib/postgresql/data
+
+volumes:
+  profit_pgdata:

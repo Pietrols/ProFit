@@ -1,0 +1,77 @@
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
+import React, { useState } from 'react';
+import { LoginScreen } from '../features/auth/LoginScreen';
+import { RegisterScreen } from '../features/auth/RegisterScreen';
+import { useAuth } from '../features/auth/AuthContext';
+import { HomeScreen } from '../features/home/HomeScreen';
+import { ProfileScreen } from '../features/profile/ProfileScreen';
+import { useAppTheme } from '../theme/ThemeContext';
+import { LoadingView, Screen } from '../ui';
+
+export type MainTabParamList = {
+  Home: undefined;
+  Profile: undefined;
+};
+
+const Tab = createBottomTabNavigator<MainTabParamList>();
+
+const TAB_ICONS: Record<keyof MainTabParamList, keyof typeof MaterialCommunityIcons.glyphMap> = {
+  Home: 'home-variant',
+  Profile: 'account',
+};
+
+export function RootNav() {
+  const t = useAppTheme();
+  const { restoring, session } = useAuth();
+  const [authScreen, setAuthScreen] = useState<'login' | 'register'>('login');
+
+  if (restoring) {
+    return (
+      <Screen>
+        <LoadingView />
+      </Screen>
+    );
+  }
+
+  if (!session) {
+    return authScreen === 'login' ? (
+      <LoginScreen onRegister={() => setAuthScreen('register')} />
+    ) : (
+      <RegisterScreen onLogin={() => setAuthScreen('login')} />
+    );
+  }
+
+  const navTheme = {
+    ...(t.mode === 'dark' ? DarkTheme : DefaultTheme),
+    colors: {
+      ...(t.mode === 'dark' ? DarkTheme : DefaultTheme).colors,
+      background: t.colors.bg,
+      card: t.colors.tab,
+      text: t.colors.tx,
+      border: t.colors.line,
+      primary: t.colors.green,
+    },
+  };
+
+  return (
+    <NavigationContainer theme={navTheme}>
+      <Tab.Navigator
+        screenOptions={({ route }) => ({
+          headerShown: false,
+          tabBarActiveTintColor: t.colors.green,
+          tabBarInactiveTintColor: t.colors.tx3,
+          tabBarStyle: { backgroundColor: t.colors.tab, borderTopColor: t.colors.line },
+          tabBarLabelStyle: { fontFamily: t.typography.label, fontSize: 11 },
+          tabBarIcon: ({ color, size }) => (
+            <MaterialCommunityIcons name={TAB_ICONS[route.name]} color={color} size={size} />
+          ),
+        })}
+      >
+        <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen name="Profile" component={ProfileScreen} />
+      </Tab.Navigator>
+    </NavigationContainer>
+  );
+}
