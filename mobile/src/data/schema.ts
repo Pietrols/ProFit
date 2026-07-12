@@ -43,6 +43,25 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX IF NOT EXISTS idx_bodyweight_unsynced ON bodyweight_entries(synced);
   `,
+  // v4 — offline-first nutrition (meal profile + daily logs)
+  `
+  CREATE TABLE IF NOT EXISTS meal_profile_items (
+    id TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL,
+    typical_portion TEXT NOT NULL,
+    deleted_at TEXT,
+    synced INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE TABLE IF NOT EXISTS meal_logs (
+    id TEXT PRIMARY KEY NOT NULL,
+    name TEXT NOT NULL,
+    portion TEXT NOT NULL,
+    meal_type TEXT NOT NULL,
+    logged_at TEXT NOT NULL,
+    synced INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX IF NOT EXISTS idx_meal_logs_unsynced ON meal_logs(synced);
+  `,
 ];
 
 export async function migrate(db: DbLike): Promise<void> {

@@ -81,6 +81,23 @@ decided stack. Review and veto freely.
   deferred to Phase 6 (AI layer) — v1 is deterministic on purpose so the
   same inputs give the same reviewable plan.
 
+## Phase 7 — Nutrition
+
+- **Meals are free text + portion + meal type** — no calorie fields, no
+  macro tracking, matching PROJECT.md's "no arbitrary calorie targets".
+  Calories can be layered on later without schema pain.
+- **Profile items soft-delete** (`deleted_at`) so removals sync like every
+  other change instead of needing a delete protocol.
+- **The suggestion is server-computed on demand** (`GET
+  /nutrition/suggestion`), not stored — it reflects today's logs at ask
+  time. Offline, the card simply doesn't render; logging works fully.
+- **Deterministic fallback** references the most recent logged meal and the
+  goal (cutting → smaller portion / protein swap; bulking → add a protein
+  snack; maintaining → affirmation, change nothing) — worded to be useful
+  and non-preachy without the model.
+- **Nutrition is a fifth tab** (apple icon). Phase 8's chat will make six —
+  still within Android bottom-nav norms; revisit if a seventh appears.
+
 ## Phase 6 — AI layer v1
 
 - **Model: `claude-opus-4-8`** via the official `@anthropic-ai/sdk`,

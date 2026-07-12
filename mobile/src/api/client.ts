@@ -1,3 +1,4 @@
+import { MealLog, MealProfileItem } from '../data/nutritionRepo';
 import { Plan } from '../data/planRepo';
 import { Exercise, ExerciseCategory } from '../data/types';
 import { WorkoutSessionPayload } from '../data/workoutTypes';
@@ -92,6 +93,26 @@ export const api = {
 
   getActivePlan: (token: string) =>
     request<{ plan: Plan | null }>('/plans/active', { token }),
+
+  syncMealProfile: (token: string, items: MealProfileItem[]) =>
+    request<{ synced: string[] }>('/nutrition/profile/sync', {
+      method: 'POST',
+      body: { items },
+      token,
+    }),
+
+  syncMeals: (token: string, meals: MealLog[]) =>
+    request<{ synced: string[] }>('/nutrition/meals/sync', {
+      method: 'POST',
+      body: { meals },
+      token,
+    }),
+
+  getMealSuggestion: (token: string) =>
+    request<{ suggestion: string; targetMeal: string | null; source: 'ai' | 'fallback' }>(
+      '/nutrition/suggestion',
+      { token },
+    ),
 
   syncBodyweight: (
     token: string,

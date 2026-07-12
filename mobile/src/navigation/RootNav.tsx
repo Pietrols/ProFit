@@ -7,6 +7,7 @@ import { RegisterScreen } from '../features/auth/RegisterScreen';
 import { useAuth } from '../features/auth/AuthContext';
 import { HomeStack } from '../features/home/HomeStack';
 import { LibraryStack } from '../features/library/LibraryStack';
+import { NutritionScreen } from '../features/nutrition/NutritionScreen';
 import { ProgressScreen } from '../features/progress/ProgressScreen';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
 import { useAppTheme } from '../theme/ThemeContext';
@@ -16,6 +17,7 @@ export type MainTabParamList = {
   Home: undefined;
   Library: undefined;
   Progress: undefined;
+  Nutrition: undefined;
   Profile: undefined;
 };
 
@@ -25,6 +27,7 @@ const TAB_ICONS: Record<keyof MainTabParamList, keyof typeof MaterialCommunityIc
   Home: 'home-variant',
   Library: 'dumbbell',
   Progress: 'chart-line',
+  Nutrition: 'food-apple',
   Profile: 'account',
 };
 
@@ -78,6 +81,7 @@ export function RootNav() {
         <Tab.Screen name="Home" component={HomeStack} />
         <Tab.Screen name="Library" component={LibraryStack} />
         <Tab.Screen name="Progress" component={ProgressScreen} />
+        <Tab.Screen name="Nutrition" component={NutritionScreen} />
         <Tab.Screen name="Profile" component={ProfileScreen} />
       </Tab.Navigator>
     </NavigationContainer>
