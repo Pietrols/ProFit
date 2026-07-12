@@ -2,6 +2,7 @@ import cors from "cors";
 import express from "express";
 import { prisma } from "./db";
 import { errorHandler } from "./middleware/error";
+import { aiRouter } from "./routes/ai.routes";
 import { authRouter } from "./routes/auth.routes";
 import { bodyweightRouter } from "./routes/bodyweight.routes";
 import { exercisesRouter } from "./routes/exercises.routes";
@@ -29,6 +30,7 @@ export function createApp() {
   app.use("/plans", plansRouter);
   app.use("/workouts", workoutsRouter);
   app.use("/bodyweight", bodyweightRouter);
+  app.use("/ai", aiRouter);
 
   app.use(errorHandler);
   return app;

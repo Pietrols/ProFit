@@ -24,6 +24,8 @@ const workoutSetSchema = z.object({
   id: z.uuid(),
   setIndex: z.int().min(0),
   plannedReps: z.string().nullable(),
+  // AI-prescribed load (Phase 6); older clients simply omit it
+  plannedWeightKg: z.number().gt(0).lt(1000).nullable().default(null),
   actualReps: z.int().min(0).nullable(),
   weightKg: z.number().min(0).nullable(),
   completed: z.boolean(),

@@ -79,6 +79,7 @@ async function upsertSession(userId: string, s: WorkoutSessionInput) {
               id: set.id,
               setIndex: set.setIndex,
               plannedReps: set.plannedReps,
+              plannedWeightKg: set.plannedWeightKg,
               actualReps: set.actualReps,
               weightKg: set.weightKg,
               completed: set.completed,

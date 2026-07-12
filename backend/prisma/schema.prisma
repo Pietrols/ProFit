@@ -23,6 +23,13 @@ enum Units {
   lb
 }
 
+// Detected from logged sessions (never self-declared) — PROJECT.md §1.3
+enum AbilityLevel {
+  beginner
+  intermediate
+  advanced
+}
+
 enum ExerciseCategory {
   bodybuilding
   powerlifting
@@ -58,6 +65,7 @@ model User {
   trainingDays   Int             @default(3) @map("training_days")
   defaultContext TrainingContext @default(gym) @map("default_context")
   units          Units           @default(kg)
+  abilityLevel   AbilityLevel?   @map("ability_level")
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
   plans          Plan[]
@@ -124,6 +132,7 @@ model WorkoutSet {
   sessionExercise   WorkoutSessionExercise @relation(fields: [sessionExerciseId], references: [id], onDelete: Cascade)
   setIndex          Int                    @map("set_index")
   plannedReps       String?                @map("planned_reps")
+  plannedWeightKg   Float?                 @map("planned_weight_kg") // AI-prescribed load (Phase 6)
   actualReps        Int?                   @map("actual_reps")
   weightKg          Float?                 @map("weight_kg") // canonical kg; client converts
   completed         Boolean
