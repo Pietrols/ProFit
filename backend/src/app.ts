@@ -6,6 +6,7 @@ import { aiRouter } from "./routes/ai.routes";
 import { authRouter } from "./routes/auth.routes";
 import { bodyweightRouter } from "./routes/bodyweight.routes";
 import { exercisesRouter } from "./routes/exercises.routes";
+import { nutritionRouter } from "./routes/nutrition.routes";
 import { plansRouter } from "./routes/plans.routes";
 import { workoutsRouter } from "./routes/workouts.routes";
 import { profileRouter } from "./routes/profile.routes";
@@ -31,6 +32,7 @@ export function createApp() {
   app.use("/workouts", workoutsRouter);
   app.use("/bodyweight", bodyweightRouter);
   app.use("/ai", aiRouter);
+  app.use("/nutrition", nutritionRouter);
 
   app.use(errorHandler);
   return app;

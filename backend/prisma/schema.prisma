@@ -71,8 +71,45 @@ model User {
   plans          Plan[]
   sessions       WorkoutSession[]
   bodyweights    BodyweightEntry[]
+  mealProfile    MealProfileItem[]
+  mealLogs       MealLog[]
 
   @@map("users")
+}
+
+enum MealType {
+  breakfast
+  lunch
+  dinner
+  snack
+}
+
+// The user's meal profile: what they ALREADY eat (PROJECT.md §1.7 — no
+// prescribed meal plans). Offline-first, client UUID ids, idempotent sync.
+model MealProfileItem {
+  id             String    @id
+  userId         String    @map("user_id")
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name           String
+  typicalPortion String    @map("typical_portion")
+  deletedAt      DateTime? @map("deleted_at")
+
+  @@index([userId])
+  @@map("meal_profile_items")
+}
+
+// Daily meal log; offline-first, client UUID ids, idempotent sync.
+model MealLog {
+  id       String   @id
+  userId   String   @map("user_id")
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name     String
+  portion  String
+  mealType MealType @map("meal_type")
+  loggedAt DateTime @map("logged_at")
+
+  @@index([userId, loggedAt])
+  @@map("meal_logs")
 }
 
 // Offline-first bodyweight log; client-generated UUID ids, idempotent sync.
