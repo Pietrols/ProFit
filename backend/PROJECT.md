@@ -177,12 +177,19 @@ states, sync conflict edge cases.
   preview, ~1.1MB — reference only, not imported). Tokens extracted to
   `design/DESIGN_NOTES.md` and `mobile/theme.ts` (dark + full light mode,
   three neon accents green/red/blue with glow tokens, Saira / Saira Condensed).
-- Backend Phase 0 verified (12 Jul 2026): server boots, `/health` reports DB up.
+- **Phases 1–4 built and committed (12 Jul 2026)** — one commit per phase,
+  decisions logged in `DECISIONS.md` at the repo root.
   Note: connect on **localhost:5434** — Postgres.app shadows 5433 on loopback.
-- Phase 1 backend done: `User` model migrated (`init_user`), JWT auth live —
-  `POST /auth/register`, `POST /auth/login`, `GET /auth/me` all verified via curl.
-- Next action: **Phase 1 mobile — register/login screens + persisted session,
-  then the "kill app → reopen → still logged in" check on the S22.**
+- Backend: JWT auth + profile, 63-exercise seeded library with sync cursor,
+  template plan builder with muscle-balance guard, idempotent workout sync
+  with typed planned-vs-actual delta. 16 supertest tests green.
+- Mobile: Expo app (com.mundala.profit), theme-token UI, offline-first
+  SQLite (library, active plan, workout queue), plan builder, active workout
+  with timers + summary. 8 data-layer tests green; Android bundle compiles.
+- Next action: **run it on the S22** (set `EXPO_PUBLIC_API_URL` to the dev
+  machine's LAN IP, `npx expo start` in mobile/) and do the two manual
+  checks: force-quit → still logged in; airplane-mode workout → reconnect
+  sync. Then Phase 5 (progress tracking).
 
 ## 5. Open Questions
 
