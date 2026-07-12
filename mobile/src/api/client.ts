@@ -94,6 +94,17 @@ export const api = {
   getActivePlan: (token: string) =>
     request<{ plan: Plan | null }>('/plans/active', { token }),
 
+  sendChat: (token: string, message: string) =>
+    request<{ reply: { id: string; role: 'assistant'; content: string; createdAt: string } }>(
+      '/chat',
+      { method: 'POST', body: { message }, token },
+    ),
+
+  getChatHistory: (token: string) =>
+    request<{
+      messages: { id: string; role: 'user' | 'assistant'; content: string; createdAt: string }[];
+    }>('/chat', { token }),
+
   syncMealProfile: (token: string, items: MealProfileItem[]) =>
     request<{ synced: string[] }>('/nutrition/profile/sync', {
       method: 'POST',

@@ -81,6 +81,26 @@ decided stack. Review and veto freely.
   deferred to Phase 6 (AI layer) — v1 is deterministic on purpose so the
   same inputs give the same reviewable plan.
 
+## Phase 8 — AI chat companion
+
+- **Free text is allowed here and nowhere else** (`aiText()` beside
+  `aiJson()`); the model's system prompt grounds answers in a context JSON
+  of the user's own profile, active plan (with equipment tags + curated
+  home alternatives), and last 5 session deltas — nothing else is sent.
+- **Chat is server-owned and online-only to send**; history is cached in
+  device SQLite for offline reading. An unanswered user message is never
+  persisted — history only contains exchanges that happened.
+- **Degradation, not errors**: AI off or model failure → 503
+  `AI_UNAVAILABLE`; rate limit → 429 `CHAT_RATE_LIMITED`; the device maps
+  these plus offline to distinct blue-info banner states and rolls back the
+  optimistic echo.
+- **Rate limit is in-memory, 20 messages/hour/user** — right for the
+  single-instance Oracle Free deployment; swap for a shared store if the
+  backend ever scales out.
+- **Verified with an injected model**: the test asserts the transport
+  receives the user's home context + equipment tags for the swap question;
+  a live-key conversation remains a manual check.
+
 ## Phase 7 — Nutrition
 
 - **Meals are free text + portion + meal type** — no calorie fields, no

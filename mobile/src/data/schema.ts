@@ -62,6 +62,15 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX IF NOT EXISTS idx_meal_logs_unsynced ON meal_logs(synced);
   `,
+  // v5 — chat history cache (server-owned; readable offline)
+  `
+  CREATE TABLE IF NOT EXISTS chat_messages (
+    id TEXT PRIMARY KEY NOT NULL,
+    role TEXT NOT NULL,
+    content TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  );
+  `,
 ];
 
 export async function migrate(db: DbLike): Promise<void> {
