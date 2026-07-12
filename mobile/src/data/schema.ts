@@ -33,6 +33,16 @@ const MIGRATIONS: string[] = [
   );
   CREATE INDEX IF NOT EXISTS idx_sessions_unsynced ON workout_sessions(synced);
   `,
+  // v3 — offline-first bodyweight log
+  `
+  CREATE TABLE IF NOT EXISTS bodyweight_entries (
+    id TEXT PRIMARY KEY NOT NULL,
+    weight_kg REAL NOT NULL,
+    logged_at TEXT NOT NULL,
+    synced INTEGER NOT NULL DEFAULT 0
+  );
+  CREATE INDEX IF NOT EXISTS idx_bodyweight_unsynced ON bodyweight_entries(synced);
+  `,
 ];
 
 export async function migrate(db: DbLike): Promise<void> {
