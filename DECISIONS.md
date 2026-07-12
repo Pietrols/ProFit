@@ -81,6 +81,33 @@ decided stack. Review and veto freely.
   deferred to Phase 6 (AI layer) — v1 is deterministic on purpose so the
   same inputs give the same reviewable plan.
 
+## Phase 9 — Polish & hardening
+
+- **Deload rule**: average soreness ≥ 4 over the trailing 7 days of
+  check-ins → −20% load and −1 set on every exercise, overriding
+  progression, in both the deterministic rules and the AI prompt. Check-ins
+  are one-per-day, prompted at workout start, skippable, offline-synced.
+- **Export is device-side** (from local SQLite via the SDK 57 `File`/`Paths`
+  API + share sheet) so it works offline and reflects exactly what the user
+  sees: versioned JSON of everything + a one-row-per-set CSV. Builders are
+  pure and unit-tested.
+- **Reminders are local weekly notifications** on user-picked weekdays at
+  7:00/12:00/18:00. Plans don't map days to weekdays, so reminder days are
+  chosen independently in Profile — mapping plan day N to a weekday is a
+  future refinement. Firing is inherently a physical-device verification.
+- **Substitution engine reuses the equipment-tag + home-alternative model**:
+  candidates share a primary muscle, fit the training context, curated
+  alternative first. Swap reason recorded as 'equipment' (an
+  injury-body-part flag was deferred — the delta shape already carries a
+  reason enum including 'injury').
+- **Sync-conflict hardening**: a permanent 4xx on workout push quarantines
+  the batch (`synced = 2`) instead of retrying forever — one poisoned row
+  can no longer block the queue; transient errors (network, 5xx, 429) keep
+  the batch pending. Quarantined rows remain on device and in exports.
+- **Warm-up/cool-down blocks are static per-category checklists** rendered
+  around the session (not persisted per-plan) — content is a template, not
+  data, until the AI layer wants to vary it.
+
 ## Phase 8 — AI chat companion
 
 - **Free text is allowed here and nowhere else** (`aiText()` beside

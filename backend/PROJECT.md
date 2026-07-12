@@ -177,19 +177,22 @@ states, sync conflict edge cases.
   preview, ~1.1MB — reference only, not imported). Tokens extracted to
   `design/DESIGN_NOTES.md` and `mobile/theme.ts` (dark + full light mode,
   three neon accents green/red/blue with glow tokens, Saira / Saira Condensed).
-- **Phases 1–4 built and committed (12 Jul 2026)** — one commit per phase,
+- **Phases 1–9 built and committed (12 Jul 2026)** — granular commits,
   decisions logged in `DECISIONS.md` at the repo root.
   Note: connect on **localhost:5434** — Postgres.app shadows 5433 on loopback.
-- Backend: JWT auth + profile, 63-exercise seeded library with sync cursor,
-  template plan builder with muscle-balance guard, idempotent workout sync
-  with typed planned-vs-actual delta. 16 supertest tests green.
-- Mobile: Expo app (com.mundala.profit), theme-token UI, offline-first
-  SQLite (library, active plan, workout queue), plan builder, active workout
-  with timers + summary. 8 data-layer tests green; Android bundle compiles.
-- Next action: **run it on the S22** (set `EXPO_PUBLIC_API_URL` to the dev
-  machine's LAN IP, `npx expo start` in mobile/) and do the two manual
-  checks: force-quit → still logged in; airplane-mode workout → reconnect
-  sync. Then Phase 5 (progress tracking).
+- Backend: JWT auth + profile, seeded exercise library, template plan
+  builder, idempotent workout/bodyweight/nutrition/recovery sync, progress
+  data, AI layer (aiJson → validate → retry → deterministic fallback behind
+  AI_ENABLED), nutrition suggestions, rate-limited chat companion, deload
+  logic. 43 supertest/vitest tests green.
+- Mobile: full tab set (Home/Library/Progress/Nutrition/Coach/Profile),
+  offline-first SQLite throughout, active workout with AI-prescribed loads +
+  check-ins + warm-ups + substitution picker, charts, meal logging, chat
+  with offline history, reminders, JSON/CSV export. 23 data-layer tests
+  green; Android bundle compiles.
+- Next actions: **on-device verification** (reminder firing, share sheet,
+  airplane-mode flows) and a **first live-model smoke test** (set
+  ANTHROPIC_API_KEY + AI_ENABLED=true). Then deploy to the Oracle instance.
 
 ## 5. Open Questions
 
