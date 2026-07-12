@@ -7,6 +7,7 @@ import { RegisterScreen } from '../features/auth/RegisterScreen';
 import { useAuth } from '../features/auth/AuthContext';
 import { HomeStack } from '../features/home/HomeStack';
 import { LibraryStack } from '../features/library/LibraryStack';
+import { ProgressScreen } from '../features/progress/ProgressScreen';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
 import { useAppTheme } from '../theme/ThemeContext';
 import { LoadingView, Screen } from '../ui';
@@ -14,6 +15,7 @@ import { LoadingView, Screen } from '../ui';
 export type MainTabParamList = {
   Home: undefined;
   Library: undefined;
+  Progress: undefined;
   Profile: undefined;
 };
 
@@ -22,6 +24,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const TAB_ICONS: Record<keyof MainTabParamList, keyof typeof MaterialCommunityIcons.glyphMap> = {
   Home: 'home-variant',
   Library: 'dumbbell',
+  Progress: 'chart-line',
   Profile: 'account',
 };
 
@@ -74,6 +77,7 @@ export function RootNav() {
       >
         <Tab.Screen name="Home" component={HomeStack} />
         <Tab.Screen name="Library" component={LibraryStack} />
+        <Tab.Screen name="Progress" component={ProgressScreen} />
         <Tab.Screen name="Profile" component={ProfileScreen} />
       </Tab.Navigator>
     </NavigationContainer>

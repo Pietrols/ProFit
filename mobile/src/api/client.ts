@@ -93,6 +93,16 @@ export const api = {
   getActivePlan: (token: string) =>
     request<{ plan: Plan | null }>('/plans/active', { token }),
 
+  syncBodyweight: (
+    token: string,
+    entries: { id: string; weightKg: number; loggedAt: string }[],
+  ) =>
+    request<{ synced: string[] }>('/bodyweight/sync', {
+      method: 'POST',
+      body: { entries },
+      token,
+    }),
+
   syncWorkouts: (token: string, sessions: WorkoutSessionPayload[]) =>
     request<{ synced: string[] }>('/workouts/sync', {
       method: 'POST',

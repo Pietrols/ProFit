@@ -81,6 +81,26 @@ decided stack. Review and veto freely.
   deferred to Phase 6 (AI layer) — v1 is deterministic on purpose so the
   same inputs give the same reviewable plan.
 
+## Phase 5 — Progress tracking
+
+- **All progress is computed on device from local SQLite** (pure functions in
+  `computeProgress.ts`) — renders fully offline. Multi-device aggregation
+  (pulling sessions logged on another phone) is deferred; the server has the
+  data when that's wanted.
+- **Volume metric = completed sets per primary muscle per week** (the
+  hypertrophy-literature convention), not tonnage — robust to bodyweight
+  exercises where weightKg is null. Weeks are Monday-anchored UTC.
+- **Strength curve = heaviest completed set per session**, per exercise.
+- **Adherence = sessions completed / (trainingDays × 4 trailing weeks)**,
+  capped at 100%. Streak = consecutive weeks meeting trainingDays; the
+  in-progress week counts once met and never breaks the streak early.
+- **react-native-svg added** for line charts (Expo-blessed). Charts follow
+  the dataviz method: single-series only, identity from the section title
+  (no legends, no categorical palette), 2px green line (green = progress),
+  neutral bars, direct label on the last point, text in text tokens.
+- **Bodyweight entries sync like workouts** (client UUID upsert), stored
+  canonical kg.
+
 ## Phase 4 — Active workout + sync
 
 - **Idempotency via client-generated UUIDs.** The device mints the session,
