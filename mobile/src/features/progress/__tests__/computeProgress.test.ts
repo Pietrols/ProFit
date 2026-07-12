@@ -16,7 +16,7 @@ let n = 0;
 const uid = () => `00000000-0000-4000-8000-${String(n++).padStart(12, '0')}`;
 
 function set(weightKg: number | null, completed = true): WorkoutSet {
-  return { id: uid(), setIndex: 0, plannedReps: '8-12', actualReps: completed ? 8 : null, weightKg, completed };
+  return { id: uid(), setIndex: 0, plannedReps: '8-12', plannedWeightKg: null, actualReps: completed ? 8 : null, weightKg, completed };
 }
 
 function session(startedAt: string, exercises: { id: string; sets: WorkoutSet[]; skipped?: boolean }[]): WorkoutSessionPayload {

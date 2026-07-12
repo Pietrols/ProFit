@@ -118,15 +118,15 @@ describe('computeDelta', () => {
       {
         id: 'e1', order: 0, plannedExerciseId: 'bench', actualExerciseId: 'db-bench', skipped: false,
         sets: [
-          { id: 't1', setIndex: 0, plannedReps: '8-12', actualReps: 10, weightKg: 30, completed: true },
-          { id: 't2', setIndex: 1, plannedReps: '8-12', actualReps: 8, weightKg: 30, completed: true },
-          { id: 't3', setIndex: 2, plannedReps: '8-12', actualReps: null, weightKg: null, completed: false },
+          { id: 't1', setIndex: 0, plannedReps: '8-12', plannedWeightKg: null, actualReps: 10, weightKg: 30, completed: true },
+          { id: 't2', setIndex: 1, plannedReps: '8-12', plannedWeightKg: null, actualReps: 8, weightKg: 30, completed: true },
+          { id: 't3', setIndex: 2, plannedReps: '8-12', plannedWeightKg: null, actualReps: null, weightKg: null, completed: false },
         ],
       },
       {
         id: 'e2', order: 1, plannedExerciseId: 'ohp', actualExerciseId: 'ohp', skipped: false,
         sets: [
-          { id: 't4', setIndex: 0, plannedReps: '8-12', actualReps: 12, weightKg: 20, completed: true },
+          { id: 't4', setIndex: 0, plannedReps: '8-12', plannedWeightKg: null, actualReps: 12, weightKg: 20, completed: true },
         ],
       },
       { id: 'e3', order: 2, plannedExerciseId: 'lateral', actualExerciseId: 'lateral', skipped: true, sets: [] },

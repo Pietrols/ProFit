@@ -81,6 +81,36 @@ decided stack. Review and veto freely.
   deferred to Phase 6 (AI layer) — v1 is deterministic on purpose so the
   same inputs give the same reviewable plan.
 
+## Phase 6 — AI layer v1
+
+- **Model: `claude-opus-4-8`** via the official `@anthropic-ai/sdk`,
+  overridable with `AI_MODEL`. All calls go through one `aiJson()` gateway:
+  Zod-validate → one retry carrying the validation errors → deterministic
+  fallback. The transport is injectable, so tests simulate malformed and
+  failed model responses without a key.
+- **`AI_ENABLED=false` is the default** and requires both the flag and an
+  `ANTHROPIC_API_KEY` to flip on. The deterministic rules (below) are not a
+  degraded mode — they ARE the product behavior with AI off, and they're
+  what the done-when test asserts.
+- **Deterministic adjustment rules**: full completion last time → +2.5%
+  load; skipped or <60% of sets → one set fewer and −10% load; last session
+  cut short → one set trimmed everywhere. Ability heuristic: <6 sessions or
+  <50% completion → beginner; <24 sessions or <85% → intermediate; else
+  advanced.
+- **AI output is sanitized beyond Zod**: adjustments referencing exercise
+  ids not in the plan day are dropped; if nothing survives, the
+  deterministic fallback is used wholesale.
+- **Prompts contain only the user's own goal, ability, plan day, and recent
+  session summaries** — never other users' data, never the exercise
+  library at large.
+- **Prescribed loads**: `planned_weight_kg` added to workout sets (nullable,
+  defaulted for older clients), populated on-device from the adjustment and
+  round-tripped through sync. The device fetches the adjustment when
+  starting a workout and silently proceeds plan-as-written when offline.
+- **No live-model test ran in this environment** (no ANTHROPIC_API_KEY
+  present). The validate/retry/fallback path is fully covered with injected
+  transports; first real-key smoke test is a manual step.
+
 ## Phase 5 — Progress tracking
 
 - **All progress is computed on device from local SQLite** (pure functions in

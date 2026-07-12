@@ -49,9 +49,9 @@ async function main() {
         actualExerciseId: 'dumbbell-bench-press',
         skipped: false,
         sets: [
-          { id: randomUUID(), setIndex: 0, plannedReps: '8-12', actualReps: 10, weightKg: 22.5, completed: true },
-          { id: randomUUID(), setIndex: 1, plannedReps: '8-12', actualReps: 9, weightKg: 22.5, completed: true },
-          { id: randomUUID(), setIndex: 2, plannedReps: '8-12', actualReps: 7, weightKg: 22.5, completed: true },
+          { id: randomUUID(), setIndex: 0, plannedReps: '8-12', plannedWeightKg: null, actualReps: 10, weightKg: 22.5, completed: true },
+          { id: randomUUID(), setIndex: 1, plannedReps: '8-12', plannedWeightKg: null, actualReps: 9, weightKg: 22.5, completed: true },
+          { id: randomUUID(), setIndex: 2, plannedReps: '8-12', plannedWeightKg: null, actualReps: 7, weightKg: 22.5, completed: true },
         ],
       },
       { id: randomUUID(), order: 1, plannedExerciseId: 'pushups', actualExerciseId: 'pushups', skipped: true, sets: [] },

@@ -7,6 +7,7 @@ export interface WorkoutSet {
   id: string;
   setIndex: number;
   plannedReps: string | null;
+  plannedWeightKg: number | null; // AI-prescribed load (Phase 6)
   actualReps: number | null;
   weightKg: number | null;
   completed: boolean;

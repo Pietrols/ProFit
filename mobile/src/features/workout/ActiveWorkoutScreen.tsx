@@ -3,6 +3,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as Crypto from 'expo-crypto';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Pressable, ScrollView, Text, TextInput, View } from 'react-native';
+import { api } from '../../api/client';
 import { getDb } from '../../data/db';
 import { getExercise } from '../../data/exercisesRepo';
 import { Exercise } from '../../data/types';
@@ -14,7 +15,7 @@ import {
 } from '../../data/workoutTypes';
 import { useAppTheme } from '../../theme/ThemeContext';
 import { Button, Heading, Screen } from '../../ui';
-import { useUser } from '../auth/AuthContext';
+import { useAuth, useUser } from '../auth/AuthContext';
 import { HomeStackParamList } from '../home/HomeStack';
 import { computeDelta, fromKg, toKg } from './computeDelta';
 import { useWorkoutSync } from './useWorkoutSync';
@@ -22,6 +23,7 @@ import { useWorkoutSync } from './useWorkoutSync';
 interface SetDraft {
   id: string;
   plannedReps: string | null;
+  plannedWeightKg: number | null; // AI-prescribed load, if any
   reps: string; // text field, user units
   weight: string;
   completed: boolean;
@@ -45,6 +47,7 @@ function formatClock(totalSeconds: number): string {
 export function ActiveWorkoutScreen() {
   const t = useAppTheme();
   const user = useUser();
+  const { session } = useAuth();
   const route = useRoute<RouteProp<HomeStackParamList, 'ActiveWorkout'>>();
   const nav = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
   const { push } = useWorkoutSync();
@@ -55,33 +58,52 @@ export function ActiveWorkoutScreen() {
   const [elapsed, setElapsed] = useState(0);
   const [rest, setRest] = useState<number | null>(null);
   const [drafts, setDrafts] = useState<ExerciseDraft[] | null>(null);
+  const [nudges, setNudges] = useState<string[]>([]);
   const [current, setCurrent] = useState(0);
   const [finishing, setFinishing] = useState(false);
 
   // Build drafts from the plan day, resolving exercises from device SQLite.
+  // When online, the AI (or its deterministic fallback) adjusts sets/reps and
+  // prescribes loads; offline, the plan is used as-is — never blocked on AI.
   useEffect(() => {
     (async () => {
+      const adjustment = session
+        ? await api.getNextSession(session.token, day.id).catch(() => null)
+        : null;
+      const adjustFor = new Map(
+        (adjustment?.adjustments ?? []).map((a) => [a.exerciseId, a]),
+      );
+      setNudges(adjustment?.nudges ?? []);
+
       const db = await getDb();
       const built: ExerciseDraft[] = [];
       for (const pe of day.exercises) {
         const ex = (await getExercise(db, pe.exerciseId)) ?? pe.exercise;
+        const adj = adjustFor.get(pe.exerciseId);
+        const setCount = adj?.sets ?? pe.sets;
+        const reps = adj?.reps ?? pe.reps;
+        const weightKg = adj?.plannedWeightKg ?? null;
         built.push({
           id: Crypto.randomUUID(),
           plannedExerciseId: pe.exerciseId,
           actual: ex,
           skipped: false,
-          sets: Array.from({ length: pe.sets }, () => ({
+          sets: Array.from({ length: setCount }, () => ({
             id: Crypto.randomUUID(),
-            plannedReps: pe.reps,
+            plannedReps: reps,
+            plannedWeightKg: weightKg,
             reps: '',
-            weight: '',
+            weight:
+              weightKg !== null
+                ? String(Math.round(fromKg(weightKg, user.units) * 10) / 10)
+                : '',
             completed: false,
           })),
         });
       }
       setDrafts(built);
     })();
-  }, [day]);
+  }, [day, session, user.units]);
 
   // Session clock
   useEffect(() => {
@@ -164,6 +186,7 @@ export function ActiveWorkoutScreen() {
               id: s.id,
               setIndex,
               plannedReps: s.plannedReps,
+              plannedWeightKg: s.plannedWeightKg,
               actualReps: s.completed && s.reps ? Number(s.reps) || 0 : null,
               weightKg:
                 s.completed && s.weight
@@ -225,6 +248,28 @@ export function ActiveWorkoutScreen() {
           {day.name} · {doneSets}/{totalSets} sets
         </Text>
       </View>
+
+      {/* AI coach nudges — blue = informational/AI per the design system */}
+      {nudges.length > 0 && (
+        <View
+          style={{
+            backgroundColor: t.colors.bdim,
+            borderRadius: t.radius.md,
+            padding: t.spacing.md,
+            marginTop: t.spacing.md,
+            gap: 4,
+          }}
+        >
+          {nudges.map((n, i) => (
+            <Text
+              key={i}
+              style={{ fontFamily: t.typography.body, fontSize: 13, color: t.colors.blue }}
+            >
+              {n}
+            </Text>
+          ))}
+        </View>
+      )}
 
       {/* Rest timer — glows while running */}
       {rest !== null && (

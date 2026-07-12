@@ -103,6 +103,19 @@ export const api = {
       token,
     }),
 
+  getNextSession: (token: string, planDayId: string) =>
+    request<{
+      adjustments: {
+        exerciseId: string;
+        sets: number;
+        reps: string;
+        plannedWeightKg: number | null;
+        note?: string;
+      }[];
+      nudges: string[];
+      source: 'ai' | 'fallback';
+    }>(`/ai/next-session/${planDayId}`, { token }),
+
   syncWorkouts: (token: string, sessions: WorkoutSessionPayload[]) =>
     request<{ synced: string[] }>('/workouts/sync', {
       method: 'POST',
