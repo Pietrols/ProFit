@@ -4,11 +4,7 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_USER: profit
-      POSTGRES_PASSWORD: profit_dev_password
+      POSTGRES_PASSWORD: profit_dev_pass
       POSTGRES_DB: profit
     ports:
-      - "5432:5432"
-    volumes:
-      - profit_pgdata:/var/lib/postgresql/data
-volumes:
-  profit_pgdata:
+      - "5433:5432"
