@@ -6,6 +6,7 @@ import { z } from "zod";
 import { prisma } from "../db";
 import { ApiError } from "../lib/errors";
 import { AiTransport, aiJson } from "../lib/aiJson";
+import { weeklySoreness } from "./recovery.service";
 
 // ---------- shared session summary (the model's only input) ----------
 
@@ -139,10 +140,13 @@ interface PlanDayForAdjustment {
  * - full completion last time → +2.5% load (or hold if bodyweight)
  * - under 60% of sets completed, or skipped → one set fewer, -10% load
  * - last session cut short → trim one set from every exercise
+ * - avg soreness ≥ 4 over the trailing week → DELOAD: -20% load, -1 set,
+ *   overriding progression (a plan that never backs off is a bug)
  */
 export function adjustmentFallback(
   day: PlanDayForAdjustment,
   history: RecentSession[],
+  avgSoreness: number | null = null,
 ): Adjustment {
   const last = history[0];
   const lastDelta = (last?.delta ?? null) as {
@@ -151,9 +155,14 @@ export function adjustmentFallback(
     plannedSetCount?: number;
   } | null;
   const cutShort = Boolean(lastDelta?.cutShort);
+  const deload = avgSoreness !== null && avgSoreness >= 4;
 
   const nudges: string[] = [];
-  if (cutShort) {
+  if (deload) {
+    nudges.push(
+      "You've been sore all week — this is a deload session. Lighter on purpose; recovery is where the growth happens.",
+    );
+  } else if (cutShort) {
     nudges.push(
       "Last session ran out of steam — volume trimmed so you can finish strong.",
     );
@@ -183,7 +192,11 @@ export function adjustmentFallback(
     let weight = perf?.topWeight ?? null;
     let note: string | undefined;
 
-    if (perf?.skippedOrPoor) {
+    if (deload) {
+      sets = Math.max(2, sets - 1);
+      if (weight !== null) weight = round05(weight * 0.8);
+      note = "Deload — around 80% of your usual load, crisp reps.";
+    } else if (perf?.skippedOrPoor) {
       sets = Math.max(2, sets - 1);
       if (weight !== null) weight = round05(weight * 0.9);
       note = "Scaled back after a tough last outing — nail every set.";
@@ -191,7 +204,7 @@ export function adjustmentFallback(
       weight = round05(weight * 1.025);
       note = "All sets done last time — small load bump.";
     }
-    if (cutShort) sets = Math.max(2, sets - 1);
+    if (cutShort && !deload) sets = Math.max(2, sets - 1);
 
     return {
       exerciseId: pe.exerciseId,
@@ -240,13 +253,15 @@ export async function nextSessionAdjustment(
 
   const user = await prisma.user.findUnique({ where: { id: userId } });
   const history = await recentSessions(userId, 5);
+  const avgSoreness = await weeklySoreness(userId);
 
   const result = await aiJson({
     system:
-      'You are a strength coach adjusting the next session from planned-vs-actual history. Keep changes conservative (±1 set, ±2.5-10% load). Nudges are short, actionable, and encouraging — never lectures. Respond with JSON: {"adjustments": [{"exerciseId", "sets", "reps", "plannedWeightKg" (kg, null if unknown), "note"?}], "nudges": [string, max 3]}. Include every planned exercise exactly once, using the given exerciseIds.',
+      'You are a strength coach adjusting the next session from planned-vs-actual history and recovery check-ins. Keep changes conservative (±1 set, ±2.5-10% load); if average weekly soreness is 4+, program a deload (~-20% load, -1 set). Nudges are short, actionable, and encouraging — never lectures. Respond with JSON: {"adjustments": [{"exerciseId", "sets", "reps", "plannedWeightKg" (kg, null if unknown), "note"?}], "nudges": [string, max 3]}. Include every planned exercise exactly once, using the given exerciseIds.',
     prompt: JSON.stringify({
       goal: user?.goal,
       abilityLevel: user?.abilityLevel,
+      avgWeeklySoreness: avgSoreness,
       plannedDay: {
         name: day.name,
         category: day.category,
@@ -260,7 +275,7 @@ export async function nextSessionAdjustment(
       recentSessions: summarizeSessions(history),
     }),
     schema: adjustmentSchema,
-    fallback: () => adjustmentFallback(day, history),
+    fallback: () => adjustmentFallback(day, history, avgSoreness),
     transport,
   });
 
@@ -271,7 +286,10 @@ export async function nextSessionAdjustment(
     adjustments: result.value.adjustments.filter((a) => known.has(a.exerciseId)),
   };
   if (safe.adjustments.length === 0 && day.exercises.length > 0) {
-    return { ...adjustmentFallback(day, history), source: "fallback" as const };
+    return {
+      ...adjustmentFallback(day, history, avgSoreness),
+      source: "fallback" as const,
+    };
   }
   return { ...safe, source: result.source };
 }

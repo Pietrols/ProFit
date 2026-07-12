@@ -9,6 +9,7 @@ import { chatRouter } from "./routes/chat.routes";
 import { exercisesRouter } from "./routes/exercises.routes";
 import { nutritionRouter } from "./routes/nutrition.routes";
 import { plansRouter } from "./routes/plans.routes";
+import { recoveryRouter } from "./routes/recovery.routes";
 import { workoutsRouter } from "./routes/workouts.routes";
 import { profileRouter } from "./routes/profile.routes";
 
@@ -35,6 +36,7 @@ export function createApp() {
   app.use("/ai", aiRouter);
   app.use("/nutrition", nutritionRouter);
   app.use("/chat", chatRouter);
+  app.use("/recovery", recoveryRouter);
 
   app.use(errorHandler);
   return app;

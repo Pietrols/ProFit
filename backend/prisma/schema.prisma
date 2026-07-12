@@ -74,6 +74,7 @@ model User {
   mealProfile    MealProfileItem[]
   mealLogs       MealLog[]
   chatMessages   ChatMessage[]
+  checkins       RecoveryCheckin[]
 
   @@map("users")
 }
@@ -130,6 +131,20 @@ model MealLog {
 
   @@index([userId, loggedAt])
   @@map("meal_logs")
+}
+
+// Soreness/sleep check-ins feeding deload logic (PROJECT.md §1.9 — a plan
+// that never deloads breaks people). Offline-first, client UUIDs.
+model RecoveryCheckin {
+  id           String   @id
+  userId       String   @map("user_id")
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  soreness     Int // 1 (fresh) – 5 (wrecked)
+  sleepQuality Int      @map("sleep_quality") // 1 (awful) – 5 (great)
+  loggedAt     DateTime @map("logged_at")
+
+  @@index([userId, loggedAt])
+  @@map("recovery_checkins")
 }
 
 // Offline-first bodyweight log; client-generated UUID ids, idempotent sync.
