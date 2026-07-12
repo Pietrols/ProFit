@@ -23,6 +23,30 @@ enum Units {
   lb
 }
 
+enum ExerciseCategory {
+  bodybuilding
+  powerlifting
+  crossfit
+  cardio
+}
+
+model Exercise {
+  id                 String           @id // stable slug, referenced by device SQLite
+  name               String
+  category           ExerciseCategory
+  primaryMuscles     String[]         @map("primary_muscles")
+  secondaryMuscles   String[]         @map("secondary_muscles")
+  equipment          String[]
+  demoUrl            String           @map("demo_url")
+  instructions       String[]
+  homeAlternativeId  String?          @map("home_alternative_id")
+  homeAlternative    Exercise?        @relation("HomeAlternative", fields: [homeAlternativeId], references: [id])
+  homeAlternativeFor Exercise[]       @relation("HomeAlternative")
+  updatedAt          DateTime         @updatedAt @map("updated_at")
+
+  @@map("exercises")
+}
+
 model User {
   id             String          @id @default(uuid())
   email          String          @unique

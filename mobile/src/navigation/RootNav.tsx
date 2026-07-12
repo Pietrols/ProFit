@@ -6,12 +6,14 @@ import { LoginScreen } from '../features/auth/LoginScreen';
 import { RegisterScreen } from '../features/auth/RegisterScreen';
 import { useAuth } from '../features/auth/AuthContext';
 import { HomeScreen } from '../features/home/HomeScreen';
+import { LibraryStack } from '../features/library/LibraryStack';
 import { ProfileScreen } from '../features/profile/ProfileScreen';
 import { useAppTheme } from '../theme/ThemeContext';
 import { LoadingView, Screen } from '../ui';
 
 export type MainTabParamList = {
   Home: undefined;
+  Library: undefined;
   Profile: undefined;
 };
 
@@ -19,6 +21,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 
 const TAB_ICONS: Record<keyof MainTabParamList, keyof typeof MaterialCommunityIcons.glyphMap> = {
   Home: 'home-variant',
+  Library: 'dumbbell',
   Profile: 'account',
 };
 
@@ -70,6 +73,7 @@ export function RootNav() {
         })}
       >
         <Tab.Screen name="Home" component={HomeScreen} />
+        <Tab.Screen name="Library" component={LibraryStack} />
         <Tab.Screen name="Profile" component={ProfileScreen} />
       </Tab.Navigator>
     </NavigationContainer>

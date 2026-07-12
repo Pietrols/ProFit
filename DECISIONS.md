@@ -23,6 +23,36 @@ decided stack. Review and veto freely.
   `BAD_CREDENTIALS`, `NO_TOKEN`, `BAD_TOKEN`, …) so the mobile client can
   branch on `code`, never on message text.
 
+## Phase 2 — Exercise library
+
+- **Seed source: [free-exercise-db](https://github.com/yuhonas/free-exercise-db)
+  (public domain).** 63 exercises curated by hand across the four categories,
+  with names, muscle groups, equipment, instructions, and demo image URLs
+  taken from the dataset (`prisma/seed-data.json`, generated + URL-verified).
+  Demo media are static JPGs, not animations — good enough for Phase 2;
+  swappable per-exercise later since it's just a URL column.
+- **Exercise ids are stable slugs** (`goblet-squat`), not UUIDs, so device
+  SQLite rows, seed re-runs, and plan references stay stable across resets.
+- **One category per exercise** (primary discipline). Plans that need shared
+  movements (a bodybuilding day using squats) may pull across categories in
+  Phase 3; category is a browsing/filter bucket, not a hard fence.
+- **Home alternatives are a self-relation** (`home_alternative_id`), curated
+  in the seed, e.g. goblet squat → bodyweight squat.
+- **Sync protocol: pull with `updatedSince` cursor.** Server returns
+  `serverTime` with every page; the client stores it after applying rows, so
+  clock skew can't skip updates. Device upserts are `INSERT OR REPLACE` on
+  the slug id — idempotent by construction (unit-tested: sync twice → same
+  row count).
+- **Offline demo images: `expo-image` disk cache + prefetch after sync.**
+  Images render offline once the device has synced online at least once;
+  they are not bundled into the APK (63 images ≈ several MB and the set will
+  grow/change server-side).
+- **Arrays in SQLite are stored as JSON text** columns (`equipment`,
+  muscles, instructions); Postgres keeps native `text[]`.
+- **Mobile data-layer tests run against `node:sqlite`** through the same
+  minimal `DbLike` interface expo-sqlite satisfies — real SQLite semantics
+  in unit tests, no native Expo modules needed.
+
 ## Phase 1 — Auth + profile
 
 - **JWT lifetime 30 days**, stateless, no refresh tokens. Right-sized for a

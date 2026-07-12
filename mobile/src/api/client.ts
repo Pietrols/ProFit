@@ -1,3 +1,4 @@
+import { Exercise } from '../data/types';
 import { AuthResponse, ProfileUpdate, User } from './types';
 
 // Android emulator reaches the host machine at 10.0.2.2; a physical device
@@ -69,4 +70,12 @@ export const api = {
 
   updateProfile: (token: string, input: ProfileUpdate) =>
     request<{ user: User }>('/me', { method: 'PATCH', body: input, token }),
+
+  listExercises: (token: string, updatedSince: string | null) =>
+    request<{ serverTime: string; exercises: Exercise[] }>(
+      updatedSince
+        ? `/exercises?updatedSince=${encodeURIComponent(updatedSince)}`
+        : '/exercises',
+      { token },
+    ),
 };
