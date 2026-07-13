@@ -35,6 +35,24 @@ export function formatTime(t: TimeOfDay): string {
   return `${String(t.hour).padStart(2, '0')}:${String(t.minute).padStart(2, '0')}`;
 }
 
+/**
+ * Next meal-reminder fire time (Group H): today at `time` unless that's
+ * already past or the user has logged today — in which case tomorrow. So the
+ * reminder never lands on a day meals were already logged.
+ */
+export function nextMealReminderAt(
+  time: TimeOfDay,
+  loggedToday: boolean,
+  now: Date = new Date(),
+): Date {
+  const target = new Date(now);
+  target.setHours(time.hour, time.minute, 0, 0);
+  if (loggedToday || target.getTime() <= now.getTime()) {
+    target.setDate(target.getDate() + 1);
+  }
+  return target;
+}
+
 /** Merge a stored (possibly older-shaped) settings blob over the defaults. */
 export function mergeReminderSettings(
   parsed: Partial<ReminderSettings> | null,

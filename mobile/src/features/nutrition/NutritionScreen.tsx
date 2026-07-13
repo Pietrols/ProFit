@@ -28,6 +28,7 @@ import {
   Screen,
   Title,
 } from '../../ui';
+import { refreshMealReminder } from '../settings/reminders';
 import { useAuth } from '../auth/AuthContext';
 
 const MEAL_TYPES: readonly MealType[] = ['breakfast', 'lunch', 'dinner', 'snack'];
@@ -65,8 +66,12 @@ export function NutritionScreen() {
   const load = useCallback(async () => {
     const db = await getDb();
     setProfile(await listProfileLocal(db));
-    setMeals(await listMealsLocal(db, startOfToday()));
+    const todays = await listMealsLocal(db, startOfToday());
+    setMeals(todays);
     setStatus('ready');
+    // Re-arm the meal reminder: if something's logged today it moves to
+    // tomorrow, so it won't fire on an already-logged day (Group H).
+    refreshMealReminder(todays.length > 0).catch(() => {});
   }, []);
 
   const sync = useCallback(async () => {
@@ -146,6 +151,8 @@ export function NutritionScreen() {
     setMealName('');
     setMealPortion('');
     setMacros({ protein: '', carbs: '', fat: '', calories: '' });
+    // Logged today → push the meal reminder to tomorrow (Group H).
+    refreshMealReminder(true).catch(() => {});
     await load();
     await sync();
 

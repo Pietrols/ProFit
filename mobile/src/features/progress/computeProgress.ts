@@ -7,6 +7,35 @@ export interface CurvePoint {
   topWeightKg: number;
 }
 
+export interface DayPoint {
+  day: string; // YYYY-MM-DD (local)
+  sessions: number;
+  completedSets: number;
+}
+
+/**
+ * Day-by-day activity timeline (Group H): one point per calendar day that had
+ * any logged session, in chronological order. Distinct from the weekly
+ * aggregates — logging on N different days yields N points.
+ */
+export function dailyActivity(sessions: WorkoutSessionPayload[]): DayPoint[] {
+  const byDay = new Map<string, { sessions: number; completedSets: number }>();
+  for (const s of sessions) {
+    // UTC-bucketed, consistent with weekStartOf, so a day is unambiguous.
+    const day = s.startedAt.slice(0, 10); // YYYY-MM-DD from the ISO timestamp
+    const completed = s.exercises
+      .flatMap((e) => e.sets)
+      .filter((set) => set.completed).length;
+    const cur = byDay.get(day) ?? { sessions: 0, completedSets: 0 };
+    cur.sessions += 1;
+    cur.completedSets += completed;
+    byDay.set(day, cur);
+  }
+  return [...byDay.entries()]
+    .map(([day, v]) => ({ day, ...v }))
+    .sort((a, b) => a.day.localeCompare(b.day));
+}
+
 /** Per-exercise strength curve: heaviest completed set per session. */
 export function strengthCurve(
   sessions: WorkoutSessionPayload[],

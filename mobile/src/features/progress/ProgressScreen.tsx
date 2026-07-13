@@ -19,6 +19,7 @@ import { useAuth, useUser } from '../auth/AuthContext';
 import { fromKg, toKg } from '../workout/computeDelta';
 import {
   adherence,
+  dailyActivity,
   loggedExerciseIds,
   streakWeeks,
   strengthCurve,
@@ -91,6 +92,7 @@ export function ProgressScreen() {
     () => (curveExercise ? strengthCurve(sessions, curveExercise) : []),
     [sessions, curveExercise],
   );
+  const timeline = useMemo(() => dailyActivity(sessions), [sessions]);
 
   async function addBodyweight() {
     const value = Number(bwInput.replace(',', '.'));
@@ -183,6 +185,23 @@ export function ProgressScreen() {
                     />
                   </View>
                 </>
+              ),
+            )}
+
+            {card(
+              'Activity timeline',
+              timeline.length === 0 ? (
+                <Body muted>No sessions logged yet.</Body>
+              ) : (
+                <LineChart
+                  points={timeline.map((p) => ({
+                    label: shortDate(p.day),
+                    value: p.completedSets,
+                  }))}
+                  width={chartWidth}
+                  height={130}
+                  formatValue={(v) => `${v} sets`}
+                />
               ),
             )}
 

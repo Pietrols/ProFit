@@ -12,15 +12,17 @@ import {
   DEFAULT_REMINDERS,
   MEAL_REMINDER_ID,
   mergeReminderSettings,
+  nextMealReminderAt,
   ReminderSettings,
   STORAGE_KEY,
+  TimeOfDay,
 } from './reminderModel';
 
 export type {
   ReminderSettings,
   TimeOfDay,
 } from './reminderModel';
-export { formatTime, WEEKDAY_LABELS } from './reminderModel';
+export { formatTime, nextMealReminderAt, WEEKDAY_LABELS } from './reminderModel';
 export { DEFAULT_REMINDERS, MEAL_REMINDER_ID };
 
 export type ReminderResult = 'ok' | 'denied' | 'unsupported';
@@ -100,25 +102,66 @@ export async function applyReminders(
     }
   }
 
+  // Meal reminder (Group H) uses a re-armable single-occurrence rather than a
+  // repeating trigger, so it can skip a day the user already logged.
   if (settings.meal.enabled) {
-    await Notifications.scheduleNotificationAsync({
-      identifier: MEAL_REMINDER_ID,
-      content: {
-        title: 'Log your meals',
-        body: "Jot down what you ate today — a few taps keeps your log honest.",
-        data: { kind: 'meal' },
-      },
-      trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.DAILY,
-        hour: settings.meal.time.hour,
-        minute: settings.meal.time.minute,
-        channelId,
-      },
-    });
+    await armMealReminder(Notifications, settings.meal.time, false, channelId);
   }
 
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   return 'ok';
+}
+
+async function armMealReminder(
+  Notifications: NonNullable<Awaited<ReturnType<typeof getNotifications>>>,
+  time: TimeOfDay,
+  loggedToday: boolean,
+  channelId?: string,
+) {
+  await Notifications.cancelScheduledNotificationAsync(MEAL_REMINDER_ID).catch(
+    () => {},
+  );
+  const date = nextMealReminderAt(time, loggedToday);
+  await Notifications.scheduleNotificationAsync({
+    identifier: MEAL_REMINDER_ID,
+    content: {
+      title: 'Log your meals',
+      body: "Jot down what you ate today — a few taps keeps your log honest.",
+      data: { kind: 'meal' },
+    },
+    trigger: {
+      type: Notifications.SchedulableTriggerInputTypes.DATE,
+      date,
+      channelId,
+    },
+  });
+}
+
+/**
+ * Re-arm the meal reminder (Group H). Call on app open and after logging a
+ * meal: if the user has logged today, the reminder is pushed to tomorrow, so
+ * it never fires on a day meals were already logged. No-op if the meal
+ * reminder is disabled or notifications are unavailable.
+ */
+export async function refreshMealReminder(loggedToday: boolean): Promise<void> {
+  const Notifications = await getNotifications();
+  if (!Notifications) return;
+  const settings = await loadReminderSettings();
+  if (!settings.meal.enabled) {
+    await Notifications.cancelScheduledNotificationAsync(MEAL_REMINDER_ID).catch(
+      () => {},
+    );
+    return;
+  }
+  const { status } = await Notifications.getPermissionsAsync();
+  if (status !== 'granted') return;
+  await ensureAndroidChannel(Notifications);
+  await armMealReminder(
+    Notifications,
+    settings.meal.time,
+    loggedToday,
+    Platform.OS === 'android' ? CHANNEL_ID : undefined,
+  );
 }
 
 export async function clearReminders(): Promise<void> {

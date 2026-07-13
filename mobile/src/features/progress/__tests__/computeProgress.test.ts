@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { WorkoutSessionPayload, WorkoutSet } from '../../../data/workoutTypes';
 import {
   adherence,
+  dailyActivity,
   loggedExerciseIds,
   streakWeeks,
   strengthCurve,
@@ -127,5 +128,32 @@ describe('computeProgress with 3 logged sessions', () => {
     expect(weekStartOf(new Date('2026-07-13T00:30:00.000Z'))).toBe('2026-07-13');
     expect(weekStartOf(new Date('2026-07-19T23:00:00.000Z'))).toBe('2026-07-13');
     expect(weekStartOf(new Date('2026-07-12T10:00:00.000Z'))).toBe('2026-07-06');
+  });
+});
+
+describe('dailyActivity timeline (Group H)', () => {
+  it('logging on 5 different days produces 5 distinct points', () => {
+    const days = [
+      '2026-07-01T09:00:00.000Z',
+      '2026-07-03T09:00:00.000Z',
+      '2026-07-04T18:00:00.000Z',
+      '2026-07-08T07:00:00.000Z',
+      '2026-07-10T20:00:00.000Z',
+    ];
+    const fiveDays = days.map((d) => session(d, [{ id: 'barbell-squat', sets: [set(60), set(65)] }]));
+    // plus a second session on the FIRST day — still 5 distinct points
+    fiveDays.push(session('2026-07-01T19:00:00.000Z', [{ id: 'barbell-squat', sets: [set(70)] }]));
+
+    const points = dailyActivity(fiveDays);
+    expect(points).toHaveLength(5);
+    // chronological, day-1 has 2 sessions and 3 completed sets
+    expect(points[0]).toMatchObject({ day: '2026-07-01', sessions: 2, completedSets: 3 });
+    expect(points.map((p) => p.day)).toEqual([
+      '2026-07-01', '2026-07-03', '2026-07-04', '2026-07-08', '2026-07-10',
+    ]);
+  });
+
+  it('is empty with no sessions', () => {
+    expect(dailyActivity([])).toEqual([]);
   });
 });

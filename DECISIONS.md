@@ -89,6 +89,19 @@ decided stack. Review and veto freely.
   three-account backend test (sharer visible, hermit invisible, no user
   route). Same inline-image caveat as Group F (move to object storage before
   scale).
+- **Group H**: (1) day-by-day timeline is a pure `dailyActivity()` — one
+  point per calendar day (UTC-bucketed, like `weekStartOf`) with session +
+  completed-set counts, rendered as a green line on Progress; N logged days →
+  N points (unit-tested). (2) The meal-cadence reminder switches from Group
+  C's repeating DAILY trigger to a **re-armable single DATE occurrence**:
+  `nextMealReminderAt(time, loggedToday)` picks today (time still ahead,
+  nothing logged) or tomorrow (logged / past). `refreshMealReminder()` re-arms
+  it on **app open** (HomeScreen) and **after logging a meal** (Nutrition), so
+  it never fires on an already-logged day. **Trade-off (documented):** a local
+  repeating trigger can't cancel a single instance, so the skip is
+  best-effort — it depends on the app being opened / a meal logged that day to
+  re-arm; a truly closed-app skip would need a background task or server push,
+  out of scope.
 
 ## Cross-cutting
 

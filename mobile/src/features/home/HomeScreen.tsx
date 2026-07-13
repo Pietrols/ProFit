@@ -1,8 +1,11 @@
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Pressable, ScrollView, Text, View } from 'react-native';
+import { getDb } from '../../data/db';
+import { listMealsLocal } from '../../data/nutritionRepo';
 import { PlanDay } from '../../data/planRepo';
+import { refreshMealReminder } from '../settings/reminders';
 import { useAppTheme } from '../../theme/ThemeContext';
 import {
   AccentRule,
@@ -24,6 +27,17 @@ export function HomeScreen() {
   const nav = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
   const { status, plan, refresh } = usePlan();
   useWorkoutSync(); // drain any offline-logged sessions on app entry
+
+  // Re-arm the meal reminder on app open: pushed to tomorrow if today's meals
+  // are already logged, so it never fires on an already-logged day (Group H).
+  useEffect(() => {
+    (async () => {
+      const dayStart = new Date();
+      dayStart.setHours(0, 0, 0, 0);
+      const todays = await listMealsLocal(await getDb(), dayStart.toISOString());
+      refreshMealReminder(todays.length > 0).catch(() => {});
+    })();
+  }, []);
 
   return (
     <Screen>
