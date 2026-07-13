@@ -6,4 +6,5 @@ export const plansRouter = Router();
 
 plansRouter.use(requireAuth);
 plansRouter.post("/", plansController.create);
+plansRouter.post("/custom", plansController.createCustom);
 plansRouter.get("/active", plansController.getActive);

@@ -29,6 +29,18 @@ decided stack. Review and veto freely.
   (`reminderModel.ts`) split from the RN/Expo scheduling code so it's
   unit-testable in node. Expo-Go lazy-load gate retained; time-picker UI
   works in Expo Go, actual firing needs a dev/release build (device check).
+- **Group D**: custom plans reuse the existing Plan/PlanDay/PlanExercise
+  tables — no new plan structure. Added `duration_seconds` to plan_exercises
+  (time-based holds/intervals), `is_custom` + timer fields
+  (`default_rest_seconds`, `work_interval_seconds`, `auto_advance_timers`) to
+  plans. New `POST /plans/custom` persists the user's exact named-day +
+  hand-picked-exercise structure (validates every exercise id) — separate
+  from template `POST /plans`. **Active Workout needed no structural change**:
+  it already builds per-set tick-off from `day.exercises` regardless of
+  source, so custom plans flow through unchanged; time-based exercises just
+  surface their `Ns` hold in the set label. Estimated session duration is a
+  pure client helper (`estimateDayMinutes`, unit-tested). The custom builder
+  reuses the Phase-2 library search for exercise picking.
 
 ## Cross-cutting
 

@@ -228,6 +228,11 @@ model Plan {
   name      String
   context   TrainingContext
   isActive  Boolean         @default(true) @map("is_active")
+  isCustom  Boolean         @default(false) @map("is_custom")
+  // Custom-workout timer settings (Group D). Null on template plans.
+  defaultRestSeconds  Int?    @map("default_rest_seconds")
+  workIntervalSeconds Int?    @map("work_interval_seconds")
+  autoAdvanceTimers   Boolean @default(true) @map("auto_advance_timers")
   days      PlanDay[]
   createdAt DateTime        @default(now()) @map("created_at")
   updatedAt DateTime        @updatedAt @map("updated_at")
@@ -252,12 +257,15 @@ model PlanExercise {
   id          String   @id @default(uuid())
   planDayId   String   @map("plan_day_id")
   planDay     PlanDay  @relation(fields: [planDayId], references: [id], onDelete: Cascade)
-  order       Int
-  exerciseId  String   @map("exercise_id")
-  exercise    Exercise @relation(fields: [exerciseId], references: [id])
-  sets        Int
-  reps        String // "8-12", "5", "20-30 min", "AMRAP 12 min" — modality-flexible
-  restSeconds Int      @map("rest_seconds")
+  order           Int
+  exerciseId      String   @map("exercise_id")
+  exercise        Exercise @relation(fields: [exerciseId], references: [id])
+  sets            Int
+  reps            String // "8-12", "5", "20-30 min", "AMRAP 12 min" — modality-flexible
+  restSeconds     Int      @map("rest_seconds")
+  // Time-based exercises (holds, intervals) carry a per-set duration; null for
+  // rep-based work. (Group D)
+  durationSeconds Int?     @map("duration_seconds")
 
   @@unique([planDayId, order])
   @@map("plan_exercises")

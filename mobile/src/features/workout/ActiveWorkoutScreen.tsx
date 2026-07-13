@@ -88,7 +88,13 @@ export function ActiveWorkoutScreen() {
         const ex = (await getExercise(db, pe.exerciseId)) ?? pe.exercise;
         const adj = adjustFor.get(pe.exerciseId);
         const setCount = adj?.sets ?? pe.sets;
-        const reps = adj?.reps ?? pe.reps;
+        // Time-based exercises (custom plans, Group D) surface their hold /
+        // interval seconds alongside the rep label so the per-set tick reads
+        // as a completable timed item.
+        const baseReps = adj?.reps ?? pe.reps;
+        const reps = pe.durationSeconds
+          ? `${baseReps} · ${pe.durationSeconds}s`
+          : baseReps;
         const weightKg = adj?.plannedWeightKg ?? null;
         built.push({
           id: Crypto.randomUUID(),

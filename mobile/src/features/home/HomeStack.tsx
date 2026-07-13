@@ -1,6 +1,7 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { PlanDay } from '../../data/planRepo';
+import { CustomPlanBuilderScreen } from '../plan/CustomPlanBuilderScreen';
 import { PlanBuilderScreen } from '../plan/PlanBuilderScreen';
 import { ActiveWorkoutScreen } from '../workout/ActiveWorkoutScreen';
 import { WorkoutSummaryScreen } from '../workout/WorkoutSummaryScreen';
@@ -9,6 +10,7 @@ import { HomeScreen } from './HomeScreen';
 export type HomeStackParamList = {
   HomeMain: undefined;
   PlanBuilder: undefined;
+  CustomPlanBuilder: undefined;
   ActiveWorkout: { day: PlanDay; planId: string | null };
   WorkoutSummary: { sessionId: string; synced: boolean };
 };
@@ -20,6 +22,7 @@ export function HomeStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HomeMain" component={HomeScreen} />
       <Stack.Screen name="PlanBuilder" component={PlanBuilderScreen} />
+      <Stack.Screen name="CustomPlanBuilder" component={CustomPlanBuilderScreen} />
       <Stack.Screen
         name="ActiveWorkout"
         component={ActiveWorkoutScreen}

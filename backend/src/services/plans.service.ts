@@ -1,7 +1,10 @@
 import { prisma } from "../db";
 import { ApiError } from "../lib/errors";
 import { Exercise } from "../generated/prisma/client";
-import { CreatePlanInput } from "../routes/plans.schemas";
+import {
+  CreateCustomPlanInput,
+  CreatePlanInput,
+} from "../routes/plans.schemas";
 import {
   Category,
   DayTemplate,
@@ -194,6 +197,71 @@ export async function createPlan(userId: string, input: CreatePlanInput) {
             category: d.category as never,
             exercises: {
               create: d.exercises.map((e, order) => ({ order, ...e })),
+            },
+          })),
+        },
+      },
+      include: planInclude,
+    });
+  });
+}
+
+/**
+ * Fully-custom plan (Group D): named days with hand-picked exercises. No
+ * template generation — the user's exact structure is persisted, with
+ * plan-level timer settings. Every referenced exercise must exist.
+ */
+export async function createCustomPlan(
+  userId: string,
+  input: CreateCustomPlanInput,
+) {
+  const referenced = new Set(
+    input.days.flatMap((d) => d.exercises.map((e) => e.exerciseId)),
+  );
+  const known = new Set(
+    (
+      await prisma.exercise.findMany({
+        where: { id: { in: [...referenced] } },
+        select: { id: true },
+      })
+    ).map((e) => e.id),
+  );
+  const missing = [...referenced].filter((id) => !known.has(id));
+  if (missing.length > 0) {
+    throw ApiError.badRequest(
+      `Unknown exercise(s): ${missing.join(", ")}`,
+      "UNKNOWN_EXERCISE",
+    );
+  }
+
+  return prisma.$transaction(async (tx) => {
+    await tx.plan.updateMany({
+      where: { userId, isActive: true },
+      data: { isActive: false },
+    });
+    return tx.plan.create({
+      data: {
+        userId,
+        name: input.name,
+        context: input.context,
+        isCustom: true,
+        defaultRestSeconds: input.timers.defaultRestSeconds,
+        workIntervalSeconds: input.timers.workIntervalSeconds,
+        autoAdvanceTimers: input.timers.autoAdvance,
+        days: {
+          create: input.days.map((d, dayIndex) => ({
+            dayIndex,
+            name: d.name,
+            category: d.category as never,
+            exercises: {
+              create: d.exercises.map((e, order) => ({
+                order,
+                exerciseId: e.exerciseId,
+                sets: e.sets,
+                reps: e.reps,
+                restSeconds: e.restSeconds,
+                durationSeconds: e.durationSeconds,
+              })),
             },
           })),
         },

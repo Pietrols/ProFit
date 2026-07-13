@@ -95,7 +95,25 @@ export function PlanBuilderScreen() {
         <AccentRule />
         {error ? <ErrorBanner message={error} /> : null}
 
-        {label('Training style')}
+        <View
+          style={{
+            backgroundColor: t.colors.s1,
+            borderRadius: t.radius.lg,
+            padding: t.spacing.md,
+            marginBottom: t.spacing.lg,
+          }}
+        >
+          <Text style={{ fontFamily: t.typography.body, fontSize: 13, color: t.colors.tx2, marginBottom: t.spacing.sm }}>
+            Want full control — name each day and hand-pick every exercise?
+          </Text>
+          <Button
+            label="Build a fully custom plan"
+            variant="ghost"
+            onPress={() => nav.navigate('CustomPlanBuilder')}
+          />
+        </View>
+
+        {label('Or generate one — training style')}
         <ChipRow options={CATEGORIES} value={category} onChange={setCategory} />
 
         {label('Days per week')}

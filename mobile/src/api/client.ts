@@ -89,6 +89,35 @@ export const api = {
     },
   ) => request<{ plan: Plan }>('/plans', { method: 'POST', body: input, token }),
 
+  createCustomPlan: (
+    token: string,
+    input: {
+      name: string;
+      context: 'home' | 'gym';
+      timers: {
+        defaultRestSeconds: number;
+        workIntervalSeconds: number | null;
+        autoAdvance: boolean;
+      };
+      days: {
+        name: string;
+        category: ExerciseCategory;
+        exercises: {
+          exerciseId: string;
+          sets: number;
+          reps: string;
+          restSeconds: number;
+          durationSeconds: number | null;
+        }[];
+      }[];
+    },
+  ) =>
+    request<{ plan: Plan }>('/plans/custom', {
+      method: 'POST',
+      body: input,
+      token,
+    }),
+
   getActivePlan: (token: string) =>
     request<{ plan: Plan | null }>('/plans/active', { token }),
 
