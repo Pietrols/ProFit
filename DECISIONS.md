@@ -21,6 +21,14 @@ decided stack. Review and veto freely.
   The service also filters estimates to unknown fields server-side so AI can
   never overwrite a user-entered value. Estimated values render in the blue
   info accent with `~` + "est".
+- **Group C**: two independently-configurable reminders — training-day
+  (weekdays + time) and meal-logging (daily + time) — each with a native
+  time picker (`@react-native-community/datetimepicker`), replacing the fixed
+  7/12/18 chips. Notifications keep stable identifiers (`training-<weekday>`,
+  `meal-daily`) so Group H can manage the meal one independently. Pure model
+  (`reminderModel.ts`) split from the RN/Expo scheduling code so it's
+  unit-testable in node. Expo-Go lazy-load gate retained; time-picker UI
+  works in Expo Go, actual firing needs a dev/release build (device check).
 
 ## Cross-cutting
 

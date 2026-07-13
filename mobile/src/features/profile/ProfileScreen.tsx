@@ -1,6 +1,6 @@
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Text, View } from 'react-native';
 import { NetworkError } from '../../api/client';
 import { Goal, TrainingContext, Units } from '../../api/types';
@@ -9,12 +9,7 @@ import { getDb } from '../../data/db';
 import { listMealsLocal } from '../../data/nutritionRepo';
 import { listSessionsLocal } from '../../data/workoutRepo';
 import { buildExportJson, buildSetsCsv } from '../settings/exportData';
-import {
-  applyReminders,
-  clearReminders,
-  loadReminderSettings,
-  WEEKDAY_LABELS,
-} from '../settings/reminders';
+import { RemindersSection } from '../settings/RemindersSection';
 import { useAppTheme } from '../../theme/ThemeContext';
 import {
   AccentRule,
@@ -46,40 +41,7 @@ export function ProfileScreen() {
   const [error, setError] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
 
-  // reminders + export
-  const [reminderDays, setReminderDays] = useState<string[]>([]);
-  const [reminderHour, setReminderHour] = useState<'7' | '12' | '18'>('18');
-  const [reminderNote, setReminderNote] = useState<string | null>(null);
   const [exportNote, setExportNote] = useState<string | null>(null);
-
-  useEffect(() => {
-    loadReminderSettings().then((s) => {
-      if (s) {
-        setReminderDays(s.weekdays.map(String));
-        setReminderHour(String(s.hour) as '18');
-      }
-    });
-  }, []);
-
-  async function saveReminders() {
-    setReminderNote(null);
-    if (reminderDays.length === 0) {
-      await clearReminders();
-      setReminderNote('Reminders off.');
-      return;
-    }
-    const result = await applyReminders({
-      weekdays: reminderDays.map(Number),
-      hour: Number(reminderHour),
-    }).catch(() => 'unsupported' as const);
-    setReminderNote(
-      result === 'ok'
-        ? `Reminders set for ${reminderDays.length} day(s) at ${reminderHour}:00.`
-        : result === 'denied'
-          ? 'Notifications are blocked — allow them in system settings.'
-          : 'Reminders need the installed app (not Expo Go) — they will work in the release build.',
-    );
-  }
 
   async function exportData(format: 'json' | 'csv') {
     setExportNote(null);
@@ -208,34 +170,7 @@ export function ProfileScreen() {
         <Button label="Save changes" onPress={save} busy={busy} disabled={!dirty} />
 
         <View style={{ height: t.spacing.xl }} />
-        <Heading>Session reminders</Heading>
-        <View style={{ marginTop: t.spacing.sm, gap: t.spacing.sm }}>
-          <ChipRow
-            options={['2', '3', '4', '5', '6', '7', '1'] as const}
-            value={null}
-            multiValues={reminderDays}
-            onChange={(d) =>
-              setReminderDays((prev) =>
-                prev.includes(d) ? prev.filter((x) => x !== d) : [...prev, d],
-              )
-            }
-            labels={Object.fromEntries(
-              Object.entries(WEEKDAY_LABELS).map(([k, v]) => [String(k), v]),
-            )}
-          />
-          <ChipRow
-            options={['7', '12', '18'] as const}
-            value={reminderHour}
-            onChange={setReminderHour}
-            labels={{ '7': '7:00', '12': '12:00', '18': '18:00' }}
-          />
-          <Button label="Save reminders" variant="ghost" onPress={saveReminders} />
-          {reminderNote ? (
-            <Text style={{ fontFamily: t.typography.body, fontSize: 13, color: t.colors.tx2 }}>
-              {reminderNote}
-            </Text>
-          ) : null}
-        </View>
+        <RemindersSection />
 
         <View style={{ height: t.spacing.xl }} />
         <Heading>Your data</Heading>

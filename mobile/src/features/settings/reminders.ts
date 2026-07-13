@@ -1,4 +1,5 @@
-// Session reminders on chosen training days — weekly local notifications.
+// Configurable local reminders (Group C): a training-day reminder (chosen
+// weekdays + time) and a meal-logging reminder (daily at a chosen time).
 //
 // expo-notifications must NOT be imported at module top level: since SDK 53
 // its module evaluation registers a push-token listener that crashes inside
@@ -7,20 +8,24 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
 import { Platform } from 'react-native';
+import {
+  DEFAULT_REMINDERS,
+  MEAL_REMINDER_ID,
+  mergeReminderSettings,
+  ReminderSettings,
+  STORAGE_KEY,
+} from './reminderModel';
 
-export interface ReminderSettings {
-  weekdays: number[]; // 1 (Sunday) – 7 (Saturday), expo convention
-  hour: number;
-}
+export type {
+  ReminderSettings,
+  TimeOfDay,
+} from './reminderModel';
+export { formatTime, WEEKDAY_LABELS } from './reminderModel';
+export { DEFAULT_REMINDERS, MEAL_REMINDER_ID };
 
 export type ReminderResult = 'ok' | 'denied' | 'unsupported';
 
-const STORAGE_KEY = 'profit.reminders';
 const CHANNEL_ID = 'training-reminders';
-
-export const WEEKDAY_LABELS: Record<number, string> = {
-  2: 'Mon', 3: 'Tue', 4: 'Wed', 5: 'Thu', 6: 'Fri', 7: 'Sat', 1: 'Sun',
-};
 
 const inExpoGo =
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
@@ -34,49 +39,84 @@ async function getNotifications() {
   }
 }
 
-export async function loadReminderSettings(): Promise<ReminderSettings | null> {
+export async function loadReminderSettings(): Promise<ReminderSettings> {
   const raw = await AsyncStorage.getItem(STORAGE_KEY);
-  if (!raw) return null;
+  if (!raw) return DEFAULT_REMINDERS;
   try {
-    return JSON.parse(raw) as ReminderSettings;
+    return mergeReminderSettings(JSON.parse(raw) as Partial<ReminderSettings>);
   } catch {
-    return null;
+    return DEFAULT_REMINDERS;
   }
 }
 
-/** Replace all scheduled reminders with the given settings. */
+async function ensureAndroidChannel(
+  Notifications: NonNullable<Awaited<ReturnType<typeof getNotifications>>>,
+) {
+  if (Platform.OS === 'android') {
+    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
+      name: 'ProFit reminders',
+      importance: Notifications.AndroidImportance.HIGH,
+    });
+  }
+}
+
+/**
+ * Replace all scheduled reminders with the given settings. These are
+ * persisted by the OS scheduler, so they survive a force-quit / reboot.
+ */
 export async function applyReminders(
   settings: ReminderSettings,
 ): Promise<ReminderResult> {
   const Notifications = await getNotifications();
-  if (!Notifications) return 'unsupported';
+  if (!Notifications) {
+    // Still persist the choice so it takes effect in a real build.
+    await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    return 'unsupported';
+  }
 
   const { status } = await Notifications.requestPermissionsAsync();
   if (status !== 'granted') return 'denied';
-
-  if (Platform.OS === 'android') {
-    await Notifications.setNotificationChannelAsync(CHANNEL_ID, {
-      name: 'Training reminders',
-      importance: Notifications.AndroidImportance.HIGH,
-    });
-  }
+  await ensureAndroidChannel(Notifications);
 
   await Notifications.cancelAllScheduledNotificationsAsync();
-  for (const weekday of settings.weekdays) {
+  const channelId = Platform.OS === 'android' ? CHANNEL_ID : undefined;
+
+  if (settings.training.enabled) {
+    for (const weekday of settings.training.weekdays) {
+      await Notifications.scheduleNotificationAsync({
+        identifier: `training-${weekday}`,
+        content: {
+          title: 'Training day',
+          body: "Your session is planned for today — even a short one counts.",
+        },
+        trigger: {
+          type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
+          weekday,
+          hour: settings.training.time.hour,
+          minute: settings.training.time.minute,
+          channelId,
+        },
+      });
+    }
+  }
+
+  if (settings.meal.enabled) {
     await Notifications.scheduleNotificationAsync({
+      identifier: MEAL_REMINDER_ID,
       content: {
-        title: 'Training day',
-        body: "Your session is planned for today — even a short one counts.",
+        title: 'Log your meals',
+        body: "Jot down what you ate today — a few taps keeps your log honest.",
+        data: { kind: 'meal' },
       },
       trigger: {
-        type: Notifications.SchedulableTriggerInputTypes.WEEKLY,
-        weekday,
-        hour: settings.hour,
-        minute: 0,
-        channelId: Platform.OS === 'android' ? CHANNEL_ID : undefined,
+        type: Notifications.SchedulableTriggerInputTypes.DAILY,
+        hour: settings.meal.time.hour,
+        minute: settings.meal.time.minute,
+        channelId,
       },
     });
   }
+
   await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
   return 'ok';
 }
