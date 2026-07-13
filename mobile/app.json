@@ -25,9 +25,7 @@
     "plugins": [
       "expo-sqlite",
       "expo-secure-store",
-      "expo-font",
-      "expo-image",
-      "expo-sharing"
+      "expo-font"
     ],
     "backgroundColor": "#050506",
     "extra": {
