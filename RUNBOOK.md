@@ -32,8 +32,8 @@ cd ~/Documents/Repos/ProFit && docker compose up -d
 # T2 — backend (http://localhost:4000)
 cd ~/Documents/Repos/ProFit/backend && npm run dev
 
-# T3 — mobile (Metro dev server)
-cd ~/Documents/Repos/ProFit/mobile && npx expo start
+# T3 — mobile (Metro dev server, Expo Go mode)
+cd ~/Documents/Repos/ProFit/mobile && npm start
 ```
 
 Sanity check: `curl localhost:4000/health` → `{"status":"ok","db":"up"}`.
@@ -56,8 +56,14 @@ AI_MODEL=claude-opus-4-8
 
 | Target | How |
 |---|---|
-| **Physical phone** | Install Expo Go, same Wi-Fi as the Mac, scan the QR from `npx expo start`. Set `EXPO_PUBLIC_API_URL=http://<mac-lan-ip>:4000` in `mobile/.env` (find the IP: `ipconfig getifaddr en0`). |
-| **Android emulator** | `npx expo start` then press `a`. Leave `EXPO_PUBLIC_API_URL` unset — the app defaults to `http://10.0.2.2:4000`. |
+| **Physical phone** | Install Expo Go, same Wi-Fi as the Mac, scan the QR from `npm start`. Set `EXPO_PUBLIC_API_URL=http://<mac-lan-ip>:4000` in `mobile/.env` (find the IP: `ipconfig getifaddr en0`). |
+| **Android emulator** | `npm start` then press `a`. Leave `EXPO_PUBLIC_API_URL` unset — the app defaults to `http://10.0.2.2:4000`. |
+
+⚠ Because `expo-dev-client` is installed, a bare `npx expo start` defaults to
+**development-build mode** — its QR only opens in a custom dev-client app and
+Expo Go will refuse it ("no app can run this"). `npm start` forces Expo Go
+mode (`--go`); or press `s` in Metro to switch. Use `npm run start:devclient`
+once you've built a dev client (needed to test notifications).
 
 Caveat: `expo-notifications` (reminders) is limited inside Expo Go on newer
 Android — use a dev build (`npx expo run:android`) to test reminder firing.
