@@ -2,12 +2,10 @@ import { MealLog, MealProfileItem } from '../data/nutritionRepo';
 import { Plan } from '../data/planRepo';
 import { Exercise, ExerciseCategory } from '../data/types';
 import { WorkoutSessionPayload } from '../data/workoutTypes';
+import { BASE_URL } from './baseUrl';
 import { AuthResponse, ProfileUpdate, User } from './types';
 
-// Android emulator reaches the host machine at 10.0.2.2; a physical device
-// needs the dev machine's LAN IP via EXPO_PUBLIC_API_URL (see .env.example).
-export const BASE_URL =
-  process.env.EXPO_PUBLIC_API_URL ?? 'http://10.0.2.2:4000';
+export { BASE_URL };
 
 export class ApiError extends Error {
   constructor(
