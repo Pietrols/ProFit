@@ -101,6 +101,10 @@ model User {
   defaultContext TrainingContext @default(gym) @map("default_context")
   units          Units           @default(kg)
   abilityLevel   AbilityLevel?   @map("ability_level")
+  // Public profile (Group G): surfaced ONLY via a public workout the user
+  // shared; a user with no public workouts stays undiscoverable.
+  avatar         String?         // data URI or URL
+  publicBio      String?         @map("public_bio")
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
   plans          Plan[]

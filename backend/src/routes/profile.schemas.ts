@@ -7,6 +7,9 @@ export const updateProfileSchema = z
     trainingDays: z.int().min(2).max(7),
     defaultContext: z.enum(["home", "gym"]),
     units: z.enum(["kg", "lb"]),
+    // Public profile (Group G). null clears. avatar is an inline data URI.
+    avatar: z.string().max(900_000).nullable(),
+    publicBio: z.string().max(280).nullable(),
   })
   .partial()
   .refine((data) => Object.keys(data).length > 0, {

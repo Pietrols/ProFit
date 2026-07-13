@@ -79,6 +79,16 @@ decided stack. Review and veto freely.
     (the done-when needs a second account to *find* the workout). Tab bar is
     getting full — consider a "More" grouping later. Browsing is online-only
     (no offline SQLite cache — consistent with chat/plan-create).
+- **Group G**: `avatar` (inline data URI) + `public_bio` on User, edited in a
+  new Profile "Public profile" section (own save, image via the shared
+  `pickImageAsDataUri`). **Discoverability by construction, not enforcement**:
+  there is deliberately NO public `GET /users/:id` endpoint — a creator's
+  avatar/bio are only ever returned as the `user` join on a *public* workout
+  in `/workout-library/public`. A user who has shared nothing public is never
+  a creator anywhere, so their profile is unreachable. Confirmed by a
+  three-account backend test (sharer visible, hermit invisible, no user
+  route). Same inline-image caveat as Group F (move to object storage before
+  scale).
 
 ## Cross-cutting
 

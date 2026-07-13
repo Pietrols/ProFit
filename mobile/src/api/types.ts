@@ -10,6 +10,8 @@ export interface User {
   trainingDays: number;
   defaultContext: TrainingContext;
   units: Units;
+  avatar?: string | null; // public profile (Group G)
+  publicBio?: string | null;
 }
 
 export interface AuthResponse {
@@ -23,4 +25,6 @@ export interface ProfileUpdate {
   trainingDays?: number;
   defaultContext?: TrainingContext;
   units?: Units;
+  avatar?: string | null;
+  publicBio?: string | null;
 }

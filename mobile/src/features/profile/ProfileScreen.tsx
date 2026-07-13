@@ -10,6 +10,7 @@ import { listMealsLocal } from '../../data/nutritionRepo';
 import { listSessionsLocal } from '../../data/workoutRepo';
 import { buildExportJson, buildSetsCsv } from '../settings/exportData';
 import { RemindersSection } from '../settings/RemindersSection';
+import { PublicProfileSection } from './PublicProfileSection';
 import { useAppTheme } from '../../theme/ThemeContext';
 import {
   AccentRule,
@@ -168,6 +169,9 @@ export function ProfileScreen() {
         {section('Units', <ChipRow options={UNITS} value={units} onChange={setUnits} />)}
 
         <Button label="Save changes" onPress={save} busy={busy} disabled={!dirty} />
+
+        <View style={{ height: t.spacing.xl }} />
+        <PublicProfileSection />
 
         <View style={{ height: t.spacing.xl }} />
         <RemindersSection />

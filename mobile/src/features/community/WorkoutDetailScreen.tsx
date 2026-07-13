@@ -92,12 +92,23 @@ export function WorkoutDetailScreen() {
             contentFit="cover"
           />
         ) : null}
-        <Body muted>By {workout.user.displayName}</Body>
-        {workout.user.publicBio ? (
-          <Text style={{ fontFamily: t.typography.body, fontSize: 13, color: t.colors.tx3, marginTop: t.spacing.xs }}>
-            {workout.user.publicBio}
-          </Text>
-        ) : null}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: t.spacing.sm }}>
+          {workout.user.avatar ? (
+            <Image
+              source={{ uri: workout.user.avatar }}
+              style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: t.colors.s3 }}
+              contentFit="cover"
+            />
+          ) : null}
+          <View style={{ flexShrink: 1 }}>
+            <Body muted>By {workout.user.displayName}</Body>
+            {workout.user.publicBio ? (
+              <Text style={{ fontFamily: t.typography.body, fontSize: 13, color: t.colors.tx3 }}>
+                {workout.user.publicBio}
+              </Text>
+            ) : null}
+          </View>
+        </View>
 
         <View style={{ height: t.spacing.lg }} />
         <Heading>Exercises</Heading>

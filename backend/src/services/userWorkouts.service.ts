@@ -9,10 +9,10 @@ const workoutInclude = {
     orderBy: { order: "asc" as const },
     include: { exercise: true },
   },
-  // Creator identity for the public library. Group G extends this select with
-  // bio/picture (surfaced only via a shared public workout).
+  // Creator identity for the public library, including the public profile
+  // (Group G: avatar + bio) — surfaced ONLY here, via a shared public workout.
   user: {
-    select: { id: true, displayName: true },
+    select: { id: true, displayName: true, avatar: true, publicBio: true },
   },
 };
 

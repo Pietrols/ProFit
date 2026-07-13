@@ -6,9 +6,28 @@ import { UpdateProfileInput } from "../routes/profile.schemas";
 export type PublicUser = ReturnType<typeof toPublicUser>;
 
 export function toPublicUser(user: User) {
-  const { id, email, displayName, goal, trainingDays, defaultContext, units } =
-    user;
-  return { id, email, displayName, goal, trainingDays, defaultContext, units };
+  const {
+    id,
+    email,
+    displayName,
+    goal,
+    trainingDays,
+    defaultContext,
+    units,
+    avatar,
+    publicBio,
+  } = user;
+  return {
+    id,
+    email,
+    displayName,
+    goal,
+    trainingDays,
+    defaultContext,
+    units,
+    avatar,
+    publicBio,
+  };
 }
 
 export async function getProfile(userId: string) {
