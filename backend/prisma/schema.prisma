@@ -51,9 +51,44 @@ model Exercise {
   homeAlternativeFor Exercise[]       @relation("HomeAlternative")
   planExercises      PlanExercise[]
   sessionExercises   WorkoutSessionExercise[]
+  userWorkoutExercises UserWorkoutExercise[]
   updatedAt          DateTime         @updatedAt @map("updated_at")
 
   @@map("exercises")
+}
+
+// User-created workout (Group F): a shareable template. Public ones appear in
+// the community library for any authenticated user to copy into their plans.
+model UserWorkout {
+  id         String                @id @default(uuid())
+  userId     String                @map("user_id")
+  user       User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name       String
+  isPublic   Boolean               @default(false) @map("is_public")
+  // Optional cover: a data URI or URL. Stored inline (MVP — see DECISIONS).
+  coverImage String?               @map("cover_image")
+  exercises  UserWorkoutExercise[]
+  createdAt  DateTime              @default(now()) @map("created_at")
+  updatedAt  DateTime              @updatedAt @map("updated_at")
+
+  @@index([isPublic, createdAt])
+  @@map("user_workouts")
+}
+
+model UserWorkoutExercise {
+  id              String      @id @default(uuid())
+  workoutId       String      @map("workout_id")
+  workout         UserWorkout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  order           Int
+  exerciseId      String      @map("exercise_id")
+  exercise        Exercise    @relation(fields: [exerciseId], references: [id])
+  sets            Int
+  reps            String
+  restSeconds     Int         @map("rest_seconds")
+  durationSeconds Int?        @map("duration_seconds")
+
+  @@unique([workoutId, order])
+  @@map("user_workout_exercises")
 }
 
 model User {
@@ -75,6 +110,7 @@ model User {
   mealLogs       MealLog[]
   chatMessages   ChatMessage[]
   checkins       RecoveryCheckin[]
+  userWorkouts   UserWorkout[]
 
   @@map("users")
 }

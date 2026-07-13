@@ -51,6 +51,34 @@ decided stack. Review and veto freely.
   completion. Since Home shows the whole plan (no per-calendar-day rotation),
   the routine appears every day by construction. Set via the custom builder's
   per-day "Do every day" toggle.
+- **Group F — flagged decisions to confirm/override:**
+  1. **No moderation/reporting in this pass** — "public" means visible to
+     every authenticated user, full stop. No report button, no review queue,
+     no takedown flow. Stated explicitly so it isn't silently missing; build
+     it before any real public launch.
+  2. **Copy semantics, not live reference** — using someone's public workout
+     `POST /workout-library/:id/copy` creates a brand-new custom Plan owned by
+     the copier. The creator's later edits never touch it. (Confirmed with a
+     two-account backend test.)
+  3. **AI cover-image generation — PRODUCT FINDING.** Anthropic's API is
+     text/JSON only; **Claude cannot generate images** and there is no
+     Anthropic image endpoint. So the "AI suggests a cover image" path has no
+     first-party source on ProFit's stack. `POST /workout-library/suggest-
+     image` is a genuinely separate path (NOT routed through `aiJson()`),
+     gated behind `AI_ENABLED`, and currently returns
+     `{available:false, imageUrl:null, reason}` — the workout then saves with
+     no cover, which is the required non-blocking behavior. **To actually
+     generate images you must add a third-party image vendor** (e.g. an
+     image-gen API): new API key, new cost, new data-sharing disclosure in
+     the privacy policy. Left as your decision — not silently wired in.
+  - Cover images / avatars are stored **inline as data-URI text** (backend
+    `express.json` limit raised to 2mb; Zod caps the string ~900KB; client
+    picks at quality 0.4). MVP shortcut — move to object storage (S3/R2)
+    before scale; base64-in-Postgres is fine for a beta, wasteful at volume.
+  - Community is a **7th bottom tab** ("earth" icon) for discoverability
+    (the done-when needs a second account to *find* the workout). Tab bar is
+    getting full — consider a "More" grouping later. Browsing is online-only
+    (no offline SQLite cache — consistent with chat/plan-create).
 
 ## Cross-cutting
 

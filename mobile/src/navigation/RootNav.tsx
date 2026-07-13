@@ -5,6 +5,7 @@ import React, { useState } from 'react';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { RegisterScreen } from '../features/auth/RegisterScreen';
 import { useAuth } from '../features/auth/AuthContext';
+import { CommunityStack } from '../features/community/CommunityStack';
 import { HomeStack } from '../features/home/HomeStack';
 import { LibraryStack } from '../features/library/LibraryStack';
 import { ChatScreen } from '../features/chat/ChatScreen';
@@ -17,6 +18,7 @@ import { LoadingView, Screen } from '../ui';
 export type MainTabParamList = {
   Home: undefined;
   Library: undefined;
+  Community: undefined;
   Progress: undefined;
   Nutrition: undefined;
   Coach: undefined;
@@ -28,6 +30,7 @@ const Tab = createBottomTabNavigator<MainTabParamList>();
 const TAB_ICONS: Record<keyof MainTabParamList, keyof typeof MaterialCommunityIcons.glyphMap> = {
   Home: 'home-variant',
   Library: 'dumbbell',
+  Community: 'earth',
   Progress: 'chart-line',
   Nutrition: 'food-apple',
   Coach: 'chat-processing',
@@ -83,6 +86,7 @@ export function RootNav() {
       >
         <Tab.Screen name="Home" component={HomeStack} />
         <Tab.Screen name="Library" component={LibraryStack} />
+        <Tab.Screen name="Community" component={CommunityStack} />
         <Tab.Screen name="Progress" component={ProgressScreen} />
         <Tab.Screen name="Nutrition" component={NutritionScreen} />
         <Tab.Screen name="Coach" component={ChatScreen} />

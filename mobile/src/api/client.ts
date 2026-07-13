@@ -1,3 +1,4 @@
+import { CreateWorkoutInput, UserWorkout } from '../data/communityTypes';
 import { MealLog, MealProfileItem } from '../data/nutritionRepo';
 import { Plan } from '../data/planRepo';
 import { Exercise, ExerciseCategory } from '../data/types';
@@ -121,6 +122,32 @@ export const api = {
 
   getActivePlan: (token: string) =>
     request<{ plan: Plan | null }>('/plans/active', { token }),
+
+  // Community workouts (Group F)
+  createWorkout: (token: string, input: CreateWorkoutInput) =>
+    request<{ workout: UserWorkout }>('/workout-library', {
+      method: 'POST',
+      body: input,
+      token,
+    }),
+
+  myWorkouts: (token: string) =>
+    request<{ workouts: UserWorkout[] }>('/workout-library/mine', { token }),
+
+  publicWorkouts: (token: string) =>
+    request<{ workouts: UserWorkout[] }>('/workout-library/public', { token }),
+
+  copyWorkout: (token: string, id: string) =>
+    request<{ plan: Plan }>(`/workout-library/${id}/copy`, {
+      method: 'POST',
+      token,
+    }),
+
+  suggestWorkoutImage: (token: string, name: string) =>
+    request<{ imageUrl: string | null; available: boolean; reason: string }>(
+      '/workout-library/suggest-image',
+      { method: 'POST', body: { name }, token },
+    ),
 
   syncCheckins: (
     token: string,
