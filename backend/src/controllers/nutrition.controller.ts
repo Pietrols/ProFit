@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { parseOrThrow } from "../lib/errors";
 import {
+  estimateMacrosSchema,
   syncMealLogsSchema,
   syncMealProfileSchema,
 } from "../routes/nutrition.schemas";
@@ -26,4 +27,9 @@ export async function listMeals(req: Request, res: Response) {
 
 export async function suggestion(req: Request, res: Response) {
   res.json(await nutritionService.mealSuggestion(req.userId!));
+}
+
+export async function estimateMacros(req: Request, res: Response) {
+  const input = parseOrThrow(estimateMacrosSchema, req.body);
+  res.json(await nutritionService.estimateMacros(input));
 }

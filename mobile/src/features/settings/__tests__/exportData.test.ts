@@ -44,7 +44,7 @@ describe('data export', () => {
       {
         sessions: [session],
         bodyweight: [{ id: 'b-1', weightKg: 82.5, loggedAt: '2026-07-15T07:00:00.000Z' }],
-        meals: [{ id: 'm-1', name: 'Pizza, "large"', portion: '3 slices', mealType: 'dinner', loggedAt: '2026-07-15T19:00:00.000Z' }],
+        meals: [{ id: 'm-1', name: 'Pizza, "large"', portion: '3 slices', mealType: 'dinner', loggedAt: '2026-07-15T19:00:00.000Z', protein: null, carbs: null, fat: null, calories: null, estimatedFields: [] }],
       },
       '2026-07-16T12:00:00.000Z',
     );

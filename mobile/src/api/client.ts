@@ -133,6 +133,24 @@ export const api = {
       { token },
     ),
 
+  estimateMacros: (
+    token: string,
+    input: {
+      name: string;
+      portion: string;
+      known: {
+        protein: number | null;
+        carbs: number | null;
+        fat: number | null;
+        calories: number | null;
+      };
+    },
+  ) =>
+    request<{
+      estimates: Partial<Record<'protein' | 'carbs' | 'fat' | 'calories', number>>;
+      source: 'ai' | 'fallback';
+    }>('/nutrition/estimate-macros', { method: 'POST', body: input, token }),
+
   syncBodyweight: (
     token: string,
     entries: { id: string; weightKg: number; loggedAt: string }[],

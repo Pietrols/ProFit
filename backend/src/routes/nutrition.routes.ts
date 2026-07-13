@@ -10,3 +10,4 @@ nutritionRouter.get("/profile", nutritionController.getProfile);
 nutritionRouter.post("/meals/sync", nutritionController.syncMeals);
 nutritionRouter.get("/meals", nutritionController.listMeals);
 nutritionRouter.get("/suggestion", nutritionController.suggestion);
+nutritionRouter.post("/estimate-macros", nutritionController.estimateMacros);

@@ -128,6 +128,14 @@ model MealLog {
   portion  String
   mealType MealType @map("meal_type")
   loggedAt DateTime @map("logged_at")
+  // Macros (Group B): each null when unknown; grams for the three, kcal for
+  // calories. estimatedFields lists which values are AI-estimated rather than
+  // user-entered, so the UI can distinguish them honestly.
+  proteinG        Float?   @map("protein_g")
+  carbsG          Float?   @map("carbs_g")
+  fatG            Float?   @map("fat_g")
+  calories        Float?
+  estimatedFields String[] @map("estimated_fields")
 
   @@index([userId, loggedAt])
   @@map("meal_logs")

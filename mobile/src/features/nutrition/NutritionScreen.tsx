@@ -6,6 +6,8 @@ import { getDb } from '../../data/db';
 import {
   listMealsLocal,
   listProfileLocal,
+  MacroField,
+  MACRO_FIELDS,
   MealLog,
   MealProfileItem,
   MealType,
@@ -50,7 +52,15 @@ export function NutritionScreen() {
   const [mealName, setMealName] = useState('');
   const [mealPortion, setMealPortion] = useState('');
   const [mealType, setMealType] = useState<MealType>('lunch');
+  // macro inputs — empty string = "I don't know"
+  const [macros, setMacros] = useState<Record<MacroField, string>>({
+    protein: '',
+    carbs: '',
+    fat: '',
+    calories: '',
+  });
   const [formError, setFormError] = useState<string | null>(null);
+  const [estimating, setEstimating] = useState(false);
 
   const load = useCallback(async () => {
     const db = await getDb();
@@ -110,18 +120,72 @@ export function NutritionScreen() {
       return;
     }
     setFormError(null);
-    const db = await getDb();
-    await saveMealLocal(db, {
+
+    // Parse each macro: blank = unknown (null), else a non-negative number.
+    const parse = (v: string): number | null => {
+      const s = v.trim();
+      if (!s) return null;
+      const n = Number(s);
+      return Number.isFinite(n) && n >= 0 ? n : null;
+    };
+    const meal: MealLog = {
       id: Crypto.randomUUID(),
       name: mealName.trim(),
       portion: mealPortion.trim(),
       mealType,
       loggedAt: new Date().toISOString(),
-    });
+      protein: parse(macros.protein),
+      carbs: parse(macros.carbs),
+      fat: parse(macros.fat),
+      calories: parse(macros.calories),
+      estimatedFields: [],
+    };
+
+    const db = await getDb();
+    await saveMealLocal(db, meal); // save first — offline-first, honest nulls
     setMealName('');
     setMealPortion('');
+    setMacros({ protein: '', carbs: '', fat: '', calories: '' });
     await load();
     await sync();
+
+    // If online and any macro is unknown, ask the server (AI or its off-state)
+    // to estimate ONLY the blanks — never blocks the log, never invents on AI-off.
+    const unknown = MACRO_FIELDS.some((f) => meal[f] === null);
+    if (session && unknown) {
+      setEstimating(true);
+      try {
+        const { estimates } = await api.estimateMacros(session.token, {
+          name: meal.name,
+          portion: meal.portion,
+          known: {
+            protein: meal.protein,
+            carbs: meal.carbs,
+            fat: meal.fat,
+            calories: meal.calories,
+          },
+        });
+        const filled = MACRO_FIELDS.filter((f) => estimates[f] != null);
+        if (filled.length > 0) {
+          const enriched: MealLog = {
+            ...meal,
+            protein: estimates.protein ?? meal.protein,
+            carbs: estimates.carbs ?? meal.carbs,
+            fat: estimates.fat ?? meal.fat,
+            calories: estimates.calories ?? meal.calories,
+            estimatedFields: filled,
+          };
+          await saveMealLocal(db, enriched); // re-save + re-sync (idempotent)
+          await load();
+          await sync();
+        }
+      } catch {
+        // offline / AI off / model error — the meal is already saved honestly
+      } finally {
+        setEstimating(false);
+      }
+    }
+
     await refreshSuggestion();
   }
 
@@ -137,12 +201,14 @@ export function NutritionScreen() {
     value: string,
     onChange: (v: string) => void,
     placeholder: string,
+    keyboard: 'default' | 'numeric' = 'default',
   ) => (
     <TextInput
       value={value}
       onChangeText={onChange}
       placeholder={placeholder}
       placeholderTextColor={t.colors.tx3}
+      keyboardType={keyboard === 'numeric' ? 'numeric' : 'default'}
       style={{
         flex: 1,
         fontFamily: t.typography.body,
@@ -231,8 +297,45 @@ export function NutritionScreen() {
               {input(mealName, setMealName, 'What did you eat?')}
               {input(mealPortion, setMealPortion, 'portion')}
             </View>
-            <View style={{ marginTop: t.spacing.md }}>
-              <Button label="Log meal" onPress={addMeal} />
+            <Text
+              style={{
+                fontFamily: t.typography.body,
+                fontSize: 12,
+                color: t.colors.tx3,
+                marginTop: t.spacing.md,
+              }}
+            >
+              Macros — leave blank for any you don't know; the coach estimates
+              the rest.
+            </Text>
+            <View style={{ flexDirection: 'row', gap: t.spacing.sm, marginTop: t.spacing.sm }}>
+              {(['protein', 'carbs', 'fat'] as const).map((f) => (
+                <View key={f} style={{ flex: 1 }}>
+                  {input(
+                    macros[f],
+                    (v) => setMacros((m) => ({ ...m, [f]: v })),
+                    `${f} g`,
+                    'numeric',
+                  )}
+                </View>
+              ))}
+            </View>
+            <View style={{ flexDirection: 'row', gap: t.spacing.sm, marginTop: t.spacing.sm }}>
+              <View style={{ flex: 1 }}>
+                {input(
+                  macros.calories,
+                  (v) => setMacros((m) => ({ ...m, calories: v })),
+                  'calories kcal',
+                  'numeric',
+                )}
+              </View>
+              <View style={{ flex: 2 }}>
+                <Button
+                  label={estimating ? 'Estimating…' : 'Log meal'}
+                  onPress={addMeal}
+                  busy={estimating}
+                />
+              </View>
             </View>
           </>,
         )}
@@ -261,6 +364,7 @@ export function NutritionScreen() {
                     <Text style={{ fontFamily: t.typography.body, fontSize: 12, color: t.colors.tx3 }}>
                       {m.portion}
                     </Text>
+                    <MacroLine meal={m} />
                   </View>
                   <Text
                     style={{
@@ -299,5 +403,46 @@ export function NutritionScreen() {
         <View style={{ height: t.spacing.xxl }} />
       </ScrollView>
     </Screen>
+  );
+}
+
+/** Macro summary for a logged meal. AI-estimated values render in the blue
+ * info accent with a "~" and are labelled "est"; user-entered values are
+ * plain — so estimates are never mistaken for facts. */
+function MacroLine({ meal }: { meal: MealLog }) {
+  const t = useAppTheme();
+  const parts: { field: MacroField; label: string }[] = [
+    { field: 'protein', label: 'P' },
+    { field: 'carbs', label: 'C' },
+    { field: 'fat', label: 'F' },
+    { field: 'calories', label: 'kcal' },
+  ];
+  const shown = parts.filter((p) => meal[p.field] != null);
+  if (shown.length === 0) return null;
+  const estimated = new Set(meal.estimatedFields);
+  return (
+    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: t.spacing.sm, marginTop: 2 }}>
+      {shown.map((p) => {
+        const isEst = estimated.has(p.field);
+        const value = meal[p.field] as number;
+        const text =
+          p.field === 'calories'
+            ? `${isEst ? '~' : ''}${Math.round(value)} kcal`
+            : `${p.label} ${isEst ? '~' : ''}${Math.round(value)}g`;
+        return (
+          <Text
+            key={p.field}
+            style={{
+              fontFamily: t.typography.body,
+              fontSize: 11,
+              color: isEst ? t.colors.blue : t.colors.tx2,
+            }}
+          >
+            {text}
+            {isEst ? ' est' : ''}
+          </Text>
+        );
+      })}
+    </View>
   );
 }

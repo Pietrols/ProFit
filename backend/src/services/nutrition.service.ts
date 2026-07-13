@@ -5,6 +5,9 @@ import { prisma } from "../db";
 import { ApiError } from "../lib/errors";
 import { AiTransport, aiJson } from "../lib/aiJson";
 import {
+  EstimateMacrosInput,
+  MACRO_FIELDS,
+  MacroField,
   SyncMealLogsInput,
   SyncMealProfileInput,
 } from "../routes/nutrition.schemas";
@@ -60,6 +63,11 @@ export async function syncMeals(userId: string, input: SyncMealLogsInput) {
       portion: meal.portion,
       mealType: meal.mealType as never,
       loggedAt: new Date(meal.loggedAt),
+      proteinG: meal.protein,
+      carbsG: meal.carbs,
+      fatG: meal.fat,
+      calories: meal.calories,
+      estimatedFields: meal.estimatedFields,
     };
     await prisma.mealLog.upsert({
       where: { id: meal.id },
@@ -132,6 +140,55 @@ export function suggestionFallback(
         targetMeal: last.name,
       };
   }
+}
+
+// ---------- AI macro estimation ----------
+
+export const macroEstimateSchema = z.object({
+  protein: z.number().min(0).max(500).optional(),
+  carbs: z.number().min(0).max(1000).optional(),
+  fat: z.number().min(0).max(500).optional(),
+  calories: z.number().min(0).max(10000).optional(),
+});
+export type MacroEstimate = z.infer<typeof macroEstimateSchema>;
+
+/**
+ * Estimate ONLY the macro fields the user left unknown, from the food name +
+ * whatever they did enter. AI off / model failure → empty estimates (the
+ * unknown fields stay null; we never present a fabricated number as real).
+ */
+export async function estimateMacros(
+  input: EstimateMacrosInput,
+  transport?: AiTransport,
+): Promise<{ estimates: MacroEstimate; source: "ai" | "fallback" }> {
+  const unknown = MACRO_FIELDS.filter((f) => input.known[f] == null);
+  if (unknown.length === 0) return { estimates: {}, source: "fallback" };
+
+  const result = await aiJson<MacroEstimate>({
+    system:
+      "You are a nutrition database. Estimate the macronutrients of the named food at the given portion. Protein, carbs, and fat are in grams; calories in kcal. Estimate ONLY the requested fields; be realistic for a typical portion. Respond with JSON containing just those numeric fields.",
+    prompt: JSON.stringify({
+      food: input.name,
+      portion: input.portion,
+      alreadyKnown: input.known,
+      estimateOnly: unknown,
+    }),
+    schema: macroEstimateSchema,
+    fallback: () => ({}), // honest "don't know" — no fabricated numbers
+    transport,
+  });
+
+  // Safety: keep only the fields that were actually unknown, so AI output can
+  // never overwrite a value the user entered themselves.
+  const estimates: MacroEstimate = {};
+  for (const f of unknown as MacroField[]) {
+    const v = result.value[f];
+    if (typeof v === "number") estimates[f] = v;
+  }
+  return {
+    estimates,
+    source: Object.keys(estimates).length > 0 ? result.source : "fallback",
+  };
 }
 
 export async function mealSuggestion(userId: string, transport?: AiTransport) {

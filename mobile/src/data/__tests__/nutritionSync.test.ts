@@ -15,6 +15,11 @@ const meal = (id: string, name = 'Chicken wrap') => ({
   portion: '1 wrap',
   mealType: 'lunch' as const,
   loggedAt: '2026-07-15T13:00:00.000Z',
+  protein: null,
+  carbs: null,
+  fat: null,
+  calories: null,
+  estimatedFields: [],
 });
 
 describe('nutrition sync queue', () => {
@@ -39,6 +44,23 @@ describe('nutrition sync queue', () => {
     });
     expect((await pushMeals(db, async () => ({ synced: [] }))).pushed).toBe(0);
     expect(batches).toEqual([['m-1']]);
+  });
+
+  it('round-trips macros and estimatedFields through local storage', async () => {
+    const db = createTestDb();
+    await migrate(db);
+    await saveMealLocal(db, {
+      ...meal('m-2', 'shawarma'),
+      protein: 100,
+      carbs: 45,
+      fat: 30,
+      calories: 650,
+      estimatedFields: ['carbs', 'fat', 'calories'],
+    });
+    const [stored] = await listMealsLocal(db);
+    expect(stored.protein).toBe(100);
+    expect(stored.calories).toBe(650);
+    expect(stored.estimatedFields).toEqual(['carbs', 'fat', 'calories']);
   });
 
   it('profile items support soft delete', async () => {

@@ -81,6 +81,14 @@ const MIGRATIONS: string[] = [
     synced INTEGER NOT NULL DEFAULT 0
   );
   `,
+  // v7 — meal macros (Group B): nullable numbers + estimated-field flags
+  `
+  ALTER TABLE meal_logs ADD COLUMN protein REAL;
+  ALTER TABLE meal_logs ADD COLUMN carbs REAL;
+  ALTER TABLE meal_logs ADD COLUMN fat REAL;
+  ALTER TABLE meal_logs ADD COLUMN calories REAL;
+  ALTER TABLE meal_logs ADD COLUMN estimated_fields TEXT NOT NULL DEFAULT '[]';
+  `,
 ];
 
 export async function migrate(db: DbLike): Promise<void> {

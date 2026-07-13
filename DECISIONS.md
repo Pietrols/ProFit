@@ -3,6 +3,25 @@
 Decisions taken where PROJECT.md was ambiguous, plus any deviations from the
 decided stack. Review and veto freely.
 
+## Extension run (Groups A–H) — decisions to confirm
+
+- **Group A**: eye-toggle lives on the shared `TextField` (`secureToggle`
+  prop) so every password field is consistent; confirm-password match is
+  validated live and blocks submit before any network call; a shared
+  `KeyboardForm` (KeyboardAvoidingView + ScrollView) wraps login/register/
+  profile. Profile has no text field yet but is wrapped now for Groups C/G.
+- **Group B**: macros are four nullable numbers (`protein_g`/`carbs_g`/
+  `fat_g`/`calories`) plus `estimated_fields String[]` flagging which values
+  are AI-estimated. Estimation is a **separate `POST /nutrition/estimate-
+  macros`** endpoint, not folded into meal sync, so sync stays deterministic/
+  idempotent. Flow: save locally (honest nulls) → sync → if online + any
+  unknown, request estimates → merge only the previously-null fields → re-save
+  (resets `synced`) → re-sync. **AI-off/failure returns no estimates** — the
+  deterministic fallback is an honest empty object, never fabricated numbers.
+  The service also filters estimates to unknown fields server-side so AI can
+  never overwrite a user-entered value. Estimated values render in the blue
+  info accent with `~` + "est".
+
 ## Cross-cutting
 
 - **Local DB port is 5434, not 5433.** The stack says Docker Postgres on 5433
