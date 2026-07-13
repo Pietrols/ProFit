@@ -247,6 +247,9 @@ model PlanDay {
   dayIndex  Int              @map("day_index")
   name      String
   category  ExerciseCategory
+  // Mandatory daily routine (Group E): shown on Home every day, separate from
+  // the day-specific split. Completing it is its own workout session.
+  isDaily   Boolean          @default(false) @map("is_daily")
   exercises PlanExercise[]
 
   @@unique([planId, dayIndex])

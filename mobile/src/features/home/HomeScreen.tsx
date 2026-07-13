@@ -58,13 +58,58 @@ export function HomeScreen() {
           >
             {plan.name} · {plan.context}
           </Text>
-          {plan.days.map((day) => (
-            <DayCard
-              key={day.id}
-              day={day}
-              onStart={() => nav.navigate('ActiveWorkout', { day, planId: plan.id })}
-            />
-          ))}
+
+          {/* Mandatory daily routine — shown every day, above the split, with
+              its own completion (a separate workout session). */}
+          {plan.days.some((d) => d.isDaily) && (
+            <View style={{ marginBottom: t.spacing.md }}>
+              <Text
+                style={{
+                  fontFamily: t.typography.label,
+                  fontSize: 12,
+                  color: t.colors.green,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                  marginBottom: t.spacing.sm,
+                }}
+              >
+                Every day
+              </Text>
+              {plan.days
+                .filter((d) => d.isDaily)
+                .map((day) => (
+                  <DayCard
+                    key={day.id}
+                    day={day}
+                    onStart={() => nav.navigate('ActiveWorkout', { day, planId: plan.id })}
+                  />
+                ))}
+            </View>
+          )}
+
+          {plan.days.some((d) => !d.isDaily) && (
+            <Text
+              style={{
+                fontFamily: t.typography.label,
+                fontSize: 12,
+                color: t.colors.tx3,
+                textTransform: 'uppercase',
+                letterSpacing: 0.5,
+                marginBottom: t.spacing.sm,
+              }}
+            >
+              Weekly split
+            </Text>
+          )}
+          {plan.days
+            .filter((d) => !d.isDaily)
+            .map((day) => (
+              <DayCard
+                key={day.id}
+                day={day}
+                onStart={() => nav.navigate('ActiveWorkout', { day, planId: plan.id })}
+              />
+            ))}
           <View style={{ height: t.spacing.md }} />
           <Button
             label="New plan"
@@ -100,7 +145,7 @@ function DayCard({ day, onStart }: { day: PlanDay; onStart: () => void }) {
             textTransform: 'uppercase',
           }}
         >
-          Day {day.dayIndex + 1} — {day.name}
+          {day.isDaily ? day.name : `Day ${day.dayIndex + 1} — ${day.name}`}
         </Text>
         <Text
           style={{

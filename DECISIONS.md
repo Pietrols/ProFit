@@ -41,6 +41,16 @@ decided stack. Review and veto freely.
   surface their `Ns` hold in the set label. Estimated session duration is a
   pure client helper (`estimateDayMinutes`, unit-tested). The custom builder
   reuses the Phase-2 library search for exercise picking.
+- **Group E**: the mandatory daily routine is a `PlanDay` with `is_daily=true`
+  rather than a separate table — it reuses everything (exercises, Active
+  Workout, sessions). Home renders `isDaily` days in an always-visible "Every
+  day" section above the "Weekly split". **Completion independence is
+  automatic**: each day (routine or split) starts its own Active Workout →
+  its own `WorkoutSession` row keyed by client UUID; there is no shared
+  completion flag, so completing the routine can't affect the split's
+  completion. Since Home shows the whole plan (no per-calendar-day rotation),
+  the routine appears every day by construction. Set via the custom builder's
+  per-day "Do every day" toggle.
 
 ## Cross-cutting
 

@@ -33,6 +33,7 @@ export const createCustomPlanSchema = z.object({
           "crossfit",
           "cardio",
         ]),
+        isDaily: z.boolean().default(false),
         exercises: z
           .array(
             z.object({

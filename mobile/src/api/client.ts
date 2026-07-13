@@ -102,6 +102,7 @@ export const api = {
       days: {
         name: string;
         category: ExerciseCategory;
+        isDaily: boolean;
         exercises: {
           exerciseId: string;
           sets: number;

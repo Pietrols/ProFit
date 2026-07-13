@@ -253,6 +253,7 @@ export async function createCustomPlan(
             dayIndex,
             name: d.name,
             category: d.category as never,
+            isDaily: d.isDaily,
             exercises: {
               create: d.exercises.map((e, order) => ({
                 order,

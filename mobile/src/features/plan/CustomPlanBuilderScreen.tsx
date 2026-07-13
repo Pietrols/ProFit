@@ -50,6 +50,7 @@ interface DraftDay {
   key: string;
   name: string;
   category: ExerciseCategory;
+  isDaily: boolean;
   exercises: DraftEx[];
 }
 
@@ -57,6 +58,7 @@ const newDay = (n: number): DraftDay => ({
   key: Crypto.randomUUID(),
   name: `Day ${n}`,
   category: 'bodybuilding',
+  isDaily: false,
   exercises: [],
 });
 
@@ -172,6 +174,7 @@ export function CustomPlanBuilderScreen() {
         days: days.map((d) => ({
           name: d.name.trim() || 'Day',
           category: d.category,
+          isDaily: d.isDaily,
           exercises: d.exercises.map((e) => ({
             exerciseId: e.exerciseId,
             sets: Number(e.sets) || 1,
@@ -330,6 +333,14 @@ export function CustomPlanBuilderScreen() {
                 options={CATEGORIES}
                 value={day.category}
                 onChange={(c) => patchDay(day.key, { category: c })}
+              />
+            </View>
+            <View style={{ marginTop: t.spacing.sm }}>
+              <ChipRow
+                options={['split', 'daily'] as const}
+                value={day.isDaily ? 'daily' : 'split'}
+                onChange={(v) => patchDay(day.key, { isDaily: v === 'daily' })}
+                labels={{ split: 'Part of split', daily: 'Do every day' }}
               />
             </View>
 

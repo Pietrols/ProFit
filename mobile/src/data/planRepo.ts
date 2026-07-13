@@ -20,6 +20,7 @@ export interface PlanDay {
   dayIndex: number;
   name: string;
   category: ExerciseCategory;
+  isDaily?: boolean; // mandatory daily routine (Group E)
   exercises: PlanExercise[];
 }
 
