@@ -16,3 +16,11 @@ export function validateDisplayName(name: string): string | undefined {
   if (!name.trim()) return 'Display name is required';
   if (name.trim().length > 50) return 'Display name is too long (max 50)';
 }
+
+export function validatePasswordMatch(
+  password: string,
+  confirm: string,
+): string | undefined {
+  if (!confirm) return 'Please confirm your password';
+  if (password !== confirm) return 'Passwords do not match';
+}

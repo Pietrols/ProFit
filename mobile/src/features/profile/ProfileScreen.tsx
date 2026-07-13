@@ -1,7 +1,7 @@
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, Text, View } from 'react-native';
+import { Text, View } from 'react-native';
 import { NetworkError } from '../../api/client';
 import { Goal, TrainingContext, Units } from '../../api/types';
 import { listBodyweightLocal } from '../../data/bodyweightRepo';
@@ -22,6 +22,7 @@ import {
   ChipRow,
   ErrorBanner,
   Heading,
+  KeyboardForm,
   Screen,
   Title,
 } from '../../ui';
@@ -164,7 +165,7 @@ export function ProfileScreen() {
 
   return (
     <Screen>
-      <ScrollView showsVerticalScrollIndicator={false}>
+      <KeyboardForm centered={false}>
         <Title>{user.displayName}</Title>
         <AccentRule />
         <Text
@@ -251,7 +252,7 @@ export function ProfileScreen() {
         <View style={{ height: t.spacing.xl }} />
         <Button label="Log out" onPress={logout} variant="danger" />
         <View style={{ height: t.spacing.xxl }} />
-      </ScrollView>
+      </KeyboardForm>
     </Screen>
   );
 }

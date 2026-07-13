@@ -1,7 +1,11 @@
-import React from 'react';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React, { useState } from 'react';
 import {
   ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
+  ScrollView,
   StyleProp,
   Text,
   TextInput,
@@ -26,6 +30,38 @@ export function Screen({
     >
       {children}
     </SafeAreaView>
+  );
+}
+
+/**
+ * Keyboard-avoiding scrollable form body: the focused field scrolls above
+ * the keyboard on both platforms, and content centers vertically when short.
+ * `centered` defaults to true (auth screens); pass false for top-aligned
+ * settings forms.
+ */
+export function KeyboardForm({
+  children,
+  centered = true,
+}: {
+  children: React.ReactNode;
+  centered?: boolean;
+}) {
+  return (
+    <KeyboardAvoidingView
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      style={{ flex: 1 }}
+    >
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          flexGrow: 1,
+          justifyContent: centered ? 'center' : 'flex-start',
+        }}
+      >
+        {children}
+      </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -165,10 +201,17 @@ export function Button({
 }
 
 export function TextField(
-  props: TextInputProps & { label: string; error?: string },
+  props: TextInputProps & {
+    label: string;
+    error?: string;
+    /** Render an eye toggle that shows/hides the value (password fields). */
+    secureToggle?: boolean;
+  },
 ) {
   const t = useAppTheme();
-  const { label, error, ...rest } = props;
+  const { label, error, secureToggle, secureTextEntry, ...rest } = props;
+  const [revealed, setRevealed] = useState(false);
+  const effectiveSecure = secureToggle ? !revealed : secureTextEntry;
   return (
     <View style={{ marginBottom: t.spacing.lg }}>
       <Text
@@ -183,21 +226,40 @@ export function TextField(
       >
         {label}
       </Text>
-      <TextInput
-        placeholderTextColor={t.colors.tx3}
-        {...rest}
-        style={{
-          fontFamily: t.typography.body,
-          fontSize: 16,
-          color: t.colors.tx,
-          backgroundColor: t.colors.s1,
-          borderColor: error ? t.colors.red : t.colors.line2,
-          borderWidth: 1,
-          borderRadius: t.radius.md,
-          paddingHorizontal: t.spacing.md,
-          paddingVertical: t.spacing.md,
-        }}
-      />
+      <View style={{ justifyContent: 'center' }}>
+        <TextInput
+          placeholderTextColor={t.colors.tx3}
+          {...rest}
+          secureTextEntry={effectiveSecure}
+          style={{
+            fontFamily: t.typography.body,
+            fontSize: 16,
+            color: t.colors.tx,
+            backgroundColor: t.colors.s1,
+            borderColor: error ? t.colors.red : t.colors.line2,
+            borderWidth: 1,
+            borderRadius: t.radius.md,
+            paddingHorizontal: t.spacing.md,
+            paddingVertical: t.spacing.md,
+            paddingRight: secureToggle ? 48 : t.spacing.md,
+          }}
+        />
+        {secureToggle ? (
+          <Pressable
+            onPress={() => setRevealed((r) => !r)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel={revealed ? 'Hide password' : 'Show password'}
+            style={{ position: 'absolute', right: t.spacing.md }}
+          >
+            <MaterialCommunityIcons
+              name={revealed ? 'eye-off' : 'eye'}
+              size={22}
+              color={t.colors.tx3}
+            />
+          </Pressable>
+        ) : null}
+      </View>
       {error ? (
         <Text
           style={{

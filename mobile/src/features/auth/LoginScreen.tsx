@@ -1,10 +1,18 @@
 import React, { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { ApiError, NetworkError } from '../../api/client';
 import { useAppTheme } from '../../theme/ThemeContext';
-import { AccentRule, Button, ErrorBanner, Screen, TextField, Title } from '../../ui';
+import {
+  AccentRule,
+  Button,
+  ErrorBanner,
+  KeyboardForm,
+  Screen,
+  TextField,
+  Title,
+} from '../../ui';
 import { useAuth } from './AuthContext';
-import { validateEmail, validatePassword } from './validate';
+import { validateEmail } from './validate';
 
 export function LoginScreen({ onRegister }: { onRegister: () => void }) {
   const t = useAppTheme();
@@ -42,10 +50,7 @@ export function LoginScreen({ onRegister }: { onRegister: () => void }) {
 
   return (
     <Screen>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-        style={{ flex: 1, justifyContent: 'center' }}
-      >
+      <KeyboardForm>
         <Title>ProFit</Title>
         <AccentRule />
         {error ? <ErrorBanner message={error} /> : null}
@@ -63,7 +68,7 @@ export function LoginScreen({ onRegister }: { onRegister: () => void }) {
           value={password}
           onChangeText={setPassword}
           error={fieldErrors.password}
-          secureTextEntry
+          secureToggle
           autoComplete="password"
         />
         <Button label="Log in" onPress={submit} busy={busy} />
@@ -77,7 +82,7 @@ export function LoginScreen({ onRegister }: { onRegister: () => void }) {
             </Text>
           </View>
         </Pressable>
-      </KeyboardAvoidingView>
+      </KeyboardForm>
     </Screen>
   );
 }
