@@ -29,6 +29,11 @@
       "expo-image",
       "expo-sharing"
     ],
-    "backgroundColor": "#050506"
+    "backgroundColor": "#050506",
+    "extra": {
+      "eas": {
+        "projectId": "2eb543ef-e939-4b2f-b288-af62bd6b5e76"
+      }
+    }
   }
 }

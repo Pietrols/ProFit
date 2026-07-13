@@ -67,14 +67,16 @@ export function ProfileScreen() {
       setReminderNote('Reminders off.');
       return;
     }
-    const ok = await applyReminders({
+    const result = await applyReminders({
       weekdays: reminderDays.map(Number),
       hour: Number(reminderHour),
-    }).catch(() => false);
+    }).catch(() => 'unsupported' as const);
     setReminderNote(
-      ok
+      result === 'ok'
         ? `Reminders set for ${reminderDays.length} day(s) at ${reminderHour}:00.`
-        : 'Notifications are blocked — allow them in system settings.',
+        : result === 'denied'
+          ? 'Notifications are blocked — allow them in system settings.'
+          : 'Reminders need the installed app (not Expo Go) — they will work in the release build.',
     );
   }
 
