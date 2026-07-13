@@ -59,11 +59,10 @@ AI_MODEL=claude-opus-4-8
 | **Physical phone** | Install Expo Go, same Wi-Fi as the Mac, scan the QR from `npm start`. Set `EXPO_PUBLIC_API_URL=http://<mac-lan-ip>:4000` in `mobile/.env` (find the IP: `ipconfig getifaddr en0`). |
 | **Android emulator** | `npm start` then press `a`. Leave `EXPO_PUBLIC_API_URL` unset — the app defaults to `http://10.0.2.2:4000`. |
 
-⚠ Because `expo-dev-client` is installed, a bare `npx expo start` defaults to
-**development-build mode** — its QR only opens in a custom dev-client app and
-Expo Go will refuse it ("no app can run this"). `npm start` forces Expo Go
-mode (`--go`); or press `s` in Metro to switch. Use `npm run start:devclient`
-once you've built a dev client (needed to test notifications).
+Note: do NOT add `expo-dev-client` to this project for day-to-day work — its
+mere presence reroutes the start QR away from Expo Go (browser interstitial /
+"no app can run this"). Install it only when building the dev client for
+notification testing, and remove it after.
 
 Caveat: `expo-notifications` (reminders) is limited inside Expo Go on newer
 Android — use a dev build (`npx expo run:android`) to test reminder firing.
