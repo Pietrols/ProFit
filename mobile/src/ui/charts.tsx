@@ -46,10 +46,10 @@ export function LineChart({
   return (
     <View>
       <Svg width={width} height={height}>
-        {/* recessive grid: min and max rules only */}
-        {[min, max].map((v) => (
+        {/* recessive grid: min and max rules only (identical when one point) */}
+        {[min, max].map((v, i) => (
           <Line
-            key={v}
+            key={i}
             x1={pad.left}
             x2={pad.left + w}
             y1={y(v)}
