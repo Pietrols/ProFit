@@ -1,5 +1,7 @@
+import { randomUUID } from "node:crypto";
 import { NextFunction, Request, Response } from "express";
 import { ApiError } from "../lib/errors";
+import { logger } from "../lib/logger";
 
 export function errorHandler(
   err: unknown,
@@ -22,8 +24,14 @@ export function errorHandler(
     return;
   }
 
-  console.error(err);
+  // Correlate the client-visible error with the server log without leaking
+  // internals: the id travels both ways, the details stay here.
+  const errorId = randomUUID();
+  logger.error(
+    { errorId, method: _req.method, path: _req.path, err },
+    "unhandled error",
+  );
   res.status(500).json({
-    error: { code: "INTERNAL", message: "Internal server error" },
+    error: { code: "INTERNAL", message: `Internal server error (ref ${errorId})` },
   });
 }
