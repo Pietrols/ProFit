@@ -37,6 +37,18 @@ enum ExerciseCategory {
   cardio
 }
 
+// Movement-pattern taxonomy (Piece 1): the axis progression ladders run on.
+enum MovementPattern {
+  squat
+  hinge
+  push
+  pull
+  core
+  carry
+  cardio
+  balance
+}
+
 model Exercise {
   id                 String           @id // stable slug, referenced by device SQLite
   name               String
@@ -49,6 +61,13 @@ model Exercise {
   homeAlternativeId  String?          @map("home_alternative_id")
   homeAlternative    Exercise?        @relation("HomeAlternative", fields: [homeAlternativeId], references: [id])
   homeAlternativeFor Exercise[]       @relation("HomeAlternative")
+  // Progression ladder (Piece 1): pattern + tier (1 low – 4 high) and soft
+  // links to the sibling one tier down/up in the same pattern. Soft String
+  // refs (like plan_id on sessions) — integrity enforced by seed + tests.
+  movementPattern    MovementPattern? @map("movement_pattern")
+  difficultyTier     Int?             @map("difficulty_tier")
+  easierVariantId    String?          @map("easier_variant_id")
+  harderVariantId    String?          @map("harder_variant_id")
   planExercises      PlanExercise[]
   sessionExercises   WorkoutSessionExercise[]
   userWorkoutExercises UserWorkoutExercise[]
@@ -309,6 +328,8 @@ model PlanExercise {
   // Time-based exercises (holds, intervals) carry a per-set duration; null for
   // rep-based work. (Group D)
   durationSeconds Int?     @map("duration_seconds")
+  // Short per-exercise cue (Piece 1 templates, e.g. "Stop if a joint hurts").
+  note            String?
 
   @@unique([planDayId, order])
   @@map("plan_exercises")

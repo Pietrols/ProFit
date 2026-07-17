@@ -23,6 +23,10 @@ function fixture(id: string, name: string, extra: Partial<Exercise> = {}): Exerc
     demoUrl: `https://example.com/${id}.jpg`,
     instructions: ['Do the movement.'],
     homeAlternativeId: null,
+    movementPattern: null,
+    difficultyTier: null,
+    easierVariantId: null,
+    harderVariantId: null,
     updatedAt: '2026-07-12T00:00:00.000Z',
     ...extra,
   };

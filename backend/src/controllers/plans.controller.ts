@@ -2,7 +2,9 @@ import { Request, Response } from "express";
 import { parseOrThrow } from "../lib/errors";
 import {
   createCustomPlanSchema,
+  createFromTemplateSchema,
   createPlanSchema,
+  listTemplatesQuerySchema,
 } from "../routes/plans.schemas";
 import * as plansService from "../services/plans.service";
 
@@ -16,6 +18,18 @@ export async function createCustom(req: Request, res: Response) {
   res
     .status(201)
     .json({ plan: await plansService.createCustomPlan(req.userId!, input) });
+}
+
+export async function listTemplates(req: Request, res: Response) {
+  const query = parseOrThrow(listTemplatesQuerySchema, req.query);
+  res.json({ templates: await plansService.listStarterTemplates(query) });
+}
+
+export async function createFromTemplate(req: Request, res: Response) {
+  const input = parseOrThrow(createFromTemplateSchema, req.body);
+  res.status(201).json({
+    plan: await plansService.createPlanFromTemplate(req.userId!, input),
+  });
 }
 
 export async function getActive(req: Request, res: Response) {

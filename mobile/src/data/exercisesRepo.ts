@@ -10,6 +10,10 @@ interface ExerciseRow {
   demo_url: string;
   instructions: string;
   home_alternative_id: string | null;
+  movement_pattern: string | null;
+  difficulty_tier: number | null;
+  easier_variant_id: string | null;
+  harder_variant_id: string | null;
   updated_at: string;
 }
 
@@ -24,6 +28,10 @@ function rowToExercise(r: ExerciseRow): Exercise {
     demoUrl: r.demo_url,
     instructions: JSON.parse(r.instructions),
     homeAlternativeId: r.home_alternative_id,
+    movementPattern: r.movement_pattern as Exercise['movementPattern'],
+    difficultyTier: r.difficulty_tier,
+    easierVariantId: r.easier_variant_id,
+    harderVariantId: r.harder_variant_id,
     updatedAt: r.updated_at,
   };
 }
@@ -37,8 +45,9 @@ export async function upsertExercises(
     await db.runAsync(
       `INSERT OR REPLACE INTO exercises
        (id, name, category, primary_muscles, secondary_muscles, equipment,
-        demo_url, instructions, home_alternative_id, updated_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?)`,
+        demo_url, instructions, home_alternative_id, movement_pattern,
+        difficulty_tier, easier_variant_id, harder_variant_id, updated_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [
         e.id,
         e.name,
@@ -49,6 +58,10 @@ export async function upsertExercises(
         e.demoUrl,
         JSON.stringify(e.instructions),
         e.homeAlternativeId,
+        e.movementPattern,
+        e.difficultyTier,
+        e.easierVariantId,
+        e.harderVariantId,
         e.updatedAt,
       ],
     );

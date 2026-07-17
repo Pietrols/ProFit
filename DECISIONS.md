@@ -3,6 +3,42 @@
 Decisions taken where PROJECT.md was ambiguous, plus any deviations from the
 decided stack. Review and veto freely.
 
+## Pieces 1–4 (ladders, onboarding, AI plan builder, difficulty) — decisions to confirm
+
+### Piece 1 — movement patterns, ladders, starter templates
+
+- **Ladder links are soft String refs** (`easierVariantId`/`harderVariantId`),
+  matching the existing `homeAlternativeId` pattern; integrity is enforced by
+  the seed data + a test asserting every link is same-pattern, adjacent-tier,
+  and symmetric.
+- **5 curated exercises added** where the free-exercise-db lacked a required
+  ladder rung: Wall Push-Up, Partial Bodyweight Squat, Bird-Dog, Standing
+  March, Seated Torso Rotation (demo images borrowed from the nearest
+  sibling exercise). All other ladder rungs map to existing dataset entries —
+  no unlisted exercises were invented beyond these required rungs.
+- **`movementPattern`/`difficultyTier` are nullable**: only ladder-relevant
+  exercises are tagged (76 of 78); isolation machines that fit no pattern
+  stay untagged and never participate in tier resolution.
+- **Templates live in code** (`backend/src/services/starterTemplates.ts`),
+  not the DB — they are static curated content, versioned with the code, and
+  reference library slugs only; resolution validates every slug against the
+  DB and fails loudly (500 TEMPLATE_INTEGRITY) on drift.
+- **Template rationale is a code comment** in starterTemplates.ts (CDC/WHO/
+  ACSM/NHS/NSCA-derived programming), traceable but never user-facing; the
+  user-facing `disclaimer` field carries the short non-alarming medical note.
+- **`GET /plans/templates` returns all 6 templates** regardless of the
+  requested context — a template that doesn't support the context (e.g.
+  foundations-gym for home) resolves in its own supported context, so the
+  onboarding/AI layers always see the full set. `POST /plans/from-template`
+  does enforce context support (400 TEMPLATE_CONTEXT).
+- **Experience resolution**: only `beginner` regresses exercises down the
+  ladder (via per-exercise `beginner` overrides); intermediate/advanced get
+  the standard form. Defaults to beginner — these are starter templates.
+- **`PlanExercise.note`** added for short per-exercise cues ("stop if a
+  joint hurts", RIR guidance) so template safety cues survive into real plans.
+- **Fat Loss Focus composes** the matching Foundations strength days plus two
+  walk/jog interval days rather than duplicating day definitions.
+
 ## Extension run (Groups A–H) — decisions to confirm
 
 - **Group A**: eye-toggle lives on the shared `TextField` (`secureToggle`

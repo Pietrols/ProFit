@@ -3,8 +3,14 @@ import { ApiError } from "../lib/errors";
 import { Exercise } from "../generated/prisma/client";
 import {
   CreateCustomPlanInput,
+  CreateFromTemplateInput,
   CreatePlanInput,
+  ListTemplatesQuery,
 } from "../routes/plans.schemas";
+import {
+  resolveTemplateDays,
+  STARTER_TEMPLATES,
+} from "./starterTemplates";
 import {
   Category,
   DayTemplate,
@@ -262,6 +268,149 @@ export async function createCustomPlan(
                 reps: e.reps,
                 restSeconds: e.restSeconds,
                 durationSeconds: e.durationSeconds,
+              })),
+            },
+          })),
+        },
+      },
+      include: planInclude,
+    });
+  });
+}
+
+/**
+ * Starter templates (Piece 1), resolved for a context + experience. Every
+ * template resolves against the live library — a template referencing an
+ * unknown slug is a seed/integrity bug and fails loudly rather than shipping
+ * an unfillable plan. Templates not supporting the requested context resolve
+ * in their own supported context (so the full set of 6 is always returned).
+ */
+export async function listStarterTemplates(query: ListTemplatesQuery) {
+  const resolved = STARTER_TEMPLATES.map((t) => {
+    const context = t.contexts.includes(query.context)
+      ? query.context
+      : t.contexts[0];
+    return {
+      id: t.id,
+      title: t.title,
+      description: t.description,
+      disclaimer: t.disclaimer,
+      goal: t.goal,
+      gentle: t.gentle,
+      contexts: t.contexts,
+      context,
+      days: resolveTemplateDays(t, context, query.experience),
+    };
+  });
+
+  const referenced = new Set(
+    resolved.flatMap((t) =>
+      t.days.flatMap((d) => d.exercises.map((e) => e.exerciseId)),
+    ),
+  );
+  const exercises = await prisma.exercise.findMany({
+    where: { id: { in: [...referenced] } },
+  });
+  const byId = new Map(exercises.map((e) => [e.id, e]));
+  const missing = [...referenced].filter((id) => !byId.has(id));
+  if (missing.length > 0) {
+    throw new ApiError(
+      500,
+      "TEMPLATE_INTEGRITY",
+      `Starter template references unknown exercise(s): ${missing.join(", ")}`,
+    );
+  }
+
+  return resolved.map((t) => ({
+    ...t,
+    days: t.days.map((d) => ({
+      ...d,
+      exercises: d.exercises.map((e) => {
+        const ex = byId.get(e.exerciseId)!;
+        return {
+          ...e,
+          exercise: {
+            id: ex.id,
+            name: ex.name,
+            equipment: ex.equipment,
+            movementPattern: ex.movementPattern,
+            difficultyTier: ex.difficultyTier,
+          },
+        };
+      }),
+    })),
+  }));
+}
+
+/**
+ * Create a real plan from a starter template (Piece 1). Reuses the standard
+ * plan-creation shape: deactivate the previous active plan, persist the
+ * template's exact structure (with per-exercise notes/cues).
+ */
+export async function createPlanFromTemplate(
+  userId: string,
+  input: CreateFromTemplateInput,
+) {
+  const template = STARTER_TEMPLATES.find((t) => t.id === input.templateId);
+  if (!template) {
+    throw ApiError.badRequest(
+      `Unknown template: ${input.templateId}`,
+      "UNKNOWN_TEMPLATE",
+    );
+  }
+  if (!template.contexts.includes(input.context)) {
+    throw ApiError.badRequest(
+      `Template ${template.id} does not support the ${input.context} context`,
+      "TEMPLATE_CONTEXT",
+    );
+  }
+
+  const days = resolveTemplateDays(template, input.context, input.experience);
+  const referenced = new Set(
+    days.flatMap((d) => d.exercises.map((e) => e.exerciseId)),
+  );
+  const known = new Set(
+    (
+      await prisma.exercise.findMany({
+        where: { id: { in: [...referenced] } },
+        select: { id: true },
+      })
+    ).map((e) => e.id),
+  );
+  const missing = [...referenced].filter((id) => !known.has(id));
+  if (missing.length > 0) {
+    throw new ApiError(
+      500,
+      "TEMPLATE_INTEGRITY",
+      `Starter template references unknown exercise(s): ${missing.join(", ")}`,
+    );
+  }
+
+  return prisma.$transaction(async (tx) => {
+    await tx.plan.updateMany({
+      where: { userId, isActive: true },
+      data: { isActive: false },
+    });
+    return tx.plan.create({
+      data: {
+        userId,
+        name: template.title,
+        context: input.context,
+        defaultRestSeconds: template.defaultRestSeconds,
+        days: {
+          create: days.map((d, dayIndex) => ({
+            dayIndex,
+            name: d.name,
+            category: d.category as never,
+            exercises: {
+              create: d.exercises.map((e, order) => ({
+                order,
+                exerciseId: e.exerciseId,
+                sets: e.sets,
+                reps: e.reps,
+                restSeconds: e.restSeconds,
+                durationSeconds: e.durationSeconds,
+                note: e.note,
               })),
             },
           })),

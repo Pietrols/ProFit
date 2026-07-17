@@ -52,5 +52,21 @@ export const createCustomPlanSchema = z.object({
     .max(7),
 });
 
+// Starter templates (Piece 1): list resolved for a context+experience, and
+// create a plan from one. Experience defaults to beginner — templates target
+// new users; intermediate/advanced resolve to the standard (non-regressed) form.
+export const listTemplatesQuerySchema = z.object({
+  context: z.enum(["home", "gym"]).default("gym"),
+  experience: z.enum(["beginner", "intermediate", "advanced"]).default("beginner"),
+});
+
+export const createFromTemplateSchema = z.object({
+  templateId: z.string().min(1),
+  context: z.enum(["home", "gym"]),
+  experience: z.enum(["beginner", "intermediate", "advanced"]).default("beginner"),
+});
+
 export type CreatePlanInput = z.infer<typeof createPlanSchema>;
 export type CreateCustomPlanInput = z.infer<typeof createCustomPlanSchema>;
+export type ListTemplatesQuery = z.infer<typeof listTemplatesQuerySchema>;
+export type CreateFromTemplateInput = z.infer<typeof createFromTemplateSchema>;

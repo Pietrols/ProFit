@@ -18,6 +18,10 @@ const ex = (id: string, extra: Partial<Exercise> = {}): Exercise => ({
   demoUrl: `https://x/${id}.jpg`,
   instructions: [],
   homeAlternativeId: null,
+  movementPattern: null,
+  difficultyTier: null,
+  easierVariantId: null,
+  harderVariantId: null,
   updatedAt: '2026-07-01T00:00:00.000Z',
   ...extra,
 });

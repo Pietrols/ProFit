@@ -21,7 +21,11 @@
       "Repeat the movement for the prescribed amount of repetitions.",
       "When you are done, place the bar back in the rack."
     ],
-    "homeAlternativeId": "pushups"
+    "homeAlternativeId": "pushups",
+    "movementPattern": "push",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "barbell-incline-bench-press-medium-grip",
@@ -45,7 +49,11 @@
       "Repeat the movement for the prescribed amount of repetitions.",
       "When you are done, place the bar back in the rack."
     ],
-    "homeAlternativeId": "decline-push-up"
+    "homeAlternativeId": "decline-push-up",
+    "movementPattern": "push",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "dumbbell-bench-press",
@@ -69,7 +77,11 @@
       "Then, as you breathe out, use your chest to push the dumbbells up. Lock your arms at the top of the lift and squeeze your chest, hold for a second and then begin coming down slowly. Tip: Ideally, lowering the weight should take about twice as long as raising it.",
       "Repeat the movement for the prescribed amount of repetitions of your training program."
     ],
-    "homeAlternativeId": "pushups"
+    "homeAlternativeId": "pushups",
+    "movementPattern": "push",
+    "difficultyTier": 3,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "dumbbell-flyes",
@@ -90,7 +102,11 @@
       "Return your arms back to the starting position as you squeeze your chest muscles and breathe out. Tip: Make sure to use the same arc of motion used to lower the weights.",
       "Hold for a second at the contracted position and repeat the movement for the prescribed amount of repetitions."
     ],
-    "homeAlternativeId": "bodyweight-flyes"
+    "homeAlternativeId": "bodyweight-flyes",
+    "movementPattern": "push",
+    "difficultyTier": 3,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "wide-grip-lat-pulldown",
@@ -116,7 +132,11 @@
       "After a second at the contracted position squeezing your shoulder blades together, slowly raise the bar back to the starting position when your arms are fully extended and the lats are fully stretched. Inhale during this portion of the movement.",
       "Repeat this motion for the prescribed amount of repetitions."
     ],
-    "homeAlternativeId": "pullups"
+    "homeAlternativeId": "pullups",
+    "movementPattern": "pull",
+    "difficultyTier": 3,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "bent-over-barbell-row",
@@ -140,7 +160,11 @@
       "Then inhale and slowly lower the barbell back to the starting position.",
       "Repeat for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": "bent-over-two-dumbbell-row"
+    "homeAlternativeId": "bent-over-two-dumbbell-row",
+    "movementPattern": "pull",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "seated-cable-rows",
@@ -165,7 +189,11 @@
       "Keeping the torso stationary, pull the handles back towards your torso while keeping the arms close to it until you touch the abdominals. Breathe out as you perform that movement. At that point you should be squeezing your back muscles hard. Hold that contraction for a second and slowly go back to the original position while breathing in.",
       "Repeat for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": "bent-over-two-dumbbell-row"
+    "homeAlternativeId": "bent-over-two-dumbbell-row",
+    "movementPattern": "pull",
+    "difficultyTier": 3,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "one-arm-dumbbell-row",
@@ -192,7 +220,11 @@
       "Repeat the movement for the specified amount of repetitions.",
       "Switch sides and repeat again with the other arm."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "pull",
+    "difficultyTier": 3,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "barbell-curl",
@@ -215,7 +247,11 @@
       "Slowly begin to bring the bar back to starting position as your breathe in.",
       "Repeat for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": "alternate-hammer-curl"
+    "homeAlternativeId": "alternate-hammer-curl",
+    "movementPattern": "pull",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "alternate-hammer-curl",
@@ -239,7 +275,11 @@
       "Repeat the movement with the left hand. This equals one repetition.",
       "Continue alternating in this manner for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "pull",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "triceps-pushdown",
@@ -260,7 +300,11 @@
       "After a second hold at the contracted position, bring the bar slowly up to the starting point. Breathe in as you perform this step.",
       "Repeat for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": "bench-dips"
+    "homeAlternativeId": "bench-dips",
+    "movementPattern": "push",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "ez-bar-skullcrusher",
@@ -282,7 +326,11 @@
       "Lift the bar back to the starting position by extending the elbow and exhaling.",
       "Repeat."
     ],
-    "homeAlternativeId": "bench-dips"
+    "homeAlternativeId": "bench-dips",
+    "movementPattern": "push",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "goblet-squat",
@@ -306,7 +354,11 @@
       "Squat down between your legs until your hamstrings are on your calves. Keep your chest and head up and your back straight.",
       "At the bottom position, pause and use your elbows to push your knees out. Return to the starting position, and repeat for 10-20 repetitions."
     ],
-    "homeAlternativeId": "bodyweight-squat"
+    "homeAlternativeId": "bodyweight-squat",
+    "movementPattern": "squat",
+    "difficultyTier": 4,
+    "easierVariantId": "bodyweight-squat",
+    "harderVariantId": null
   },
   {
     "id": "leg-press",
@@ -331,7 +383,11 @@
       "Pushing mainly with the heels of your feet and using the quadriceps go back to the starting position as you exhale.",
       "Repeat for the recommended amount of repetitions and ensure to lock the safety pins properly once you are done. You do not want that platform falling on you fully loaded."
     ],
-    "homeAlternativeId": "bodyweight-squat"
+    "homeAlternativeId": "bodyweight-squat",
+    "movementPattern": "squat",
+    "difficultyTier": 3,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "leg-extensions",
@@ -351,7 +407,11 @@
       "Slowly lower the weight back to the original position as you inhale, ensuring that you do not go past the 90-degree angle limit.",
       "Repeat for the recommended amount of times."
     ],
-    "homeAlternativeId": "bodyweight-walking-lunge"
+    "homeAlternativeId": "bodyweight-walking-lunge",
+    "movementPattern": "squat",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "lying-leg-curls",
@@ -371,7 +431,11 @@
       "As you exhale, curl your legs up as far as possible without lifting the upper legs from the pad. Once you hit the fully contracted position, hold it for a second.",
       "As you inhale, bring the legs back to the initial position. Repeat for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": "glute-kickback"
+    "homeAlternativeId": "glute-kickback",
+    "movementPattern": "hinge",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "romanian-deadlift",
@@ -396,7 +460,11 @@
       "Once you are standing completely straight up, lower the bar by pushing the hips back, only slightly bending the knees, unlike when squatting. Tip: Take a deep breath at the start of the movement and keep your chest up. Hold your breath as you lower and exhale as you complete the movement.",
       "Repeat for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": "glute-kickback"
+    "homeAlternativeId": "glute-kickback",
+    "movementPattern": "hinge",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "barbell-hip-thrust",
@@ -418,7 +486,11 @@
       "Roll the bar so that it is directly above your hips, and lean back against the bench so that your shoulder blades are near the top of it.",
       "Begin the movement by driving through your feet, extending your hips vertically through the bar. Your weight should be supported by your shoulder blades and your feet. Extend as far as possible, then reverse the motion to return to the starting position."
     ],
-    "homeAlternativeId": "glute-kickback"
+    "homeAlternativeId": "glute-kickback",
+    "movementPattern": "hinge",
+    "difficultyTier": 3,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "seated-calf-raise",
@@ -440,7 +512,11 @@
       "Raise the heels by extending the ankles as high as possible as you contract the calves and breathe out. Hold the top contraction for a second.",
       "Repeat for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": "calf-raise-on-a-dumbbell"
+    "homeAlternativeId": "calf-raise-on-a-dumbbell",
+    "movementPattern": null,
+    "difficultyTier": null,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "calf-raise-on-a-dumbbell",
@@ -461,7 +537,11 @@
       "Now inhale as you roll the dumbbell slightly forward as you come down to get a better stretch.",
       "Repeat for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": null,
+    "difficultyTier": null,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "dumbbell-shoulder-press",
@@ -485,7 +565,11 @@
       "Then, after a brief pause at the top contracted position, slowly lower the weights back down to the starting position while inhaling.",
       "Repeat for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "push",
+    "difficultyTier": 3,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "side-lateral-raise",
@@ -505,7 +589,11 @@
       "Lower the dumbbells back down slowly to the starting position as you inhale.",
       "Repeat for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "push",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "face-pull",
@@ -524,7 +612,11 @@
     "instructions": [
       "Facing a high pulley with a rope or dual handles attached, pull the weight directly towards your face, separating your hands as you do so. Keep your upper arms parallel to the ground."
     ],
-    "homeAlternativeId": "reverse-flyes"
+    "homeAlternativeId": "reverse-flyes",
+    "movementPattern": "pull",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "reverse-flyes",
@@ -546,7 +638,11 @@
       "Feel the contraction and slowly lower the weights back down to the starting position while inhaling.",
       "Repeat for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "pull",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "dumbbell-lunges",
@@ -570,7 +666,11 @@
       "Using mainly the heel of your foot, push up and go back to the starting position as you exhale.",
       "Repeat the movement for the recommended amount of repetitions and then perform with the left leg."
     ],
-    "homeAlternativeId": "bodyweight-walking-lunge"
+    "homeAlternativeId": "bodyweight-walking-lunge",
+    "movementPattern": "squat",
+    "difficultyTier": 3,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "dumbbell-step-ups",
@@ -594,7 +694,11 @@
       "Step down with the left leg by flexing the hip and knee of the right leg as you inhale. Return to the original standing position by placing the right foot of to next to the left foot on the initial position.",
       "Repeat with the right leg for the recommended amount of repetitions and then perform with the left leg."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "squat",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "dips-triceps-version",
@@ -617,7 +721,11 @@
       "Then, exhale and push your torso back up using your triceps to bring your body back to the starting position.",
       "Repeat the movement for the prescribed amount of repetitions."
     ],
-    "homeAlternativeId": "bench-dips"
+    "homeAlternativeId": "bench-dips",
+    "movementPattern": "push",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "pushups",
@@ -640,7 +748,11 @@
       "Now breathe out and press your upper body back up to the starting position while squeezing your chest.",
       "After a brief pause at the top contracted position, you can begin to lower yourself downward again for as many repetitions as needed."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "push",
+    "difficultyTier": 3,
+    "easierVariantId": "incline-push-up",
+    "harderVariantId": "decline-push-up"
   },
   {
     "id": "decline-push-up",
@@ -663,7 +775,11 @@
       "Now breathe out and press your upper body back up to the starting position while squeezing your chest.",
       "After a brief pause at the top contracted position, you can begin to lower yourself downward again for as many repetitions as needed."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "push",
+    "difficultyTier": 4,
+    "easierVariantId": "pushups",
+    "harderVariantId": null
   },
   {
     "id": "bodyweight-flyes",
@@ -688,7 +804,11 @@
       "Using a slow and controlled motion, move your hands away from the midline of your body, rolling the bars apart. Inhale during this portion of the motion.",
       "After moving the bars as far apart as you can, return to the starting position by pulling them back together. Exhale as you perform this movement."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "push",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "pullups",
@@ -712,7 +832,11 @@
       "After a second on the contracted position, start to inhale and slowly lower your torso back to the starting position when your arms are fully extended and the lats are fully stretched.",
       "Repeat this motion for the prescribed amount of repetitions."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "pull",
+    "difficultyTier": 4,
+    "easierVariantId": "bent-over-two-dumbbell-row",
+    "harderVariantId": null
   },
   {
     "id": "chin-up",
@@ -737,7 +861,11 @@
       "After a second of squeezing the biceps in the contracted position, slowly lower your torso back to the starting position; when your arms are fully extended. Breathe in as you perform this portion of the movement.",
       "Repeat this motion for the prescribed amount of repetitions."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "pull",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "bent-over-two-dumbbell-row",
@@ -761,7 +889,11 @@
       "Slowly lower the weight again to the starting position as you inhale.",
       "Repeat for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "pull",
+    "difficultyTier": 3,
+    "easierVariantId": "inverted-row",
+    "harderVariantId": "pullups"
   },
   {
     "id": "bodyweight-squat",
@@ -783,7 +915,11 @@
       "Begin the movement by flexing your knees and hips, sitting back with your hips.",
       "Continue down to full depth if you are able,and quickly reverse the motion until you return to the starting position. As you squat, keep your head and chest up and push your knees out."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "squat",
+    "difficultyTier": 3,
+    "easierVariantId": "partial-bodyweight-squat",
+    "harderVariantId": "goblet-squat"
   },
   {
     "id": "bodyweight-walking-lunge",
@@ -807,7 +943,11 @@
       "Drive through the heel of your lead foot and extend both knees to raise yourself back up.",
       "Step forward with your rear foot, repeating the lunge on the opposite leg."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "squat",
+    "difficultyTier": 3,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "split-squats",
@@ -829,7 +969,11 @@
       "Being in a standing position. Jump into a split leg position, with one leg forward and one leg back, flexing the knees and lowering your hips slightly as you do so.",
       "As you descend, immediately reverse direction, standing back up and jumping, reversing the position of your legs. Repeat 5-10 times on each leg."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "squat",
+    "difficultyTier": 3,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "glute-kickback",
@@ -851,7 +995,11 @@
       "Go back to the initial position as you inhale and now repeat with the left leg.",
       "Continue to alternate legs until all of the recommended repetitions have been performed."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "hinge",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "bench-dips",
@@ -874,7 +1022,11 @@
       "Using your triceps to bring your torso up again, lift yourself back to the starting position.",
       "Repeat for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "push",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "plank",
@@ -892,7 +1044,11 @@
       "Get into a prone position on the floor, supporting your weight on your toes and your forearms. Your arms are bent and directly below the shoulder.",
       "Keep your body straight at all times, and hold this position as long as possible. To increase difficulty, an arm or leg can be raised."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "core",
+    "difficultyTier": 3,
+    "easierVariantId": "dead-bug",
+    "harderVariantId": "plate-twist"
   },
   {
     "id": "cross-body-crunch",
@@ -913,7 +1069,11 @@
       "Now go back down to the starting position as you inhale and repeat with the left elbow and the right knee.",
       "Continue alternating in this manner until all prescribed repetitions are done."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "core",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "barbell-squat",
@@ -940,7 +1100,11 @@
       "Begin to raise the bar as you exhale by pushing the floor with the heel of your foot as you straighten the legs again and go back to the starting position.",
       "Repeat for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": "bodyweight-squat"
+    "homeAlternativeId": "bodyweight-squat",
+    "movementPattern": "squat",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "bench-press-powerlifting",
@@ -965,7 +1129,11 @@
       "Lower the bar to your lower chest or upper stomach. The bar, wrist, and elbow should stay in line at all times.",
       "Pause when the barbell touches your torso, and then drive the bar up with as much force as possible. The elbows should be tucked in until lockout."
     ],
-    "homeAlternativeId": "pushups"
+    "homeAlternativeId": "pushups",
+    "movementPattern": "push",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "barbell-deadlift",
@@ -995,7 +1163,11 @@
       "Go back to the starting position by bending at the knees while simultaneously leaning the torso forward at the waist while keeping the back straight. When the weights on the bar touch the floor you are back at the starting position and ready to perform another repetition.",
       "Perform the amount of repetitions prescribed in the program."
     ],
-    "homeAlternativeId": "glute-kickback"
+    "homeAlternativeId": "glute-kickback",
+    "movementPattern": "hinge",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "barbell-shoulder-press",
@@ -1019,7 +1191,11 @@
       "Lift the bar back up to the starting position as you exhale.",
       "Repeat for the recommended amount of repetitions."
     ],
-    "homeAlternativeId": "dumbbell-shoulder-press"
+    "homeAlternativeId": "dumbbell-shoulder-press",
+    "movementPattern": "push",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "close-grip-barbell-bench-press",
@@ -1043,7 +1219,11 @@
       "Repeat the movement for the prescribed amount of repetitions.",
       "When you are done, place the bar back in the rack."
     ],
-    "homeAlternativeId": "close-grip-push-up-off-of-a-dumbbell"
+    "homeAlternativeId": "close-grip-push-up-off-of-a-dumbbell",
+    "movementPattern": "push",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "close-grip-push-up-off-of-a-dumbbell",
@@ -1067,7 +1247,11 @@
       "Press yourself back up to the starting position by extending the elbows. Breathe out as you perform this step.",
       "After a pause at the contracted position, repeat the movement for the prescribed amount of repetitions."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "push",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "box-squat",
@@ -1093,7 +1277,11 @@
       "With your back, shoulders, and core tight, push your knees and butt out and you begin your descent. Sit back with your hips until you are seated on the box. Ideally, your shins should be perpendicular to the ground. Pause when you reach the box, and relax the hip flexors. Never bounce off of a box.",
       "Keeping the weight on your heels and pushing your feet and knees out, drive upward off of the box as you lead the movement with your head. Continue upward, maintaining tightness head to toe."
     ],
-    "homeAlternativeId": "bodyweight-squat"
+    "homeAlternativeId": "bodyweight-squat",
+    "movementPattern": "squat",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "clean-deadlift",
@@ -1119,7 +1307,11 @@
       "Begin by driving through the floor through the front of your heels. As the bar travels upward, maintain a constant back angle. Flare your knees out to the side to help keep them out of the bar's path.",
       "After the bar crosses the knees, complete the lift by driving the hips into the bar until your hips and knees are extended."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "hinge",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "clean-and-jerk",
@@ -1151,7 +1343,11 @@
       "Drive through the heels create as much speed and force as possible, and be sure to move your head out of the way as the bar leaves the shoulders.",
       "At this moment as the feet leave the floor, the feet must be placed into the receiving position as quickly as possible. In the brief moment the feet are not actively driving against the platform, the athletes effort to push the bar up will drive them down. The feet should be split, with one foot forward, and one foot back. Receive the bar with the arms locked out overhead. Return to a standing position."
     ],
-    "homeAlternativeId": "kettlebell-thruster"
+    "homeAlternativeId": "kettlebell-thruster",
+    "movementPattern": "hinge",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "power-snatch",
@@ -1180,7 +1376,11 @@
       "As you move your feet into the receiving position, a slightly wider position, pull yourself below the bar as you elevate the bar overhead. The bar should be received in a partial squat. Continue raising the bar to the overhead position, receiving the bar locked out overhead.",
       "Return to a standing position with the weight over head."
     ],
-    "homeAlternativeId": "one-arm-kettlebell-snatch"
+    "homeAlternativeId": "one-arm-kettlebell-snatch",
+    "movementPattern": "hinge",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "one-arm-kettlebell-snatch",
@@ -1206,7 +1406,11 @@
       "Look straight ahead and swing the kettlebell back between your legs.",
       "Immediately reverse the direction and drive through with your hips and knees, accelerating the kettlebell upward. As the kettlebell rises to your shoulder rotate your hand and punch straight up, using momentum to receive the weight locked out overhead."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "hinge",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "kettlebell-thruster",
@@ -1229,7 +1433,11 @@
       "At the bottom, reverse direction and squat by extending your knees and hips, driving through your heels. As you do so, press both kettlebells overhead by extending your arms straight up, using the momentum from the squat to help drive the weights upward.",
       "As you begin the next repetition, return the weights to the shoulders."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "push",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "one-arm-kettlebell-swings",
@@ -1249,7 +1457,11 @@
     ],
     "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/One-Arm_Kettlebell_Swings/0.jpg",
     "instructions": [],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "hinge",
+    "difficultyTier": 3,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "front-box-jump",
@@ -1275,7 +1487,11 @@
       "Rebound out of this position, extending through the hips, knees, and ankles to jump as high as possible. Swing your arms forward and up.",
       "Land on the box with the knees bent, absorbing the impact through the legs. You can jump from the box back to the ground, or preferably step down one leg at a time."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "squat",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "mountain-climbers",
@@ -1297,7 +1513,11 @@
       "Begin in a pushup position, with your weight supported by your hands and toes. Flexing the knee and hip, bring one leg until the knee is approximately under the hip. This will be your starting position.",
       "Explosively reverse the positions of your legs, extending the bent leg until the leg is straight and supported by the toe, and bringing the other foot up with the hip and knee flexed. Repeat in an alternating fashion for 20-30 seconds."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "core",
+    "difficultyTier": 3,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "ring-dips",
@@ -1320,7 +1540,11 @@
       "Reverse the motion by extending the elbow, pushing yourself back up into the starting position.",
       "Repeat for the desired number of repetitions."
     ],
-    "homeAlternativeId": "bench-dips"
+    "homeAlternativeId": "bench-dips",
+    "movementPattern": "push",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "kettlebell-turkish-get-up-lunge-style",
@@ -1344,7 +1568,11 @@
       "Keeping the kettlebell locked out at all times, pivot to the opposite side and use your non- working arm to assist you in driving forward to the lunge position. Using your free hand, push yourself to a seated position, then progressing to one knee.",
       "While looking up at the kettlebell, slowly stand up. Reverse the motion back to the starting position and repeat."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "core",
+    "difficultyTier": 4,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "running-treadmill",
@@ -1366,7 +1594,11 @@
       "To begin, step onto the treadmill and select the desired option from the menu. Most treadmills have a manual setting, or you can select a program to run. Typically, you can enter your age and weight to estimate the amount of calories burned during exercise. Elevation can be adjusted to change the intensity of the workout.",
       "Treadmills offer convenience, cardiovascular benefits, and usually have less impact than running outside. A 150 lb person will burn over 450 calories running 8 miles per hour for 30 minutes. Maintain proper posture as you run, and only hold onto the handles when necessary, such as when dismounting or checking your heart rate."
     ],
-    "homeAlternativeId": "trail-running-walking"
+    "homeAlternativeId": "trail-running-walking",
+    "movementPattern": "cardio",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "trail-running-walking",
@@ -1388,7 +1620,11 @@
       "Running or hiking on trails will get the blood pumping and heart beating almost immediately. Make sure you have good shoes. While you use the muscles in your calves and buttocks to pull yourself up a hill, the knees, joints and ankles absorb the bulk of the pounding coming back down. Take smaller steps as you walk downhill, keep your knees bent to reduce the impact and slow down to avoid falling.",
       "A 150 lb person can burn over 200 calories for 30 minutes walking uphill, compared to 175 on a flat surface. If running the trail, a 150 lb person can burn well over 500 calories in 30 minutes."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "cardio",
+    "difficultyTier": 1,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "rowing-stationary",
@@ -1414,7 +1650,11 @@
       "There are three phases of movement when using a rower. The first phase is when you come forward on the rower. Your knees are bent and against your chest. Your upper body is leaning slightly forward while still maintaining good posture. Next, push against the foot pedals and extend your legs while bringing your hands to your upper abdominal area, squeezing your shoulders back as you do so. To avoid straining your back, use primarily your leg and hip muscles.",
       "The recovery phase simply involves straightening your arms, bending the knees, and bringing your body forward again as you transition back into the first phase."
     ],
-    "homeAlternativeId": "rope-jumping"
+    "homeAlternativeId": "rope-jumping",
+    "movementPattern": "cardio",
+    "difficultyTier": 2,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "bicycling-stationary",
@@ -1436,7 +1676,11 @@
       "To begin, seat yourself on the bike and adjust the seat to your height.",
       "Select the desired option from the menu. You may have to start pedaling to turn it on. You can use the manual setting, or you can select a program to use. Typically, you can enter your age and weight to estimate the amount of calories burned during exercise. The level of resistance can be changed throughout the workout. The handles can be used to monitor your heart rate to help you stay at an appropriate intensity."
     ],
-    "homeAlternativeId": "rope-jumping"
+    "homeAlternativeId": "rope-jumping",
+    "movementPattern": "cardio",
+    "difficultyTier": 1,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "air-bike",
@@ -1458,7 +1702,11 @@
       "Crunch to the opposite side as you cycle your legs and bring closer your left elbow to your right knee and exhale.",
       "Continue alternating in this manner until all of the recommended repetitions for each side have been completed."
     ],
-    "homeAlternativeId": "mountain-climbers"
+    "homeAlternativeId": "mountain-climbers",
+    "movementPattern": "cardio",
+    "difficultyTier": 3,
+    "easierVariantId": null,
+    "harderVariantId": null
   },
   {
     "id": "rope-jumping",
@@ -1479,6 +1727,401 @@
       "Hold an end of the rope in each hand. Position the rope behind you on the ground. Raise your arms up and turn the rope over your head bringing it down in front of you. When it reaches the ground, jump over it. Find a good turning pace that can be maintained. Different speeds and techniques can be used to introduce variation.",
       "Rope jumping is exciting, challenges your coordination, and requires a lot of energy. A 150 lb person will burn about 350 calories jumping rope for 30 minutes, compared to over 450 calories running."
     ],
-    "homeAlternativeId": null
+    "homeAlternativeId": null,
+    "movementPattern": "cardio",
+    "difficultyTier": 3,
+    "easierVariantId": null,
+    "harderVariantId": null
+  },
+  {
+    "id": "incline-push-up",
+    "name": "Incline Push-Up",
+    "category": "bodybuilding",
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "shoulders",
+      "triceps"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Push-Up/0.jpg",
+    "instructions": [
+      "Stand facing bench or sturdy elevated platform. Place hands on edge of bench or platform, slightly wider than shoulder width.",
+      "Position forefoot back from bench or platform with arms and body straight. Arms should be perpendicular to body. Keeping body straight, lower chest to edge of box or platform by bending arms.",
+      "Push body up until arms are extended. Repeat."
+    ],
+    "homeAlternativeId": null,
+    "movementPattern": "push",
+    "difficultyTier": 2,
+    "easierVariantId": "wall-push-up",
+    "harderVariantId": "pushups"
+  },
+  {
+    "id": "chair-squat",
+    "name": "Chair Squat",
+    "category": "bodybuilding",
+    "primaryMuscles": [
+      "quadriceps"
+    ],
+    "secondaryMuscles": [
+      "calves",
+      "glutes",
+      "hamstrings"
+    ],
+    "equipment": [
+      "machine"
+    ],
+    "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Chair_Squat/0.jpg",
+    "instructions": [
+      "To begin, first set the bar to a position that best matches your height. Once the bar is loaded, step under it and position it across the back of your shoulders.",
+      "Take the bar with your hands facing forward, unlock it and lift it off the rack by extending your legs.",
+      "Move your feet forward about 18 inches in front of the bar. Position your legs using a shoulder width stance with the toes slightly pointed out. Look forward at all times and maintain a neutral or slightly arched spine. This will be your starting position.",
+      "Slowly lower the bar by bending the knees as you maintain a straight posture with the head up. Continue down until the angle between the upper and lower leg breaks 90 degrees.",
+      "Begin to raise the bar as you exhale by pushing the floor with the heels of your feet, extending the knees and returning to the starting position.",
+      "Repeat for the recommended amount of repetitions."
+    ],
+    "homeAlternativeId": null,
+    "movementPattern": "squat",
+    "difficultyTier": 1,
+    "easierVariantId": null,
+    "harderVariantId": "partial-bodyweight-squat"
+  },
+  {
+    "id": "pelvic-tilt-into-bridge",
+    "name": "Pelvic Tilt Into Bridge",
+    "category": "bodybuilding",
+    "primaryMuscles": [
+      "lower back"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "other"
+    ],
+    "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pelvic_Tilt_Into_Bridge/0.jpg",
+    "instructions": [
+      "Lie down with your feet on the floor, heels directly under your knees.",
+      "Lift only your tailbone to the ceiling to stretch your lower back. (Don't lift the entire spine yet.) Pull in your stomach.",
+      "To go into a bridge, lift the entire spine except the neck."
+    ],
+    "homeAlternativeId": null,
+    "movementPattern": "hinge",
+    "difficultyTier": 1,
+    "easierVariantId": null,
+    "harderVariantId": "butt-lift-bridge"
+  },
+  {
+    "id": "butt-lift-bridge",
+    "name": "Butt Lift (Bridge)",
+    "category": "bodybuilding",
+    "primaryMuscles": [
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "hamstrings"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Butt_Lift_Bridge/0.jpg",
+    "instructions": [
+      "Lie flat on the floor on your back with the hands by your side and your knees bent. Your feet should be placed around shoulder width. This will be your starting position.",
+      "Pushing mainly with your heels, lift your hips off the floor while keeping your back straight. Breathe out as you perform this part of the motion and hold at the top for a second.",
+      "Slowly go back to the starting position as you breathe in."
+    ],
+    "homeAlternativeId": null,
+    "movementPattern": "hinge",
+    "difficultyTier": 2,
+    "easierVariantId": "pelvic-tilt-into-bridge",
+    "harderVariantId": "single-leg-glute-bridge"
+  },
+  {
+    "id": "single-leg-glute-bridge",
+    "name": "Single Leg Glute Bridge",
+    "category": "bodybuilding",
+    "primaryMuscles": [
+      "glutes"
+    ],
+    "secondaryMuscles": [
+      "hamstrings"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Single_Leg_Glute_Bridge/0.jpg",
+    "instructions": [
+      "Lay on the floor with your feet flat and knees bent.",
+      "Raise one leg off of the ground, pulling the knee to your chest. This will be your starting position.",
+      "Execute the movement by driving through the heel, extending your hip upward and raising your glutes off of the ground.",
+      "Extend as far as possible, pause and then return to the starting position."
+    ],
+    "homeAlternativeId": null,
+    "movementPattern": "hinge",
+    "difficultyTier": 3,
+    "easierVariantId": "butt-lift-bridge",
+    "harderVariantId": "stiff-legged-dumbbell-deadlift"
+  },
+  {
+    "id": "stiff-legged-dumbbell-deadlift",
+    "name": "Stiff-Legged Dumbbell Deadlift",
+    "category": "bodybuilding",
+    "primaryMuscles": [
+      "hamstrings"
+    ],
+    "secondaryMuscles": [
+      "glutes",
+      "lower back"
+    ],
+    "equipment": [
+      "dumbbell"
+    ],
+    "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Stiff-Legged_Dumbbell_Deadlift/0.jpg",
+    "instructions": [
+      "Grasp a couple of dumbbells holding them by your side at arm's length.",
+      "Stand with your torso straight and your legs spaced using a shoulder width or narrower stance. The knees should be slightly bent. This is your starting position.",
+      "Keeping the knees stationary, lower the dumbbells to over the top of your feet by bending at the waist while keeping your back straight. Keep moving forward as if you were going to pick something from the floor until you feel a stretch on the hamstrings. Exhale as you perform this movement",
+      "Start bringing your torso up straight again by extending your hips and waist until you are back at the starting position. Inhale as you perform this movement.",
+      "Repeat for the recommended amount of repetitions."
+    ],
+    "homeAlternativeId": null,
+    "movementPattern": "hinge",
+    "difficultyTier": 4,
+    "easierVariantId": "single-leg-glute-bridge",
+    "harderVariantId": null
+  },
+  {
+    "id": "dead-bug",
+    "name": "Dead Bug",
+    "category": "bodybuilding",
+    "primaryMuscles": [
+      "abdominals"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "bodyweight"
+    ],
+    "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dead_Bug/0.jpg",
+    "instructions": [
+      "Begin lying on your back with your hands extended above you toward the ceiling.",
+      "Bring your feet, knees, and hips up to 90 degrees.",
+      "Exhale hard to bring your ribcage down and flatten your back onto the floor, rotating your pelvis up and squeezing your glutes. Hold this position throughout the movement. This will be your starting position.",
+      "Initiate the exercise by extending one leg, straightening the knee and hip to bring the leg just above the ground.",
+      "Maintain the position of your lumbar and pelvis as you perform the movement, as your back is going to want to arch.",
+      "Stay tight and return the working leg to the starting position.",
+      "Repeat on the opposite side, alternating until the set is complete."
+    ],
+    "homeAlternativeId": null,
+    "movementPattern": "core",
+    "difficultyTier": 2,
+    "easierVariantId": "bird-dog",
+    "harderVariantId": "plank"
+  },
+  {
+    "id": "plate-twist",
+    "name": "Plate Twist",
+    "category": "bodybuilding",
+    "primaryMuscles": [
+      "abdominals"
+    ],
+    "secondaryMuscles": [],
+    "equipment": [
+      "other"
+    ],
+    "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Plate_Twist/0.jpg",
+    "instructions": [
+      "Lie down on the floor or an exercise mat with your legs fully extended and your upper body upright. Grab the plate by its sides with both hands out in front of your abdominals with your arms slightly bent.",
+      "Slowly cross your legs near your ankles and lift them up off the ground. Your knees should also be bent slightly. Note: Move your upper body back slightly to help keep you balanced turning this exercise. This is the starting position.",
+      "Move the plate to the left side and touch the floor with it. Breathe out as you perform that movement.",
+      "Come back to the starting position as you breathe in and then repeat the movement but this time to the right side of the body. Tip: Use a slow controlled movement at all times. Jerking motions can injure the back.",
+      "Repeat for the recommended amount of repetitions."
+    ],
+    "homeAlternativeId": null,
+    "movementPattern": "core",
+    "difficultyTier": 4,
+    "easierVariantId": "plank",
+    "harderVariantId": null
+  },
+  {
+    "id": "band-pull-apart",
+    "name": "Band Pull Apart",
+    "category": "bodybuilding",
+    "primaryMuscles": [
+      "shoulders"
+    ],
+    "secondaryMuscles": [
+      "middle back",
+      "traps"
+    ],
+    "equipment": [
+      "bands"
+    ],
+    "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Band_Pull_Apart/0.jpg",
+    "instructions": [
+      "Begin with your arms extended straight out in front of you, holding the band with both hands.",
+      "Initiate the movement by performing a reverse fly motion, moving your hands out laterally to your sides.",
+      "Keep your elbows extended as you perform the movement, bringing the band to your chest. Ensure that you keep your shoulders back during the exercise.",
+      "Pause as you complete the movement, returning to the starting position under control."
+    ],
+    "homeAlternativeId": null,
+    "movementPattern": "pull",
+    "difficultyTier": 1,
+    "easierVariantId": null,
+    "harderVariantId": "inverted-row"
+  },
+  {
+    "id": "inverted-row",
+    "name": "Inverted Row",
+    "category": "bodybuilding",
+    "primaryMuscles": [
+      "middle back"
+    ],
+    "secondaryMuscles": [
+      "lats"
+    ],
+    "equipment": [
+      "other"
+    ],
+    "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Inverted_Row/0.jpg",
+    "instructions": [
+      "Position a bar in a rack to about waist height. You can also use a smith machine.",
+      "Take a wider than shoulder width grip on the bar and position yourself hanging underneath the bar. Your body should be straight with your heels on the ground with your arms fully extended. This will be your starting position.",
+      "Begin by flexing the elbow, pulling your chest towards the bar. Retract your shoulder blades as you perform the movement.",
+      "Pause at the top of the motion, and return yourself to the start position.",
+      "Repeat for the desired number of repetitions."
+    ],
+    "homeAlternativeId": null,
+    "movementPattern": "pull",
+    "difficultyTier": 2,
+    "easierVariantId": "band-pull-apart",
+    "harderVariantId": "bent-over-two-dumbbell-row"
+  },
+  {
+    "id": "wall-push-up",
+    "name": "Wall Push-Up",
+    "category": "bodybuilding",
+    "primaryMuscles": [
+      "chest"
+    ],
+    "secondaryMuscles": [
+      "shoulders",
+      "triceps"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Incline_Push-Up/0.jpg",
+    "instructions": [
+      "Stand facing a wall, arms extended, palms flat at shoulder height.",
+      "Bend the elbows to bring your chest toward the wall, keeping the body in a straight line.",
+      "Press back to the start. Step feet further from the wall to make it harder."
+    ],
+    "homeAlternativeId": null,
+    "movementPattern": "push",
+    "difficultyTier": 1,
+    "easierVariantId": null,
+    "harderVariantId": "incline-push-up"
+  },
+  {
+    "id": "partial-bodyweight-squat",
+    "name": "Partial Bodyweight Squat",
+    "category": "bodybuilding",
+    "primaryMuscles": [
+      "quadriceps"
+    ],
+    "secondaryMuscles": [
+      "glutes"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Squat/0.jpg",
+    "instructions": [
+      "Stand with feet shoulder-width apart, arms out for balance.",
+      "Bend the knees and sit back to a quarter-to-half depth, keeping heels down.",
+      "Stand tall. Increase depth gradually as it feels comfortable."
+    ],
+    "homeAlternativeId": null,
+    "movementPattern": "squat",
+    "difficultyTier": 2,
+    "easierVariantId": "chair-squat",
+    "harderVariantId": "bodyweight-squat"
+  },
+  {
+    "id": "bird-dog",
+    "name": "Bird-Dog",
+    "category": "bodybuilding",
+    "primaryMuscles": [
+      "abdominals"
+    ],
+    "secondaryMuscles": [
+      "lower back",
+      "glutes"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Dead_Bug/0.jpg",
+    "instructions": [
+      "Start on hands and knees, back flat.",
+      "Extend one arm forward and the opposite leg back without arching the lower back.",
+      "Hold briefly, return, and switch sides."
+    ],
+    "homeAlternativeId": null,
+    "movementPattern": "core",
+    "difficultyTier": 1,
+    "easierVariantId": null,
+    "harderVariantId": "dead-bug"
+  },
+  {
+    "id": "standing-march",
+    "name": "Standing March",
+    "category": "cardio",
+    "primaryMuscles": [
+      "quadriceps"
+    ],
+    "secondaryMuscles": [
+      "abdominals"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Bodyweight_Walking_Lunge/0.jpg",
+    "instructions": [
+      "Stand tall, holding a counter or chair-back for support if needed.",
+      "Lift one knee to hip height (or as high as comfortable), lower with control, and alternate.",
+      "Keep an upright posture and steady breathing throughout."
+    ],
+    "homeAlternativeId": null,
+    "movementPattern": "balance",
+    "difficultyTier": 1,
+    "easierVariantId": null,
+    "harderVariantId": null
+  },
+  {
+    "id": "seated-torso-rotation",
+    "name": "Seated Torso Rotation",
+    "category": "bodybuilding",
+    "primaryMuscles": [
+      "abdominals"
+    ],
+    "secondaryMuscles": [
+      "lower back"
+    ],
+    "equipment": [
+      "bodyweight"
+    ],
+    "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Cross-Body_Crunch/0.jpg",
+    "instructions": [
+      "Sit tall on a chair, feet flat, arms crossed over the chest.",
+      "Rotate the torso gently to one side as far as comfortable, pause, and return.",
+      "Alternate sides with slow control \u2014 no forcing the range."
+    ],
+    "homeAlternativeId": null,
+    "movementPattern": "core",
+    "difficultyTier": 1,
+    "easierVariantId": null,
+    "harderVariantId": null
   }
 ]

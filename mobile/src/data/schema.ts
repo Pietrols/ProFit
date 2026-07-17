@@ -89,6 +89,14 @@ const MIGRATIONS: string[] = [
   ALTER TABLE meal_logs ADD COLUMN calories REAL;
   ALTER TABLE meal_logs ADD COLUMN estimated_fields TEXT NOT NULL DEFAULT '[]';
   `,
+  // v8 — progression ladders (Piece 1): movement pattern + difficulty tier +
+  // easier/harder sibling links, synced from the server library
+  `
+  ALTER TABLE exercises ADD COLUMN movement_pattern TEXT;
+  ALTER TABLE exercises ADD COLUMN difficulty_tier INTEGER;
+  ALTER TABLE exercises ADD COLUMN easier_variant_id TEXT;
+  ALTER TABLE exercises ADD COLUMN harder_variant_id TEXT;
+  `,
 ];
 
 export async function migrate(db: DbLike): Promise<void> {

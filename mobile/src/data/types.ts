@@ -15,6 +15,16 @@ export type ExerciseCategory =
   | 'crossfit'
   | 'cardio';
 
+export type MovementPattern =
+  | 'squat'
+  | 'hinge'
+  | 'push'
+  | 'pull'
+  | 'core'
+  | 'carry'
+  | 'cardio'
+  | 'balance';
+
 export interface Exercise {
   id: string;
   name: string;
@@ -25,6 +35,12 @@ export interface Exercise {
   demoUrl: string;
   instructions: string[];
   homeAlternativeId: string | null;
+  // Progression ladder (Piece 1): pattern + tier (1 low – 4 high) and links
+  // to the sibling one tier down/up within the same pattern.
+  movementPattern: MovementPattern | null;
+  difficultyTier: number | null;
+  easierVariantId: string | null;
+  harderVariantId: string | null;
   updatedAt: string;
 }
 
