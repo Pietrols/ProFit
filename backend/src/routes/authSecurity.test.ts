@@ -18,7 +18,8 @@ afterAll(async () => {
 });
 
 describe("AUDIT S1 — auth rate limiting", () => {
-  it("locks an email after repeated failed logins, without leaking whether it exists", async () => {
+  // 11 bcrypt compares back-to-back — generous timeout (see AUDIT S9)
+  it("locks an email after repeated failed logins, without leaking whether it exists", { timeout: 20_000 }, async () => {
     await app.post("/auth/register").send({ email, password, displayName: "Sec" });
 
     let limited = false;
