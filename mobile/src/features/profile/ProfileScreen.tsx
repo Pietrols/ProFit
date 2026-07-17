@@ -23,6 +23,7 @@ import {
   Title,
 } from '../../ui';
 import { useAuth, useUser } from '../auth/AuthContext';
+import { useOnboarding } from '../onboarding/OnboardingContext';
 
 const GOALS: readonly Goal[] = ['bulking', 'cutting', 'maintaining'];
 const CONTEXTS: readonly TrainingContext[] = ['home', 'gym'];
@@ -33,6 +34,7 @@ export function ProfileScreen() {
   const t = useAppTheme();
   const user = useUser();
   const { updateProfile, logout } = useAuth();
+  const onboarding = useOnboarding();
 
   const [goal, setGoal] = useState<Goal>(user.goal);
   const [days, setDays] = useState(String(user.trainingDays));
@@ -169,6 +171,13 @@ export function ProfileScreen() {
         {section('Units', <ChipRow options={UNITS} value={units} onChange={setUnits} />)}
 
         <Button label="Save changes" onPress={save} busy={busy} disabled={!dirty} />
+
+        <View style={{ height: t.spacing.md }} />
+        <Button
+          label="Revisit starter setup"
+          variant="ghost"
+          onPress={onboarding.open}
+        />
 
         <View style={{ height: t.spacing.xl }} />
         <PublicProfileSection />

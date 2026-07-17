@@ -1,10 +1,12 @@
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { RegisterScreen } from '../features/auth/RegisterScreen';
 import { useAuth } from '../features/auth/AuthContext';
+import { OnboardingContext } from '../features/onboarding/OnboardingContext';
+import { OnboardingScreen } from '../features/onboarding/OnboardingScreen';
 import { CommunityStack } from '../features/community/CommunityStack';
 import { HomeStack } from '../features/home/HomeStack';
 import { LibraryStack } from '../features/library/LibraryStack';
@@ -41,6 +43,14 @@ export function RootNav() {
   const t = useAppTheme();
   const { restoring, session } = useAuth();
   const [authScreen, setAuthScreen] = useState<'login' | 'register'>('login');
+  // First-run onboarding (Piece 2): shown when the account has never seen it
+  // (server-tracked), dismissible, and reopenable from Profile.
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const [onboardingReopened, setOnboardingReopened] = useState(false);
+  const onboardingValue = useMemo(
+    () => ({ open: () => setOnboardingReopened(true) }),
+    [],
+  );
 
   if (restoring) {
     return (
@@ -58,6 +68,19 @@ export function RootNav() {
     );
   }
 
+  const showOnboarding =
+    onboardingReopened || (!session.user.onboardedAt && !onboardingDismissed);
+  if (showOnboarding) {
+    return (
+      <OnboardingScreen
+        onDone={() => {
+          setOnboardingDismissed(true);
+          setOnboardingReopened(false);
+        }}
+      />
+    );
+  }
+
   const navTheme = {
     ...(t.mode === 'dark' ? DarkTheme : DefaultTheme),
     colors: {
@@ -71,6 +94,7 @@ export function RootNav() {
   };
 
   return (
+    <OnboardingContext.Provider value={onboardingValue}>
     <NavigationContainer theme={navTheme}>
       <Tab.Navigator
         screenOptions={({ route }) => ({
@@ -93,5 +117,6 @@ export function RootNav() {
         <Tab.Screen name="Profile" component={ProfileScreen} />
       </Tab.Navigator>
     </NavigationContainer>
+    </OnboardingContext.Provider>
   );
 }

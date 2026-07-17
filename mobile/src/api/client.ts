@@ -4,7 +4,7 @@ import { Plan } from '../data/planRepo';
 import { Exercise, ExerciseCategory } from '../data/types';
 import { WorkoutSessionPayload } from '../data/workoutTypes';
 import { BASE_URL } from './baseUrl';
-import { AuthResponse, ProfileUpdate, User } from './types';
+import { AuthResponse, ProfileUpdate, StarterTemplate, User } from './types';
 
 export { BASE_URL };
 
@@ -115,6 +115,31 @@ export const api = {
     },
   ) =>
     request<{ plan: Plan }>('/plans/custom', {
+      method: 'POST',
+      body: input,
+      token,
+    }),
+
+  // Starter templates (Piece 2 onboarding; defined server-side in Piece 1)
+  listTemplates: (
+    token: string,
+    context: 'home' | 'gym',
+    experience: 'beginner' | 'intermediate' | 'advanced',
+  ) =>
+    request<{ templates: StarterTemplate[] }>(
+      `/plans/templates?context=${context}&experience=${experience}`,
+      { token },
+    ),
+
+  createPlanFromTemplate: (
+    token: string,
+    input: {
+      templateId: string;
+      context: 'home' | 'gym';
+      experience: 'beginner' | 'intermediate' | 'advanced';
+    },
+  ) =>
+    request<{ plan: Plan }>('/plans/from-template', {
       method: 'POST',
       body: input,
       token,

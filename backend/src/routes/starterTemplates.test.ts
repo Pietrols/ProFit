@@ -175,3 +175,27 @@ describe("Piece 1 — starter templates & progression ladders", () => {
     expect(ctx.body.error.code).toBe("TEMPLATE_CONTEXT");
   });
 });
+
+describe("Piece 2 — onboarding flag", () => {
+  it("new accounts start un-onboarded; PATCH /me marks (and can clear) it", async () => {
+    const me = await app
+      .get("/me")
+      .set("Authorization", `Bearer ${token}`)
+      .expect(200);
+    expect(me.body.user.onboardedAt).toBeNull();
+
+    const done = await app
+      .patch("/me")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ onboarded: true })
+      .expect(200);
+    expect(done.body.user.onboardedAt).toBeTruthy();
+
+    const cleared = await app
+      .patch("/me")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ onboarded: false })
+      .expect(200);
+    expect(cleared.body.user.onboardedAt).toBeNull();
+  });
+});

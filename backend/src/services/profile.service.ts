@@ -16,6 +16,7 @@ export function toPublicUser(user: User) {
     units,
     avatar,
     publicBio,
+    onboardedAt,
   } = user;
   return {
     id,
@@ -27,6 +28,7 @@ export function toPublicUser(user: User) {
     units,
     avatar,
     publicBio,
+    onboardedAt,
   };
 }
 
@@ -37,6 +39,15 @@ export async function getProfile(userId: string) {
 }
 
 export async function updateProfile(userId: string, input: UpdateProfileInput) {
-  const user = await prisma.user.update({ where: { id: userId }, data: input });
+  const { onboarded, ...rest } = input;
+  const user = await prisma.user.update({
+    where: { id: userId },
+    data: {
+      ...rest,
+      ...(onboarded === undefined
+        ? {}
+        : { onboardedAt: onboarded ? new Date() : null }),
+    },
+  });
   return toPublicUser(user);
 }

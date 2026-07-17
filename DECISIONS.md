@@ -39,6 +39,32 @@ decided stack. Review and veto freely.
 - **Fat Loss Focus composes** the matching Foundations strength days plus two
   walk/jog interval days rather than duplicating day definitions.
 
+### Piece 2 — first-run onboarding
+
+- **"Shown once" is server-tracked** (`User.onboardedAt`, set via
+  `PATCH /me { onboarded }` on complete OR skip) so the wizard shows once per
+  account, not per device/reinstall. Marking done is best-effort — offline
+  completion never traps the user in the wizard (it may reappear next cold
+  start; accepted).
+- **The wizard renders instead of the tab navigator** (like the auth screens)
+  rather than as a navigation route — it precedes normal app use. Profile's
+  "Revisit starter setup" reopens it via a small OnboardingContext.
+- **Age is asked as a band** (under 40 / 40–59 / 60+), not an exact number —
+  it only tunes the gentle recommendation, and the UI says so explicitly.
+- **Recommendation rules** (pure, unit-tested `recommendTemplate.ts`): the
+  stated goal always wins (never inferred from demographics); a `general`
+  goal recommends Gentle Start when 60+ or brand-new-with-injuries, otherwise
+  Foundations by context; "training regularly" resolves templates at
+  intermediate (no ladder regression), everyone else at beginner.
+- **Injuries stay local** (SQLite meta `onboarding.injuries`) as future
+  coaching context; they influence the gentle recommendation but are not yet
+  sent to the server. Free-text note included.
+- **Disclaimer requires an explicit checkbox acknowledgment** before the
+  recommendation step; the same copy also arrives per-template from the API.
+- **The plan write is the existing `/plans/from-template` path** and happens
+  only on the explicit "Add this plan" tap; "Not now"/skip completes
+  onboarding without writing anything.
+
 ## Extension run (Groups A–H) — decisions to confirm
 
 - **Group A**: eye-toggle lives on the shared `TextField` (`secureToggle`

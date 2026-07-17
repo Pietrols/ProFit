@@ -10,6 +10,10 @@ export const updateProfileSchema = z
     // Public profile (Group G). null clears. avatar is an inline data URI.
     avatar: z.string().max(900_000).nullable(),
     publicBio: z.string().max(280).nullable(),
+    // Onboarding (Piece 2): true stamps onboardedAt now, false clears it
+    // (used by "revisit setup" only in the sense of re-completing; the wizard
+    // itself is reopened client-side).
+    onboarded: z.boolean(),
   })
   .partial()
   .refine((data) => Object.keys(data).length > 0, {
