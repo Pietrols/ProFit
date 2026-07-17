@@ -2,6 +2,7 @@ import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { DarkTheme, DefaultTheme, NavigationContainer } from '@react-navigation/native';
 import React, { useMemo, useState } from 'react';
+import { ForgotPasswordScreen } from '../features/auth/ForgotPasswordScreen';
 import { LoginScreen } from '../features/auth/LoginScreen';
 import { RegisterScreen } from '../features/auth/RegisterScreen';
 import { useAuth } from '../features/auth/AuthContext';
@@ -42,7 +43,7 @@ const TAB_ICONS: Record<keyof MainTabParamList, keyof typeof MaterialCommunityIc
 export function RootNav() {
   const t = useAppTheme();
   const { restoring, session } = useAuth();
-  const [authScreen, setAuthScreen] = useState<'login' | 'register'>('login');
+  const [authScreen, setAuthScreen] = useState<'login' | 'register' | 'forgot'>('login');
   // First-run onboarding (Piece 2): shown when the account has never seen it
   // (server-tracked), dismissible, and reopenable from Profile.
   const [onboardingDismissed, setOnboardingDismissed] = useState(false);
@@ -61,8 +62,14 @@ export function RootNav() {
   }
 
   if (!session) {
+    if (authScreen === 'forgot') {
+      return <ForgotPasswordScreen onDone={() => setAuthScreen('login')} />;
+    }
     return authScreen === 'login' ? (
-      <LoginScreen onRegister={() => setAuthScreen('register')} />
+      <LoginScreen
+        onRegister={() => setAuthScreen('register')}
+        onForgotPassword={() => setAuthScreen('forgot')}
+      />
     ) : (
       <RegisterScreen onLogin={() => setAuthScreen('login')} />
     );

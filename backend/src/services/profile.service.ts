@@ -17,6 +17,7 @@ export function toPublicUser(user: User) {
     avatar,
     publicBio,
     onboardedAt,
+    emailVerifiedAt,
   } = user;
   return {
     id,
@@ -29,6 +30,7 @@ export function toPublicUser(user: User) {
     avatar,
     publicBio,
     onboardedAt,
+    emailVerifiedAt,
   };
 }
 

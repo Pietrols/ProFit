@@ -78,6 +78,28 @@ export const api = {
   logout: (token: string) =>
     request<{ ok: boolean }>('/auth/logout', { method: 'POST', token }),
 
+  // Email flows (AUDIT S3)
+  resendVerification: (email: string) =>
+    request<{ ok: boolean }>('/auth/resend-verification', {
+      method: 'POST',
+      body: { email },
+    }),
+  verifyEmail: (email: string, code: string) =>
+    request<{ ok: boolean }>('/auth/verify-email', {
+      method: 'POST',
+      body: { email, code },
+    }),
+  forgotPassword: (email: string) =>
+    request<{ ok: boolean }>('/auth/forgot-password', {
+      method: 'POST',
+      body: { email },
+    }),
+  resetPassword: (email: string, code: string, newPassword: string) =>
+    request<{ ok: boolean }>('/auth/reset-password', {
+      method: 'POST',
+      body: { email, code, newPassword },
+    }),
+
   getMe: (token: string) => request<{ user: User }>('/me', { token }),
 
   updateProfile: (token: string, input: ProfileUpdate) =>

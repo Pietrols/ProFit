@@ -20,6 +20,19 @@ const registerLimit = authRateLimit({
   windowMs: 60 * 60 * 1000,
 });
 
+// Email-flow endpoints share one strict budget: codes are 6 digits, so the
+// per-email cap is what makes guessing pointless (5 attempts/token anyway).
+const emailFlowLimit = authRateLimit({
+  scope: "email-flow",
+  maxPerIp: 30,
+  maxPerEmail: 5,
+  windowMs: 60 * 60 * 1000,
+});
+
 authRouter.post("/register", registerLimit, authController.register);
 authRouter.post("/login", loginLimit, authController.login);
 authRouter.post("/logout", requireAuth, authController.logout);
+authRouter.post("/resend-verification", emailFlowLimit, authController.resendVerification);
+authRouter.post("/verify-email", emailFlowLimit, authController.verifyEmail);
+authRouter.post("/forgot-password", emailFlowLimit, authController.forgotPassword);
+authRouter.post("/reset-password", emailFlowLimit, authController.resetPassword);

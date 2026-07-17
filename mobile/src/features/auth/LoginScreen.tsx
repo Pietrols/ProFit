@@ -14,7 +14,13 @@ import {
 import { useAuth } from './AuthContext';
 import { validateEmail } from './validate';
 
-export function LoginScreen({ onRegister }: { onRegister: () => void }) {
+export function LoginScreen({
+  onRegister,
+  onForgotPassword,
+}: {
+  onRegister: () => void;
+  onForgotPassword: () => void;
+}) {
   const t = useAppTheme();
   const { login } = useAuth();
   const [email, setEmail] = useState('');
@@ -72,6 +78,13 @@ export function LoginScreen({ onRegister }: { onRegister: () => void }) {
           autoComplete="password"
         />
         <Button label="Log in" onPress={submit} busy={busy} />
+        <Pressable onPress={onForgotPassword} style={{ marginTop: t.spacing.md }}>
+          <View style={{ alignItems: 'center' }}>
+            <Text style={{ fontFamily: t.typography.body, fontSize: 13, color: t.colors.tx2 }}>
+              Forgot your password?
+            </Text>
+          </View>
+        </Pressable>
         <Pressable onPress={onRegister} style={{ marginTop: t.spacing.xl }}>
           <View style={{ alignItems: 'center' }}>
             <Text style={{ fontFamily: t.typography.body, color: t.colors.tx2 }}>

@@ -26,6 +26,8 @@ interface AuthValue {
   ) => Promise<void>;
   logout: () => Promise<void>;
   updateProfile: (input: ProfileUpdate) => Promise<void>;
+  /** Re-fetch /me and persist (e.g. after email verification). */
+  refreshProfile: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthValue | null>(null);
@@ -87,6 +89,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       updateProfile: async (input) => {
         if (!session) throw new Error('Not logged in');
         const { user } = await api.updateProfile(session.token, input);
+        await setAndPersist({ token: session.token, user });
+      },
+      refreshProfile: async () => {
+        if (!session) throw new Error('Not logged in');
+        const { user } = await api.getMe(session.token);
         await setAndPersist({ token: session.token, user });
       },
     }),

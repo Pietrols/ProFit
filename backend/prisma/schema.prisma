@@ -137,6 +137,9 @@ model User {
   // Token revocation (AUDIT S2): JWTs carry this as `tv`; bumping it kills
   // every outstanding token (logout, password reset).
   tokenVersion   Int             @default(0) @map("token_version")
+  // Email verification (AUDIT S3). Advisory for now — see DECISIONS.
+  emailVerifiedAt DateTime?      @map("email_verified_at")
+  emailTokens    EmailToken[]
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")
   plans          Plan[]
@@ -149,6 +152,29 @@ model User {
   userWorkouts   UserWorkout[]
 
   @@map("users")
+}
+
+// Email verification / password reset codes (AUDIT S3). Only the SHA-256 of
+// the 6-digit code is stored; codes expire, burn after use, and lock after
+// 5 wrong attempts.
+enum EmailTokenPurpose {
+  verify
+  reset
+}
+
+model EmailToken {
+  id        String            @id @default(uuid())
+  userId    String            @map("user_id")
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  purpose   EmailTokenPurpose
+  codeHash  String            @map("code_hash")
+  expiresAt DateTime          @map("expires_at")
+  usedAt    DateTime?         @map("used_at")
+  attempts  Int               @default(0)
+  createdAt DateTime          @default(now()) @map("created_at")
+
+  @@index([userId, purpose])
+  @@map("email_tokens")
 }
 
 enum ChatRole {

@@ -14,6 +14,8 @@ export interface User {
   publicBio?: string | null;
   // Set when first-run onboarding was completed or skipped (Piece 2).
   onboardedAt?: string | null;
+  // Set once the email is confirmed (AUDIT S3).
+  emailVerifiedAt?: string | null;
 }
 
 // Starter template as resolved by GET /plans/templates (Piece 1/2).

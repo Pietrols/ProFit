@@ -11,6 +11,7 @@ import { listSessionsLocal } from '../../data/workoutRepo';
 import { buildExportJson, buildSetsCsv } from '../settings/exportData';
 import { RemindersSection } from '../settings/RemindersSection';
 import { PublicProfileSection } from './PublicProfileSection';
+import { VerifyEmailSection } from './VerifyEmailSection';
 import { useAppTheme } from '../../theme/ThemeContext';
 import {
   AccentRule,
@@ -142,6 +143,8 @@ export function ProfileScreen() {
         >
           {user.email}
         </Text>
+
+        <VerifyEmailSection />
 
         {error ? <ErrorBanner message={error} onRetry={save} /> : null}
         {saved && !dirty ? (
