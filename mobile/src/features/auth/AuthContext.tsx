@@ -72,6 +72,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         await setAndPersist(await api.register({ email, password, displayName }));
       },
       logout: async () => {
+        // Best-effort server-side revocation (AUDIT S2); local logout must
+        // still work offline.
+        if (session) {
+          try {
+            await api.logout(session.token);
+          } catch {
+            // offline or already-invalid token — local logout proceeds
+          }
+        }
         await clearSession();
         setSession(null);
       },

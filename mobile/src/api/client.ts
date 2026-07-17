@@ -75,6 +75,9 @@ export const api = {
   login: (input: { email: string; password: string }) =>
     request<AuthResponse>('/auth/login', { method: 'POST', body: input }),
 
+  logout: (token: string) =>
+    request<{ ok: boolean }>('/auth/logout', { method: 'POST', token }),
+
   getMe: (token: string) => request<{ user: User }>('/me', { token }),
 
   updateProfile: (token: string, input: ProfileUpdate) =>

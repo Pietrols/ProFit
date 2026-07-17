@@ -14,6 +14,13 @@ export async function register(req: Request, res: Response) {
   res.status(201).json(result);
 }
 
+/** Server-side logout (AUDIT S2): revokes every outstanding token. */
+export async function logout(req: Request, res: Response) {
+  await authService.revokeAllTokens(req.userId!);
+  logger.info({ event: "auth.logout", userId: req.userId }, "tokens revoked");
+  res.json({ ok: true });
+}
+
 export async function login(req: Request, res: Response) {
   const input = parseOrThrow(loginSchema, req.body);
   try {
