@@ -65,6 +65,32 @@ decided stack. Review and veto freely.
   only on the explicit "Add this plan" tap; "Not now"/skip completes
   onboarding without writing anything.
 
+### Piece 3 — conversational plan builder
+
+- **Server-stateless conversation**: the client sends the builder transcript
+  each turn to `POST /ai/plan-builder`; nothing is persisted into chat
+  history and the server never writes a plan from this endpoint. The write
+  happens only when the client, after the user's explicit "Add this plan"
+  tap, calls the existing `/plans/from-template` or `/plans/custom` paths.
+- **Schema is the knowledge boundary**: `aiJson()` with a per-request Zod
+  schema whose exercise ids are refined against the live library and whose
+  template ids are an enum of the Piece 1 set. Persistent invention (bad ids
+  survive the retry-with-feedback) degrades to the same 503 AI_UNAVAILABLE
+  as chat — invented content can never reach the client. No `note`/cue field
+  exists in the proposal schema, so the model cannot invent coaching cues.
+- **System prompt grounded in Piece 1**: template catalog + compact exercise
+  catalog (id/pattern/tier/equipment) + ladder logic + the same disclaimer
+  language are embedded; goal is never inferred, one question per turn.
+- **Shares the chat rate-limit budget** (20/hr) rather than adding a second
+  limiter — both are "coach" usage.
+- **Builder UI lives inside the Coach tab** as a mode toggle ("Build a plan"
+  / Exit), reusing the chat bubble list; the proposal renders as an in-chat
+  card with Add / Not-this-one. Degrade states reuse the existing chat
+  banners (unavailable / offline / rate-limited).
+- **Custom proposals get default timers** (90s rest, no work interval,
+  auto-advance) — the builder schema deliberately doesn't let the model set
+  timer preferences.
+
 ## Extension run (Groups A–H) — decisions to confirm
 
 - **Group A**: eye-toggle lives on the shared `TextField` (`secureToggle`

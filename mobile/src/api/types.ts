@@ -47,6 +47,40 @@ export interface StarterTemplate {
   }[];
 }
 
+// Conversational plan builder (Piece 3).
+export interface BuilderMessage {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export type PlanProposal =
+  | {
+      kind: 'template';
+      templateId: string;
+      context: TrainingContext;
+      experience: 'beginner' | 'intermediate' | 'advanced';
+    }
+  | {
+      kind: 'custom';
+      name: string;
+      context: TrainingContext;
+      days: {
+        name: string;
+        category: 'bodybuilding' | 'powerlifting' | 'crossfit' | 'cardio';
+        exercises: {
+          exerciseId: string;
+          sets: number;
+          reps: string;
+          restSeconds: number;
+          durationSeconds: number | null;
+        }[];
+      }[];
+    };
+
+export type PlanBuilderReply =
+  | { action: 'ask'; question: string }
+  | { action: 'propose'; summary: string; proposal: PlanProposal };
+
 export interface AuthResponse {
   token: string;
   user: User;

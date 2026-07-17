@@ -4,7 +4,14 @@ import { Plan } from '../data/planRepo';
 import { Exercise, ExerciseCategory } from '../data/types';
 import { WorkoutSessionPayload } from '../data/workoutTypes';
 import { BASE_URL } from './baseUrl';
-import { AuthResponse, ProfileUpdate, StarterTemplate, User } from './types';
+import {
+  AuthResponse,
+  BuilderMessage,
+  PlanBuilderReply,
+  ProfileUpdate,
+  StarterTemplate,
+  User,
+} from './types';
 
 export { BASE_URL };
 
@@ -189,6 +196,13 @@ export const api = {
       '/chat',
       { method: 'POST', body: { message }, token },
     ),
+
+  planBuilder: (token: string, messages: BuilderMessage[]) =>
+    request<PlanBuilderReply>('/ai/plan-builder', {
+      method: 'POST',
+      body: { messages },
+      token,
+    }),
 
   getChatHistory: (token: string) =>
     request<{
