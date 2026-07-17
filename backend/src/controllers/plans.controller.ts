@@ -5,6 +5,7 @@ import {
   createFromTemplateSchema,
   createPlanSchema,
   listTemplatesQuerySchema,
+  setDifficultySchema,
 } from "../routes/plans.schemas";
 import * as plansService from "../services/plans.service";
 
@@ -30,6 +31,11 @@ export async function createFromTemplate(req: Request, res: Response) {
   res.status(201).json({
     plan: await plansService.createPlanFromTemplate(req.userId!, input),
   });
+}
+
+export async function setDifficulty(req: Request, res: Response) {
+  const input = parseOrThrow(setDifficultySchema, req.body);
+  res.json({ plan: await plansService.setPlanDifficulty(req.userId!, input) });
 }
 
 export async function getActive(req: Request, res: Response) {

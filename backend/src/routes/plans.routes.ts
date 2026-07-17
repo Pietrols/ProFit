@@ -10,3 +10,4 @@ plansRouter.post("/custom", plansController.createCustom);
 plansRouter.get("/templates", plansController.listTemplates);
 plansRouter.post("/from-template", plansController.createFromTemplate);
 plansRouter.get("/active", plansController.getActive);
+plansRouter.patch("/active/difficulty", plansController.setDifficulty);

@@ -37,6 +37,13 @@ enum ExerciseCategory {
   cardio
 }
 
+// Per-plan difficulty baseline (Piece 4).
+enum PlanDifficulty {
+  gentle
+  standard
+  challenging
+}
+
 // Movement-pattern taxonomy (Piece 1): the axis progression ladders run on.
 enum MovementPattern {
   squat
@@ -291,6 +298,9 @@ model Plan {
   context   TrainingContext
   isActive  Boolean         @default(true) @map("is_active")
   isCustom  Boolean         @default(false) @map("is_custom")
+  // Difficulty baseline (Piece 4): setting it walks bodyweight exercises up
+  // or down the progression ladders and adjusts loaded-exercise rest.
+  difficulty PlanDifficulty @default(standard)
   // Custom-workout timer settings (Group D). Null on template plans.
   defaultRestSeconds  Int?    @map("default_rest_seconds")
   workIntervalSeconds Int?    @map("work_interval_seconds")
@@ -333,6 +343,11 @@ model PlanExercise {
   durationSeconds Int?     @map("duration_seconds")
   // Short per-exercise cue (Piece 1 templates, e.g. "Stop if a joint hurts").
   note            String?
+  // Difficulty baseline (Piece 4): the standard-difficulty values, recorded
+  // when a plan first leaves standard so every shift resolves from the same
+  // anchor (relative walks are lossy at ladder ends). Null at standard.
+  baselineExerciseId  String? @map("baseline_exercise_id")
+  baselineRestSeconds Int?    @map("baseline_rest_seconds")
 
   @@unique([planDayId, order])
   @@map("plan_exercises")

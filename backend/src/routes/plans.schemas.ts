@@ -66,7 +66,13 @@ export const createFromTemplateSchema = z.object({
   experience: z.enum(["beginner", "intermediate", "advanced"]).default("beginner"),
 });
 
+// Per-plan difficulty baseline (Piece 4).
+export const setDifficultySchema = z.object({
+  difficulty: z.enum(["gentle", "standard", "challenging"]),
+});
+
 export type CreatePlanInput = z.infer<typeof createPlanSchema>;
+export type SetDifficultyInput = z.infer<typeof setDifficultySchema>;
 export type CreateCustomPlanInput = z.infer<typeof createCustomPlanSchema>;
 export type ListTemplatesQuery = z.infer<typeof listTemplatesQuerySchema>;
 export type CreateFromTemplateInput = z.infer<typeof createFromTemplateSchema>;

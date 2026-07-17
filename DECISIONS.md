@@ -91,6 +91,34 @@ decided stack. Review and veto freely.
   auto-advance) — the builder schema deliberately doesn't let the model set
   timer preferences.
 
+### Piece 4 — difficulty slider
+
+- **Ladder membership, not equipment, picks the branch**: the ladders
+  deliberately include loaded rungs (band pull-apart → inverted row →
+  dumbbell row → pull-ups), so "swap via ladder" applies to any
+  pattern-tiered exercise with a sibling link; non-laddered, non-cardio
+  exercises trade rest instead (±30s per step, floor 15s). Weight guidance
+  stays with the existing AI next-session layer.
+- **Shifts resolve from a recorded standard baseline**
+  (`PlanExercise.baselineExerciseId`/`baselineRestSeconds`, null at
+  standard): relative walks are lossy at ladder ends (a bottom rung that
+  can't go lower would wrongly climb when returning to standard), so every
+  difficulty always maps the baseline → target tier. Gentle → Challenging →
+  Standard round-trips exactly (test-verified).
+- **Equipment fixes**: chair-squat ('machine'), pelvic-tilt-into-bridge,
+  decline-push-up, mountain-climbers ('other') were dataset-mistagged and are
+  now 'bodyweight' — chair-squat and pelvic-tilt are in the Gentle Start home
+  template and must pass home-equipment filters.
+- **Per-session dial-back is client-side and pure** (`dialBackDay`): one tier
+  down for laddered exercises via the synced local ladder fields, sets −1
+  (min 1), numeric reps ×0.75; "hold"/"AMRAP"/interval prescriptions pass
+  through. It transforms only the day object handed to the active-workout
+  screen — server plan and local cache untouched; the session log already
+  records planned-vs-actual for any swap.
+- **UI**: difficulty ChipRow on Home under the plan header (persisted via
+  `PATCH /plans/active/difficulty`, offline shows a clear error);
+  "Not feeling it — start easier" ghost button inside each expanded day card.
+
 ## Extension run (Groups A–H) — decisions to confirm
 
 - **Group A**: eye-toggle lives on the shared `TextField` (`secureToggle`

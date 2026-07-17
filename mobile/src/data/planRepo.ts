@@ -24,12 +24,16 @@ export interface PlanDay {
   exercises: PlanExercise[];
 }
 
+export type PlanDifficulty = 'gentle' | 'standard' | 'challenging';
+
 export interface Plan {
   id: string;
   name: string;
   context: 'home' | 'gym';
   days: PlanDay[];
   isCustom?: boolean;
+  // Per-plan difficulty baseline (Piece 4); absent on pre-existing caches.
+  difficulty?: PlanDifficulty;
   // Custom-workout timer settings (Group D); null/absent on template plans.
   defaultRestSeconds?: number | null;
   workIntervalSeconds?: number | null;

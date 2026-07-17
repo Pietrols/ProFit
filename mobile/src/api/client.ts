@@ -1,6 +1,6 @@
 import { CreateWorkoutInput, UserWorkout } from '../data/communityTypes';
 import { MealLog, MealProfileItem } from '../data/nutritionRepo';
-import { Plan } from '../data/planRepo';
+import { Plan, PlanDifficulty } from '../data/planRepo';
 import { Exercise, ExerciseCategory } from '../data/types';
 import { WorkoutSessionPayload } from '../data/workoutTypes';
 import { BASE_URL } from './baseUrl';
@@ -149,6 +149,13 @@ export const api = {
     request<{ plan: Plan }>('/plans/from-template', {
       method: 'POST',
       body: input,
+      token,
+    }),
+
+  setPlanDifficulty: (token: string, difficulty: PlanDifficulty) =>
+    request<{ plan: Plan }>('/plans/active/difficulty', {
+      method: 'PATCH',
+      body: { difficulty },
       token,
     }),
 

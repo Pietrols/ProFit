@@ -766,7 +766,7 @@
       "triceps"
     ],
     "equipment": [
-      "other"
+      "bodyweight"
     ],
     "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Decline_Push-Up/0.jpg",
     "instructions": [
@@ -1506,7 +1506,7 @@
       "shoulders"
     ],
     "equipment": [
-      "other"
+      "bodyweight"
     ],
     "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Mountain_Climbers/0.jpg",
     "instructions": [
@@ -1772,7 +1772,7 @@
       "hamstrings"
     ],
     "equipment": [
-      "machine"
+      "bodyweight"
     ],
     "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Chair_Squat/0.jpg",
     "instructions": [
@@ -1798,7 +1798,7 @@
     ],
     "secondaryMuscles": [],
     "equipment": [
-      "other"
+      "bodyweight"
     ],
     "demoUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/Pelvic_Tilt_Into_Bridge/0.jpg",
     "instructions": [
@@ -2116,7 +2116,7 @@
     "instructions": [
       "Sit tall on a chair, feet flat, arms crossed over the chest.",
       "Rotate the torso gently to one side as far as comfortable, pause, and return.",
-      "Alternate sides with slow control \u2014 no forcing the range."
+      "Alternate sides with slow control — no forcing the range."
     ],
     "homeAlternativeId": null,
     "movementPattern": "core",
