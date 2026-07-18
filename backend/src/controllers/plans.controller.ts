@@ -7,6 +7,7 @@ import {
   listTemplatesQuerySchema,
   setDifficultySchema,
 } from "../routes/plans.schemas";
+import * as planDifficultyService from "../services/planDifficulty.service";
 import * as plansService from "../services/plans.service";
 
 export async function create(req: Request, res: Response) {
@@ -35,7 +36,9 @@ export async function createFromTemplate(req: Request, res: Response) {
 
 export async function setDifficulty(req: Request, res: Response) {
   const input = parseOrThrow(setDifficultySchema, req.body);
-  res.json({ plan: await plansService.setPlanDifficulty(req.userId!, input) });
+  res.json({
+    plan: await planDifficultyService.setPlanDifficulty(req.userId!, input),
+  });
 }
 
 export async function getActive(req: Request, res: Response) {
