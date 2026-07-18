@@ -3,8 +3,13 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, Text, View } from 'react-native';
 import { getDb } from '../../data/db';
+import { getExercise } from '../../data/exercisesRepo';
 import { listSessionsLocal } from '../../data/workoutRepo';
 import { WorkoutSessionPayload } from '../../data/workoutTypes';
+import { successFeedback } from '../../lib/haptics';
+import { useUser } from '../auth/AuthContext';
+import { detectNewRecords } from '../progress/records';
+import { fromKg } from './computeDelta';
 import { useAppTheme } from '../../theme/ThemeContext';
 import {
   AccentRule,
@@ -22,9 +27,11 @@ export function WorkoutSummaryScreen() {
   const t = useAppTheme();
   const route = useRoute<RouteProp<HomeStackParamList, 'WorkoutSummary'>>();
   const nav = useNavigation<NativeStackNavigationProp<HomeStackParamList>>();
+  const user = useUser();
   const [session, setSession] = useState<WorkoutSessionPayload | null>(null);
   const [synced, setSynced] = useState(route.params.synced);
   const [status, setStatus] = useState<'loading' | 'ready' | 'missing'>('loading');
+  const [prLines, setPrLines] = useState<string[]>([]);
 
   useEffect(() => {
     (async () => {
@@ -34,8 +41,28 @@ export function WorkoutSummaryScreen() {
       setSession(row?.payload ?? null);
       if (row?.synced) setSynced(true);
       setStatus(row ? 'ready' : 'missing');
+
+      // Personal records (AUDIT M2): this session vs every previous one
+      if (row) {
+        const prior = all
+          .filter((r) => r.payload.id !== row.payload.id)
+          .map((r) => r.payload);
+        const prs = detectNewRecords(prior, row.payload);
+        const lines = await Promise.all(
+          prs.map(async (pr) => {
+            const name = (await getExercise(db, pr.exerciseId))?.name ?? pr.exerciseId;
+            if (pr.kind === 'reps') return `${name} — ${pr.value} reps`;
+            const w = Math.round(fromKg(pr.value, user.units) * 10) / 10;
+            return pr.kind === 'weight'
+              ? `${name} — ${w} ${user.units}`
+              : `${name} — ~${w} ${user.units} est. 1RM`;
+          }),
+        );
+        if (lines.length > 0) successFeedback();
+        setPrLines(lines);
+      }
     })();
-  }, [route.params.sessionId]);
+  }, [route.params.sessionId, user.units]);
 
   if (status === 'loading') {
     return <Screen><LoadingView /></Screen>;
@@ -66,6 +93,39 @@ export function WorkoutSummaryScreen() {
           <Stat label="Sets" value={`${d.completedSetCount}/${d.plannedSetCount}`} />
           <Stat label="Adherence" value={`${adherence}%`} accent={adherence >= 80 ? 'green' : 'red'} />
         </View>
+
+        {prLines.length > 0 && (
+          <View
+            style={{
+              backgroundColor: t.colors.gdim,
+              borderColor: t.colors.green,
+              borderWidth: 1,
+              borderRadius: t.radius.md,
+              padding: t.spacing.md,
+              marginBottom: t.spacing.xl,
+            }}
+          >
+            <Text
+              style={{
+                fontFamily: t.typography.heading,
+                fontSize: 16,
+                color: t.colors.green,
+                textTransform: 'uppercase',
+                marginBottom: t.spacing.xs,
+              }}
+            >
+              New personal record{prLines.length > 1 ? 's' : ''}!
+            </Text>
+            {prLines.map((line) => (
+              <Text
+                key={line}
+                style={{ fontFamily: t.typography.body, fontSize: 14, color: t.colors.tx }}
+              >
+                {line}
+              </Text>
+            ))}
+          </View>
+        )}
 
         <Heading>Planned vs actual</Heading>
         <View style={{ marginTop: t.spacing.md, gap: t.spacing.sm, marginBottom: t.spacing.xl }}>

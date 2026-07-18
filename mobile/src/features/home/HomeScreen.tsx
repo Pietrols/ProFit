@@ -6,6 +6,8 @@ import { api, NetworkError } from '../../api/client';
 import { getDb } from '../../data/db';
 import { getExercise } from '../../data/exercisesRepo';
 import { listMealsLocal } from '../../data/nutritionRepo';
+import { listSessionsLocal } from '../../data/workoutRepo';
+import { computeWeekStreak } from '../progress/records';
 import { PlanDay, PlanDifficulty, saveActivePlan } from '../../data/planRepo';
 import { Exercise } from '../../data/types';
 import { refreshMealReminder } from '../settings/reminders';
@@ -45,6 +47,15 @@ export function HomeScreen() {
     text: string;
     prev: PlanDifficulty;
   } | null>(null);
+  // Week streak (AUDIT M2) — computed from local sessions, works offline.
+  const [streak, setStreak] = useState(0);
+
+  useEffect(() => {
+    (async () => {
+      const rows = await listSessionsLocal(await getDb());
+      setStreak(computeWeekStreak(rows.map((r) => r.payload)));
+    })();
+  }, []);
 
   // Per-plan difficulty baseline (Piece 4a): persisted server-side, ladder
   // swaps + rest adjustments come back in the updated plan.
@@ -115,6 +126,20 @@ export function HomeScreen() {
   return (
     <Screen>
       <Title>Hey, {user.displayName}</Title>
+      {streak > 0 ? (
+        <Text
+          style={{
+            fontFamily: t.typography.label,
+            fontSize: 13,
+            color: t.colors.green,
+            textTransform: 'uppercase',
+            letterSpacing: 0.5,
+            marginTop: t.spacing.xs,
+          }}
+        >
+          🔥 {streak}-week streak
+        </Text>
+      ) : null}
       <AccentRule />
 
       {status === 'loading' ? (

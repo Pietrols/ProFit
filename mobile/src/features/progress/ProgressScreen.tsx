@@ -15,6 +15,7 @@ import { WorkoutSessionPayload } from '../../data/workoutTypes';
 import { useAppTheme } from '../../theme/ThemeContext';
 import { AccentRule, Body, Button, ChipRow, EmptyView, Heading, LoadingView, Screen, Title } from '../../ui';
 import { BarRow, LineChart, StatTile } from '../../ui/charts';
+import { computeRecords } from './records';
 import { useAuth, useUser } from '../auth/AuthContext';
 import { fromKg, toKg } from '../workout/computeDelta';
 import {
@@ -93,6 +94,15 @@ export function ProgressScreen() {
     [sessions, curveExercise],
   );
   const timeline = useMemo(() => dailyActivity(sessions), [sessions]);
+  // Personal records (AUDIT M2), heaviest lifts first, top 8
+  const records = useMemo(
+    () =>
+      [...computeRecords(sessions).values()]
+        .filter((r) => r.maxWeightKg != null || (r.maxReps ?? 0) > 0)
+        .sort((a, b) => (b.bestE1RmKg ?? 0) - (a.bestE1RmKg ?? 0) || (b.maxReps ?? 0) - (a.maxReps ?? 0))
+        .slice(0, 8),
+    [sessions],
+  );
 
   async function addBodyweight() {
     const value = Number(bwInput.replace(',', '.'));
@@ -159,6 +169,35 @@ export function ProgressScreen() {
               <StatTile label="Week streak" value={String(streak)} />
               <StatTile label="Sessions" value={`${adh.completed}/${adh.planned}`} />
             </View>
+
+            {records.length > 0 &&
+              card(
+                'Personal records',
+                <View style={{ gap: t.spacing.sm }}>
+                  {records.map((r) => (
+                    <View
+                      key={r.exerciseId}
+                      style={{
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        borderBottomColor: t.colors.line,
+                        borderBottomWidth: 1,
+                        paddingBottom: t.spacing.xs,
+                      }}
+                    >
+                      <Body>{names.get(r.exerciseId) ?? r.exerciseId}</Body>
+                      <Body muted>
+                        {r.maxWeightKg != null
+                          ? `${Math.round(fromKg(r.maxWeightKg, user.units) * 10) / 10} ${user.units} × ${r.maxWeightReps}` +
+                            (r.bestE1RmKg != null
+                              ? ` · ~${Math.round(fromKg(r.bestE1RmKg, user.units))} 1RM`
+                              : '')
+                          : `${r.maxReps} reps`}
+                      </Body>
+                    </View>
+                  ))}
+                </View>,
+              )}
 
             {card(
               'Strength curve',
