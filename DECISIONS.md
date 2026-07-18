@@ -52,6 +52,41 @@ decided stack. Review and veto freely.
   stack, linked from empty-Home, the plan-settings expander, and the plan
   builder — the templates are no longer onboarding/AI-chat exclusives.
 
+### Diminishing-returns triage — what shipped vs. what waits
+
+Everything requested was weighed as value ÷ (build + maintenance cost).
+Shipped in this run: all security fixes (S1–S10), the refactors (C1–C3), the
+UX items (U1–U5), haptics + rest-timer cues (M1), streaks + PR/est-1RM
+records (M2), and recovery-aware day suggestions (M3) — each is either a
+launch blocker or high daily-touch value at small-to-moderate cost.
+
+Deliberately **deferred** (overkill for this stage), with reasons:
+
+- **Localization / i18n (M6)**: extracting ~300 strings, plural rules, and a
+  translation pipeline serves zero current users — the app has no non-English
+  market yet. The genuinely cheap slice (kg/lb) already exists in Profile.
+  Revisit when there's a target locale; retrofitting i18n is linear work, not
+  compounding debt.
+- **Social following/feed (M5)**: the community library is the right seed,
+  but a feed multiplies the moderation surface (S6 exists precisely because
+  even static sharing needs it) and needs a notification system to feel
+  alive. High cost, and its value depends on user density the app doesn't
+  have yet. The report/auto-hide plumbing built now is the prerequisite
+  either way.
+- **Health Connect / Apple Health (M4)**: real integration touches store
+  review disclosures, background sync, and per-category permission UX — a
+  full workstream. Worth doing right, after launch hardening settles.
+- **Redis-backed rate limiting**: pure infra cost while single-instance;
+  the limiter is isolated behind one module for the swap.
+- **SQLCipher for local SQLite (S11)**: device sandbox + own-data-only makes
+  this low yield; the account-deletion wipe covers the exit path.
+- **Exercise sync tombstones (C5)**: the catalog only ever grows, and
+  historical sessions reference old exercises — deletion is undesirable, so
+  tombstones solve a problem the data model refuses to have.
+- **Per-device sessions / 2FA**: single tokenVersion revocation covers the
+  realistic threat (lost phone → reset password → everything dies). A session
+  table and TOTP flows are enterprise posture for a personal fitness app.
+
 ### Other remediation decisions
 
 - **Email verification is advisory** (banner + code entry on Profile), not a
