@@ -14,7 +14,9 @@ let tokenA: string;
 let tokenB: string;
 let tokenC: string;
 const app = supertest(createApp());
-const AVATAR = "data:image/jpeg;base64,QQ=="; // tiny stand-in
+// Genuine 1x1 PNG — avatars are magic-byte validated since AUDIT S6.
+const AVATAR =
+  "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==";
 
 beforeAll(async () => {
   const a = await app.post("/auth/register").send({ email: emailA, password: "group-g-passwordA", displayName: "Sharer" });
