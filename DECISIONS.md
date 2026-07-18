@@ -3,6 +3,55 @@
 Decisions taken where PROJECT.md was ambiguous, plus any deviations from the
 decided stack. Review and veto freely.
 
+## Audit remediation (AUDIT.md) — decisions to confirm
+
+### Chosen best actions for audit points S6–S10, and why
+
+- **S6 community moderation — validate + report + auto-hide, not pre-review.**
+  Images are magic-byte validated at upload (a string claiming to be a PNG
+  must BE a PNG); any viewer can report a public workout (one per user); 3
+  distinct reporters auto-hide it. Chose auto-hide over deletion (reversible
+  — a brigade can't destroy content) and over human pre-moderation (no
+  moderators exist; pre-review would kill sharing at this scale).
+- **S7 CORS — env allowlist, deny-by-default.** Native apps send no Origin so
+  they're unaffected; browsers get nothing unless CORS_ORIGINS lists them.
+  One line of config beats future retrofitting.
+- **S8 logging + limiter — pino with hard redaction; limiter stays in-memory
+  but isolated.** All limiter state lives in one module (`rateLimit.ts` +
+  chat's), so Redis is a drop-in when a second instance exists. Chose NOT to
+  add Redis now: it's a new infra dependency for a single-instance deployment
+  — pure cost, no benefit today.
+- **S9 — native bcrypt over argon2.** Same API as bcryptjs (two-line diff),
+  moves hashing off the event loop. Argon2id is marginally stronger but a
+  migration (different hash format, rehash-on-login logic) for little gain at
+  this threat level; bcrypt cost 12 remains OWASP-acceptable.
+- **S10 prompt injection — prompt hardening + injury context, NOT output
+  filtering.** A regex/classifier on coach replies has a high false-positive
+  rate on legitimate fitness talk ("push through the last rep" vs. "push
+  through pain") and gives false confidence. The real controls: the plan
+  builder is schema-locked (invention is structurally impossible), the chat
+  blast radius is the user's own data, and both system prompts now declare
+  context/user text to be data-not-instructions with injury constraints
+  standing. Revisit with a proper safety classifier if chat ever becomes
+  multi-user-visible.
+
+### Other remediation decisions
+
+- **Email verification is advisory** (banner + code entry on Profile), not a
+  login gate: gating would lock out every pre-existing account and punish
+  mail-delivery hiccups. A password reset counts as verification (it proves
+  mailbox control). Tighten to feature-gating (e.g. required before
+  publishing community workouts) once a real mail provider is wired.
+- **Mailer is a console transport behind one interface** — registration/reset
+  never block on mail; a real SMTP/SES transport is a one-file change.
+- **Logout revokes ALL of a user's tokens** (single tokenVersion), not just
+  the current device's. For a single-device personal app this is the right
+  simplicity; per-device sessions would need a session table for no present
+  user benefit.
+- **Account deletion is immediate hard-delete** (cascade), not a soft-delete
+  grace window. Grace windows need scheduled purging + "recover" flows; for
+  launch, immediate erasure is simpler and strictly more privacy-correct.
+
 ## Pieces 1–4 (ladders, onboarding, AI plan builder, difficulty) — decisions to confirm
 
 ### Piece 1 — movement patterns, ladders, starter templates
