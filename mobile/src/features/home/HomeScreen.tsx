@@ -6,8 +6,10 @@ import { api, NetworkError } from '../../api/client';
 import { getDb } from '../../data/db';
 import { getExercise } from '../../data/exercisesRepo';
 import { listMealsLocal } from '../../data/nutritionRepo';
+import { latestCheckin } from '../../data/recoveryRepo';
 import { listSessionsLocal } from '../../data/workoutRepo';
 import { computeWeekStreak } from '../progress/records';
+import { DaySuggestion, suggestDay } from './suggestDay';
 import { PlanDay, PlanDifficulty, saveActivePlan } from '../../data/planRepo';
 import { Exercise } from '../../data/types';
 import { refreshMealReminder } from '../settings/reminders';
@@ -49,13 +51,28 @@ export function HomeScreen() {
   } | null>(null);
   // Week streak (AUDIT M2) — computed from local sessions, works offline.
   const [streak, setStreak] = useState(0);
+  // Recovery-aware "train this today" (AUDIT M3).
+  const [suggestion, setSuggestion] = useState<DaySuggestion | null>(null);
 
   useEffect(() => {
     (async () => {
-      const rows = await listSessionsLocal(await getDb());
+      const db = await getDb();
+      const rows = await listSessionsLocal(db);
       setStreak(computeWeekStreak(rows.map((r) => r.payload)));
+      if (plan) {
+        setSuggestion(
+          suggestDay(
+            plan,
+            rows.map((r) => ({
+              planDayId: r.payload.planDayId,
+              startedAt: r.payload.startedAt,
+            })),
+            await latestCheckin(db),
+          ),
+        );
+      }
     })();
-  }, []);
+  }, [plan]);
 
   // Per-plan difficulty baseline (Piece 4a): persisted server-side, ladder
   // swaps + rest adjustments come back in the updated plan.
@@ -320,6 +337,7 @@ export function HomeScreen() {
               <DayCard
                 key={day.id}
                 day={day}
+                suggestion={suggestion?.dayId === day.id ? suggestion : null}
                 onStart={() => nav.navigate('ActiveWorkout', { day, planId: plan.id })}
                 onStartEasier={() => startEasier(day, plan.id)}
               />
@@ -335,10 +353,12 @@ function DayCard({
   day,
   onStart,
   onStartEasier,
+  suggestion = null,
 }: {
   day: PlanDay;
   onStart: () => void;
   onStartEasier: () => void;
+  suggestion?: DaySuggestion | null;
 }) {
   const t = useAppTheme();
   const [open, setOpen] = React.useState(day.dayIndex === 0);
@@ -352,6 +372,20 @@ function DayCard({
         marginBottom: t.spacing.md,
       }}
     >
+      {suggestion ? (
+        <Text
+          style={{
+            fontFamily: t.typography.label,
+            fontSize: 11,
+            color: t.colors.green,
+            textTransform: 'uppercase',
+            letterSpacing: 0.5,
+            marginBottom: t.spacing.xs,
+          }}
+        >
+          ★ Suggested today — {suggestion.reason}
+        </Text>
+      ) : null}
       <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
         <Text
           style={{

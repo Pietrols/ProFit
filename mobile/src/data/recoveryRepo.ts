@@ -43,6 +43,19 @@ export async function pushCheckins(
   return { pushed: synced.length };
 }
 
+/** Most recent check-in, if any (feeds the day suggestion, AUDIT M3). */
+export async function latestCheckin(db: DbLike): Promise<RecoveryCheckin | null> {
+  const r = await db.getFirstAsync<{
+    id: string;
+    soreness: number;
+    sleep_quality: number;
+    logged_at: string;
+  }>('SELECT * FROM recovery_checkins ORDER BY logged_at DESC LIMIT 1');
+  return r
+    ? { id: r.id, soreness: r.soreness, sleepQuality: r.sleep_quality, loggedAt: r.logged_at }
+    : null;
+}
+
 /** Whether a check-in was already logged today (skip the prompt). */
 export async function hasCheckinToday(db: DbLike): Promise<boolean> {
   const dayStart = new Date();
