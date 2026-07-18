@@ -33,12 +33,7 @@ import {
   recommendTemplate,
 } from './recommendTemplate';
 
-// Same copy as the server-side template disclaimer (Piece 1) — shown before
-// the recommendation is fetched, so it lives client-side too.
-const DISCLAIMER =
-  'ProFit offers general fitness information, not medical advice. Check with ' +
-  'your doctor before starting a new exercise program — especially if you ' +
-  'have joint, heart, or other existing health conditions.';
+import { MEDICAL_DISCLAIMER as DISCLAIMER } from './disclaimer';
 
 const EXPERIENCES: readonly OnboardingExperience[] = [
   'new',
