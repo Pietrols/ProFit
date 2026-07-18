@@ -9,6 +9,17 @@ import { Platform } from 'react-native';
 //   3. Android-emulator loopback fallback.
 function resolveBaseUrl(): string {
   const explicit = process.env.EXPO_PUBLIC_API_URL;
+
+  // TLS enforcement (AUDIT S4): production builds must talk https — bearer
+  // tokens and health data never cross the wire in plain http outside dev.
+  if (!__DEV__) {
+    if (!explicit?.startsWith('https://')) {
+      throw new Error(
+        'Production builds require EXPO_PUBLIC_API_URL to be an https:// URL.',
+      );
+    }
+    return explicit;
+  }
   if (explicit) return explicit;
 
   // e.g. "10.147.243.79:8081" — the host+port of the Metro dev server.

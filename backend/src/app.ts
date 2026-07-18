@@ -1,5 +1,6 @@
 import cors from "cors";
 import express from "express";
+import helmet from "helmet";
 import { prisma } from "./db";
 import { errorHandler } from "./middleware/error";
 import { aiRouter } from "./routes/ai.routes";
@@ -16,7 +17,17 @@ import { profileRouter } from "./routes/profile.routes";
 
 export function createApp() {
   const app = express();
-  app.use(cors());
+  // Behind a TLS-terminating proxy in production (AUDIT S4): trust it so
+  // req.ip is the real client (rate limiting) and HSTS applies end-to-end.
+  app.set("trust proxy", 1);
+  app.use(helmet());
+  // CORS allowlist (AUDIT S7): native apps send no Origin and are unaffected;
+  // browsers are denied unless the origin is explicitly listed.
+  const origins = (process.env.CORS_ORIGINS ?? "")
+    .split(",")
+    .map((o) => o.trim())
+    .filter(Boolean);
+  app.use(cors({ origin: origins.length > 0 ? origins : false }));
   // Raised from the 100kb default to accommodate inline workout cover images
   // and profile avatars (data URIs). See DECISIONS (Group F/G).
   app.use(express.json({ limit: "2mb" }));
