@@ -35,18 +35,43 @@ export function HomeScreen() {
   const { session } = useAuth();
   const { status, plan, refresh } = usePlan();
   useWorkoutSync(); // drain any offline-logged sessions on app entry
+  // Plan controls live behind an expander so the day cards stay the hero
+  // content (AUDIT U1).
+  const [settingsOpen, setSettingsOpen] = useState(false);
   const [diffBusy, setDiffBusy] = useState(false);
   const [diffError, setDiffError] = useState<string | null>(null);
+  // What the last difficulty change actually did, with a one-tap undo (U2).
+  const [diffNote, setDiffNote] = useState<{
+    text: string;
+    prev: PlanDifficulty;
+  } | null>(null);
 
   // Per-plan difficulty baseline (Piece 4a): persisted server-side, ladder
   // swaps + rest adjustments come back in the updated plan.
   async function setDifficulty(difficulty: PlanDifficulty) {
-    if (!session || diffBusy || difficulty === (plan?.difficulty ?? 'standard')) return;
+    if (!session || !plan || diffBusy) return;
+    const prev = plan.difficulty ?? 'standard';
+    if (difficulty === prev) return;
     setDiffBusy(true);
     setDiffError(null);
+    setDiffNote(null);
     try {
       const { plan: updated } = await api.setPlanDifficulty(session.token, difficulty);
       await saveActivePlan(await getDb(), updated);
+      // U2: name what changed instead of silently swapping exercises
+      const before = new Map(
+        plan.days.flatMap((d) => d.exercises.map((e) => [e.id, e.exercise.name])),
+      );
+      const swaps = updated.days
+        .flatMap((d) => d.exercises)
+        .filter((e) => before.get(e.id) && before.get(e.id) !== e.exercise.name)
+        .map((e) => `${before.get(e.id)} → ${e.exercise.name}`);
+      const summary =
+        swaps.length === 0
+          ? 'rest times adjusted'
+          : swaps.slice(0, 2).join(', ') +
+            (swaps.length > 2 ? ` (+${swaps.length - 2} more)` : '');
+      setDiffNote({ text: `Set to ${difficulty} — ${summary}.`, prev });
       await refresh();
     } catch (e) {
       setDiffError(
@@ -102,45 +127,124 @@ export function HomeScreen() {
             title="No plan yet"
             hint="Build a weekly plan from your goal, schedule, and equipment."
           />
-          <Button
-            label="Build my plan"
-            onPress={() => nav.navigate('PlanBuilder')}
-          />
+          <View style={{ gap: t.spacing.sm }}>
+            <Button
+              label="Build my plan"
+              onPress={() => nav.navigate('PlanBuilder')}
+            />
+            <Button
+              label="Browse starter plans"
+              variant="ghost"
+              onPress={() => nav.navigate('StarterTemplates')}
+            />
+          </View>
         </View>
       ) : (
         <ScrollView showsVerticalScrollIndicator={false}>
-          <Text
+          {/* Plan header doubles as the settings expander (AUDIT U1) */}
+          <Pressable
+            onPress={() => setSettingsOpen((o) => !o)}
             style={{
-              fontFamily: t.typography.heading,
-              fontSize: 18,
-              color: t.colors.tx,
-              textTransform: 'uppercase',
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
               marginBottom: t.spacing.md,
             }}
           >
-            {plan.name} · {plan.context}
-          </Text>
-
-          <View style={{ marginBottom: t.spacing.md, opacity: diffBusy ? 0.6 : 1 }}>
+            <Text
+              style={{
+                fontFamily: t.typography.heading,
+                fontSize: 18,
+                color: t.colors.tx,
+                textTransform: 'uppercase',
+                flexShrink: 1,
+              }}
+              numberOfLines={1}
+            >
+              {plan.name} · {plan.context}
+            </Text>
             <Text
               style={{
                 fontFamily: t.typography.label,
                 fontSize: 12,
-                color: t.colors.tx3,
+                color: t.colors.green,
                 textTransform: 'uppercase',
-                letterSpacing: 0.5,
-                marginBottom: t.spacing.sm,
               }}
             >
-              Difficulty
+              {(plan.difficulty ?? 'standard') + (settingsOpen ? ' ▴' : ' ▾')}
             </Text>
-            <ChipRow
-              options={DIFFICULTIES}
-              value={plan.difficulty ?? 'standard'}
-              onChange={setDifficulty}
-            />
-            {diffError ? <ErrorBanner message={diffError} /> : null}
-          </View>
+          </Pressable>
+
+          {settingsOpen ? (
+            <View
+              style={{
+                backgroundColor: t.colors.s1,
+                borderRadius: t.radius.lg,
+                padding: t.spacing.lg,
+                marginBottom: t.spacing.md,
+                opacity: diffBusy ? 0.6 : 1,
+                gap: t.spacing.sm,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: t.typography.label,
+                  fontSize: 12,
+                  color: t.colors.tx3,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5,
+                }}
+              >
+                Difficulty
+              </Text>
+              <ChipRow
+                options={DIFFICULTIES}
+                value={plan.difficulty ?? 'standard'}
+                onChange={setDifficulty}
+              />
+              {diffError ? <ErrorBanner message={diffError} /> : null}
+              <Button
+                label="New plan"
+                variant="ghost"
+                onPress={() => nav.navigate('PlanBuilder')}
+              />
+              <Button
+                label="Browse starter plans"
+                variant="ghost"
+                onPress={() => nav.navigate('StarterTemplates')}
+              />
+            </View>
+          ) : null}
+
+          {diffNote ? (
+            <View
+              style={{
+                backgroundColor: t.colors.gdim,
+                borderRadius: t.radius.md,
+                padding: t.spacing.md,
+                marginBottom: t.spacing.md,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: t.spacing.md,
+              }}
+            >
+              <Text
+                style={{
+                  fontFamily: t.typography.body,
+                  fontSize: 13,
+                  color: t.colors.green,
+                  flex: 1,
+                }}
+              >
+                {diffNote.text}
+              </Text>
+              <Pressable onPress={() => setDifficulty(diffNote.prev)} hitSlop={8}>
+                <Text style={{ fontFamily: t.typography.label, fontSize: 13, color: t.colors.green }}>
+                  UNDO
+                </Text>
+              </Pressable>
+            </View>
+          ) : null}
 
           {/* Mandatory daily routine — shown every day, above the split, with
               its own completion (a separate workout session). */}
@@ -195,12 +299,6 @@ export function HomeScreen() {
                 onStartEasier={() => startEasier(day, plan.id)}
               />
             ))}
-          <View style={{ height: t.spacing.md }} />
-          <Button
-            label="New plan"
-            variant="ghost"
-            onPress={() => nav.navigate('PlanBuilder')}
-          />
           <View style={{ height: t.spacing.xxl }} />
         </ScrollView>
       )}

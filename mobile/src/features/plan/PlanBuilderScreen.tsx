@@ -111,6 +111,11 @@ export function PlanBuilderScreen() {
             variant="ghost"
             onPress={() => nav.navigate('CustomPlanBuilder')}
           />
+          <Button
+            label="Browse starter plans"
+            variant="ghost"
+            onPress={() => nav.navigate('StarterTemplates')}
+          />
         </View>
 
         {label('Or generate one — training style')}

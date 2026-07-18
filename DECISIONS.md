@@ -35,6 +35,23 @@ decided stack. Review and veto freely.
   standing. Revisit with a proper safety classifier if chat ever becomes
   multi-user-visible.
 
+### UX decisions (AUDIT U1–U3)
+
+- **Home decrowding (U1) — compartmentalize behind the plan header, not new
+  tabs/screens.** The plan-name row now doubles as a settings expander
+  (difficulty badge + chevron); difficulty chips, "New plan", and "Browse
+  starter plans" live inside it. Rationale: the day cards are what users open
+  Home for daily — plan *management* is occasional, so it collapses; adding
+  an 8th tab or a separate settings screen would cost more navigation than it
+  saves scrolling. The daily routine + weekly split structure is untouched.
+- **Difficulty feedback (U2)**: after a change, a note names the actual swaps
+  ("Push-Ups → Incline Push-Ups (+2 more)") with one-tap UNDO (which just
+  sets the previous difficulty back — exact because shifts resolve from the
+  recorded baseline).
+- **Template cross-link (U3)**: a StarterTemplates browser screen in the Home
+  stack, linked from empty-Home, the plan-settings expander, and the plan
+  builder — the templates are no longer onboarding/AI-chat exclusives.
+
 ### Other remediation decisions
 
 - **Email verification is advisory** (banner + code entry on Profile), not a

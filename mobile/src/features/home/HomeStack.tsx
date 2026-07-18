@@ -3,6 +3,7 @@ import React from 'react';
 import { PlanDay } from '../../data/planRepo';
 import { CustomPlanBuilderScreen } from '../plan/CustomPlanBuilderScreen';
 import { PlanBuilderScreen } from '../plan/PlanBuilderScreen';
+import { StarterTemplatesScreen } from '../plan/StarterTemplatesScreen';
 import { ActiveWorkoutScreen } from '../workout/ActiveWorkoutScreen';
 import { WorkoutSummaryScreen } from '../workout/WorkoutSummaryScreen';
 import { HomeScreen } from './HomeScreen';
@@ -11,6 +12,7 @@ export type HomeStackParamList = {
   HomeMain: undefined;
   PlanBuilder: undefined;
   CustomPlanBuilder: undefined;
+  StarterTemplates: undefined;
   ActiveWorkout: { day: PlanDay; planId: string | null };
   WorkoutSummary: { sessionId: string; synced: boolean };
 };
@@ -23,6 +25,7 @@ export function HomeStack() {
       <Stack.Screen name="HomeMain" component={HomeScreen} />
       <Stack.Screen name="PlanBuilder" component={PlanBuilderScreen} />
       <Stack.Screen name="CustomPlanBuilder" component={CustomPlanBuilderScreen} />
+      <Stack.Screen name="StarterTemplates" component={StarterTemplatesScreen} />
       <Stack.Screen
         name="ActiveWorkout"
         component={ActiveWorkoutScreen}
