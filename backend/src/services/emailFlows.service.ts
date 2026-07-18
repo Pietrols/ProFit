@@ -3,7 +3,7 @@
 // token dies after 5 wrong attempts. Every "does this email exist?" question
 // is answered identically to prevent account enumeration.
 import { createHash, randomInt } from "node:crypto";
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import { prisma } from "../db";
 import { ApiError } from "../lib/errors";
 import { emailHash, logger } from "../lib/logger";

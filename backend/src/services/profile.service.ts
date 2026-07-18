@@ -1,4 +1,4 @@
-import bcrypt from "bcryptjs";
+import bcrypt from "bcrypt";
 import { prisma } from "../db";
 import { ApiError } from "../lib/errors";
 import { logger } from "../lib/logger";
