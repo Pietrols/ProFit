@@ -10,6 +10,7 @@ import { getDb } from '../../data/db';
 import { getExercise } from '../../data/exercisesRepo';
 import { Exercise } from '../../data/types';
 import { saveSessionLocal } from '../../data/workoutRepo';
+import { restDoneFeedback, successFeedback, tapFeedback } from '../../lib/haptics';
 import {
   SessionExercise,
   SwapReason,
@@ -131,6 +132,9 @@ export function ActiveWorkoutScreen() {
   useEffect(() => {
     if (rest === null) return;
     if (rest <= 0) {
+      // Rest over — vibrate + haptic so it lands with the phone on the bench
+      // (AUDIT M1: rest-timer completion cue).
+      restDoneFeedback();
       setRest(null);
       return;
     }
@@ -156,7 +160,10 @@ export function ActiveWorkoutScreen() {
   function completeSet(exIdx: number, setIdx: number) {
     const set = drafts![exIdx].sets[setIdx];
     updateSet(exIdx, setIdx, { completed: !set.completed });
-    if (!set.completed) setRest(restSecondsFor(exIdx));
+    if (!set.completed) {
+      tapFeedback(); // AUDIT U5: physical tick on completing a set
+      setRest(restSecondsFor(exIdx));
+    }
   }
 
   // Substitution engine: same-muscle, context-appropriate candidates.
@@ -262,6 +269,7 @@ export function ActiveWorkoutScreen() {
       // SQLite first — the workout is safe on device even with no signal.
       await saveSessionLocal(await getDb(), payload);
       const synced = await push();
+      successFeedback(); // AUDIT U5: workout done
       nav.replace('WorkoutSummary', { sessionId: payload.id, synced });
     } finally {
       setFinishing(false);
