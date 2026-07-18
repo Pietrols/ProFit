@@ -45,6 +45,22 @@ export function WorkoutDetailScreen() {
     })();
   }, [session, route.params.id]);
 
+  // AUDIT S6: any viewer can flag a public workout; enough reports hide it.
+  async function report() {
+    if (!session || !workout) return;
+    setNote(null);
+    try {
+      await api.reportWorkout(session.token, workout.id, 'inappropriate content');
+      setNote('Reported — thanks. Our library hides content that gets multiple reports.');
+    } catch (e) {
+      setNote(
+        e instanceof NetworkError
+          ? 'Reporting needs a connection.'
+          : 'Could not report this workout.',
+      );
+    }
+  }
+
   async function copy() {
     if (!session || !workout) return;
     setCopying(true);
@@ -136,6 +152,7 @@ export function WorkoutDetailScreen() {
 
         <View style={{ height: t.spacing.xl }} />
         <Button label="Add to my plans" onPress={copy} busy={copying} />
+        <Button label="Report this workout" variant="ghost" onPress={report} />
         {note ? (
           <Text style={{ fontFamily: t.typography.body, fontSize: 13, color: t.colors.tx2, marginTop: t.spacing.sm, textAlign: 'center' }}>
             {note}

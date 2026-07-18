@@ -93,12 +93,29 @@ model UserWorkout {
   isPublic   Boolean               @default(false) @map("is_public")
   // Optional cover: a data URI or URL. Stored inline (MVP — see DECISIONS).
   coverImage String?               @map("cover_image")
+  // Moderation (AUDIT S6): auto-hidden from the public library once enough
+  // distinct users report it; the owner still sees it under "mine".
+  hidden     Boolean               @default(false)
+  reports    WorkoutReport[]
   exercises  UserWorkoutExercise[]
   createdAt  DateTime              @default(now()) @map("created_at")
   updatedAt  DateTime              @updatedAt @map("updated_at")
 
   @@index([isPublic, createdAt])
   @@map("user_workouts")
+}
+
+// One report per user per workout (AUDIT S6).
+model WorkoutReport {
+  id         String      @id @default(uuid())
+  workoutId  String      @map("workout_id")
+  workout    UserWorkout @relation(fields: [workoutId], references: [id], onDelete: Cascade)
+  reporterId String      @map("reporter_id")
+  reason     String
+  createdAt  DateTime    @default(now()) @map("created_at")
+
+  @@unique([workoutId, reporterId])
+  @@map("workout_reports")
 }
 
 model UserWorkoutExercise {

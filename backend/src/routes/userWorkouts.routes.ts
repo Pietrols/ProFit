@@ -11,3 +11,4 @@ userWorkoutsRouter.get("/public", controller.publicList);
 userWorkoutsRouter.post("/suggest-image", controller.suggestImage);
 userWorkoutsRouter.get("/:id", controller.getOne);
 userWorkoutsRouter.post("/:id/copy", controller.copy);
+userWorkoutsRouter.post("/:id/report", controller.report);

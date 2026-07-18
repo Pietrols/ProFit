@@ -2,7 +2,12 @@
 import { prisma } from "../db";
 import { ApiError } from "../lib/errors";
 import { aiEnabled } from "../lib/aiJson";
+import { assertImageOrNull } from "../lib/imageData";
+import { logger } from "../lib/logger";
 import { CreateUserWorkoutInput } from "../routes/userWorkouts.schemas";
+
+/** Distinct reporters that auto-hide a public workout (AUDIT S6). */
+const REPORT_HIDE_THRESHOLD = 3;
 
 const workoutInclude = {
   exercises: {
@@ -20,6 +25,7 @@ export async function createUserWorkout(
   userId: string,
   input: CreateUserWorkoutInput,
 ) {
+  assertImageOrNull(input.coverImage); // AUDIT S6
   const ids = input.exercises.map((e) => e.exerciseId);
   const known = new Set(
     (
@@ -66,11 +72,10 @@ export async function listMine(userId: string) {
   });
 }
 
-/** Public community library — every authenticated user sees all public
- * workouts. No moderation/reporting in this pass (flagged in DECISIONS). */
+/** Public community library — hidden (reported) workouts are excluded. */
 export async function listPublic(limit = 50) {
   return prisma.userWorkout.findMany({
-    where: { isPublic: true },
+    where: { isPublic: true, hidden: false },
     orderBy: { createdAt: "desc" },
     take: limit,
     include: workoutInclude,
@@ -79,11 +84,50 @@ export async function listPublic(limit = 50) {
 
 export async function getPublicWorkout(id: string) {
   const workout = await prisma.userWorkout.findFirst({
-    where: { id, isPublic: true },
+    where: { id, isPublic: true, hidden: false },
     include: workoutInclude,
   });
   if (!workout) throw ApiError.notFound("Workout not found", "WORKOUT_NOT_FOUND");
   return workout;
+}
+
+/**
+ * Report a public workout (AUDIT S6). One report per user (replays update
+ * the reason); at REPORT_HIDE_THRESHOLD distinct reporters the workout is
+ * auto-hidden from the library pending owner review — reversible, unlike
+ * deletion, so a brigade can't destroy content permanently.
+ */
+export async function reportWorkout(
+  reporterId: string,
+  workoutId: string,
+  reason: string,
+) {
+  const workout = await prisma.userWorkout.findFirst({
+    where: { id: workoutId, isPublic: true },
+    select: { id: true, userId: true },
+  });
+  if (!workout) throw ApiError.notFound("Workout not found", "WORKOUT_NOT_FOUND");
+  if (workout.userId === reporterId) {
+    throw ApiError.badRequest("You can unshare your own workout instead.", "OWN_WORKOUT");
+  }
+
+  await prisma.workoutReport.upsert({
+    where: { workoutId_reporterId: { workoutId, reporterId } },
+    create: { workoutId, reporterId, reason },
+    update: { reason },
+  });
+  const count = await prisma.workoutReport.count({ where: { workoutId } });
+  if (count >= REPORT_HIDE_THRESHOLD) {
+    await prisma.userWorkout.update({
+      where: { id: workoutId },
+      data: { hidden: true },
+    });
+    logger.warn(
+      { event: "moderation.auto_hidden", workoutId, reports: count },
+      "public workout auto-hidden",
+    );
+  }
+  return { reported: true };
 }
 
 /**

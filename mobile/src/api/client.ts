@@ -214,6 +214,13 @@ export const api = {
       token,
     }),
 
+  reportWorkout: (token: string, id: string, reason: string) =>
+    request<{ reported: boolean }>(`/workout-library/${id}/report`, {
+      method: 'POST',
+      body: { reason },
+      token,
+    }),
+
   suggestWorkoutImage: (token: string, name: string) =>
     request<{ imageUrl: string | null; available: boolean; reason: string }>(
       '/workout-library/suggest-image',

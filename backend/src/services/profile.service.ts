@@ -1,6 +1,7 @@
 import bcrypt from "bcrypt";
 import { prisma } from "../db";
 import { ApiError } from "../lib/errors";
+import { assertImageOrNull } from "../lib/imageData";
 import { logger } from "../lib/logger";
 import { User } from "../generated/prisma/client";
 import { UpdateProfileInput } from "../routes/profile.schemas";
@@ -58,6 +59,7 @@ export async function deleteAccount(userId: string, password: string) {
 }
 
 export async function updateProfile(userId: string, input: UpdateProfileInput) {
+  assertImageOrNull(input.avatar); // AUDIT S6 — avatars show on public workouts
   const { onboarded, ...rest } = input;
   const user = await prisma.user.update({
     where: { id: userId },
