@@ -156,6 +156,9 @@ model User {
   tokenVersion   Int             @default(0) @map("token_version")
   // Email verification (AUDIT S3). Advisory for now — see DECISIONS.
   emailVerifiedAt DateTime?      @map("email_verified_at")
+  // Injury considerations from onboarding (AUDIT U4/S10): free text like
+  // "knees, lower back; recovering ankle sprain". Feeds the AI coach context.
+  injuryNotes    String?         @map("injury_notes")
   emailTokens    EmailToken[]
   createdAt      DateTime        @default(now()) @map("created_at")
   updatedAt      DateTime        @updatedAt @map("updated_at")

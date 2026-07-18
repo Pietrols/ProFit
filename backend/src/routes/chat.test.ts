@@ -28,7 +28,7 @@ beforeAll(async () => {
   await app
     .patch("/me")
     .set("Authorization", `Bearer ${token}`)
-    .send({ defaultContext: "home" });
+    .send({ defaultContext: "home", injuryNotes: "knees; recovering ankle sprain" });
   await app
     .post("/plans")
     .set("Authorization", `Bearer ${token}`)
@@ -57,6 +57,8 @@ describe("Phase 8 — chat companion", () => {
     const context = await buildContext(userId);
     const parsed = JSON.parse(context);
     expect(parsed.profile.trainingContext).toBe("home");
+    // AUDIT U4: injury considerations reach the model as a standing constraint
+    expect(parsed.profile.injuryConsiderations).toBe("knees; recovering ankle sprain");
     // the plan's exercises carry equipment tags the model must respect
     const allEquipment = parsed.activePlan.days.flatMap(
       (d: { exercises: { equipment: string[] }[] }) =>

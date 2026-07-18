@@ -97,4 +97,5 @@ export interface ProfileUpdate {
   avatar?: string | null;
   publicBio?: string | null;
   onboarded?: boolean;
+  injuryNotes?: string | null;
 }

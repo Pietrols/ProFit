@@ -121,8 +121,11 @@ export function OnboardingScreen({ onDone }: { onDone: () => void }) {
 
   async function finish() {
     // Never block leaving the wizard on connectivity — mark done best-effort.
+    // Injury considerations ride along so the AI coach can respect them
+    // server-side (AUDIT U4).
+    const notes = [...injuries, injuryNote.trim()].filter(Boolean).join('; ');
     try {
-      await updateProfile({ onboarded: true });
+      await updateProfile({ onboarded: true, ...(notes ? { injuryNotes: notes } : {}) });
     } catch {
       // Offline: the wizard may show again next cold start; acceptable.
     }
