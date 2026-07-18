@@ -7,3 +7,4 @@ export const profileRouter = Router();
 profileRouter.use(requireAuth);
 profileRouter.get("/", profileController.getMe);
 profileRouter.patch("/", profileController.updateMe);
+profileRouter.delete("/", profileController.deleteMe);

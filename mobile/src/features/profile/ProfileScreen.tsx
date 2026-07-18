@@ -10,6 +10,7 @@ import { listMealsLocal } from '../../data/nutritionRepo';
 import { listSessionsLocal } from '../../data/workoutRepo';
 import { buildExportJson, buildSetsCsv } from '../settings/exportData';
 import { RemindersSection } from '../settings/RemindersSection';
+import { DeleteAccountSection } from './DeleteAccountSection';
 import { PublicProfileSection } from './PublicProfileSection';
 import { VerifyEmailSection } from './VerifyEmailSection';
 import { useAppTheme } from '../../theme/ThemeContext';
@@ -202,6 +203,9 @@ export function ProfileScreen() {
 
         <View style={{ height: t.spacing.xl }} />
         <Button label="Log out" onPress={logout} variant="danger" />
+
+        <View style={{ height: t.spacing.xl }} />
+        <DeleteAccountSection />
         <View style={{ height: t.spacing.xxl }} />
       </KeyboardForm>
     </Screen>

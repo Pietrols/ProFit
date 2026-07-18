@@ -59,6 +59,49 @@ describe("AUDIT S1 — auth rate limiting", () => {
   });
 });
 
+describe("AUDIT S5 — account deletion", () => {
+  it("wrong password refuses; right password erases the account and all data", async () => {
+    const em = `sec-del-${Date.now()}@profit.dev`;
+    const reg = await app
+      .post("/auth/register")
+      .send({ email: em, password, displayName: "D" })
+      .expect(201);
+    const token = reg.body.token;
+    const userId = reg.body.user.id;
+
+    // give the account some data that must cascade away
+    await app
+      .post("/bodyweight/sync")
+      .set("Authorization", `Bearer ${token}`)
+      .send({
+        entries: [
+          { id: "11111111-1111-4111-8111-111111111111", weightKg: 80, loggedAt: new Date().toISOString() },
+        ],
+      })
+      .expect(200);
+
+    const wrong = await app
+      .delete("/me")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ password: "not-the-password" });
+    expect(wrong.status).toBe(401);
+
+    await app
+      .delete("/me")
+      .set("Authorization", `Bearer ${token}`)
+      .send({ password })
+      .expect(200);
+
+    // account, token, and every cascaded row are gone
+    await app.get("/me").set("Authorization", `Bearer ${token}`).expect(401);
+    await app.post("/auth/login").send({ email: em, password }).expect(401);
+    expect(await prisma.user.findUnique({ where: { id: userId } })).toBeNull();
+    expect(
+      await prisma.bodyweightEntry.count({ where: { userId } }),
+    ).toBe(0);
+  });
+});
+
 describe("AUDIT S2 — token revocation", () => {
   it("logout revokes the token server-side; a fresh login works again", async () => {
     const em = `sec-revoke-${Date.now()}@profit.dev`;

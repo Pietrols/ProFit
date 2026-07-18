@@ -105,6 +105,13 @@ export const api = {
   updateProfile: (token: string, input: ProfileUpdate) =>
     request<{ user: User }>('/me', { method: 'PATCH', body: input, token }),
 
+  deleteAccount: (token: string, password: string) =>
+    request<{ ok: boolean }>('/me', {
+      method: 'DELETE',
+      body: { password },
+      token,
+    }),
+
   listExercises: (token: string, updatedSince: string | null) =>
     request<{ serverTime: string; exercises: Exercise[] }>(
       updatedSince

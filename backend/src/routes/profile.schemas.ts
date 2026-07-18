@@ -20,4 +20,10 @@ export const updateProfileSchema = z
     message: "At least one field must be provided",
   });
 
+// Account deletion (AUDIT S5): password re-confirmation required.
+export const deleteAccountSchema = z.object({
+  password: z.string().min(1),
+});
+
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;
+export type DeleteAccountInput = z.infer<typeof deleteAccountSchema>;

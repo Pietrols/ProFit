@@ -1,5 +1,7 @@
+import bcrypt from "bcryptjs";
 import { prisma } from "../db";
 import { ApiError } from "../lib/errors";
+import { logger } from "../lib/logger";
 import { User } from "../generated/prisma/client";
 import { UpdateProfileInput } from "../routes/profile.schemas";
 
@@ -38,6 +40,21 @@ export async function getProfile(userId: string) {
   const user = await prisma.user.findUnique({ where: { id: userId } });
   if (!user) throw ApiError.unauthorized("User no longer exists", "GONE_USER");
   return toPublicUser(user);
+}
+
+/**
+ * Permanent account deletion (AUDIT S5 — right to erasure). Password
+ * re-confirmation guards against a stolen unlocked phone; every relation
+ * cascades, including public community workouts.
+ */
+export async function deleteAccount(userId: string, password: string) {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw ApiError.unauthorized("User no longer exists", "GONE_USER");
+  if (!(await bcrypt.compare(password, user.passwordHash))) {
+    throw ApiError.unauthorized("Password is incorrect", "BAD_CREDENTIALS");
+  }
+  await prisma.user.delete({ where: { id: userId } });
+  logger.info({ event: "account.deleted", userId }, "account deleted");
 }
 
 export async function updateProfile(userId: string, input: UpdateProfileInput) {
