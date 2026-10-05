@@ -1,5 +1,19 @@
 node_modules/
 dist/
 .env
-.expo/
+.env.*
+!.env.example
 *.log
+.DS_Store
+
+# Expo
+.expo/
+web-build/
+expo-env.d.ts
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+/mobile/android/
+/mobile/ios/
