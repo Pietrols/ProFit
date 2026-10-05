@@ -1,11 +1,19 @@
 import request from 'supertest';
-import { describe, expect, it } from 'vitest';
+import { afterAll, describe, expect, it } from 'vitest';
 import { API_VERSION, createApp } from './app.js';
 import { loadConfig } from './config.js';
 import { createLogger } from './lib/logger.js';
+import { openTestDatabase } from './test/db.js';
 
 const config = loadConfig({ NODE_ENV: 'test' });
-const app = createApp(config, createLogger(config));
+const database = openTestDatabase();
+const app = createApp(config, createLogger(config), {
+  db: database.db,
+  verifyGoogle: async () => {
+    throw new Error('not used in these tests');
+  },
+});
+afterAll(() => database.close());
 
 describe('GET /health', () => {
   it('reports the server is up with its version', async () => {

@@ -2,15 +2,28 @@ import cors from 'cors';
 import express, { type Express } from 'express';
 import helmet from 'helmet';
 import type { Logger } from 'pino';
+import type { GoogleVerifier } from './auth/google.js';
 import type { Config } from './config.js';
+import type { Db } from './db/client.js';
+import { requireAuth } from './middleware/auth.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
+import { authRouter } from './routes/auth.js';
 import { healthRouter } from './routes/health.js';
+import { meRouter } from './routes/me.js';
 
-export const API_VERSION = '0.1.0';
+export const API_VERSION = '0.2.0';
+
+// What the app needs from outside. Tests pass a test database, a fake Google verifier and a fixed clock.
+export type AppDeps = {
+  db: Db;
+  verifyGoogle: GoogleVerifier;
+  now?: () => Date;
+};
 
 // Builds the Express app without starting a server, so tests can drive it directly.
-export function createApp(config: Config, logger: Logger): Express {
+export function createApp(config: Config, logger: Logger, deps: AppDeps): Express {
   const app = express();
+  const now = deps.now ?? (() => new Date());
 
   app.disable('x-powered-by');
   app.use(helmet());
@@ -27,6 +40,15 @@ export function createApp(config: Config, logger: Logger): Express {
   });
 
   app.use('/health', healthRouter(API_VERSION));
+  app.use(
+    '/auth',
+    authRouter({
+      ctx: { db: deps.db, secret: config.JWT_SECRET, now },
+      verifyGoogle: deps.verifyGoogle,
+      devLogin: config.AUTH_DEV_LOGIN,
+    }),
+  );
+  app.use('/me', requireAuth(config.JWT_SECRET, now), meRouter(deps.db, now));
 
   app.use(notFoundHandler);
   app.use(errorHandler(logger));
