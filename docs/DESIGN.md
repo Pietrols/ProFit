@@ -14,11 +14,11 @@ radius.
 | `surface2` | `#2C241F` | `#E8E0D3` | Raised or pressed surfaces, tracks, inputs |
 | `text` | `#F2EBE3` | `#231C16` | Primary text |
 | `text2` | `#B0A497` | `#6B5E51` | Secondary text, labels, captions |
-| `accent` | `#E57A52` | `#B5472A` | Terracotta: primary actions, active tab, key numbers |
+| `accent` | `#E57A52` | `#A84126` | Terracotta: primary actions, active tab, key numbers |
 | `onAccent` | `#1C0D06` | `#FFFFFF` | Text and icons on `accent` |
 | `accent2` | `#62B5A2` | `#2A6A5D` | Deep teal: progress, completion, "on target" |
 | `onAccent2` | `#06201A` | `#FFFFFF` | Text and icons on `accent2` |
-| `caution` | `#E0AE52` | `#8F5E10` | Amber: "close to target", gentle warnings |
+| `caution` | `#E0AE52` | `#83550E` | Amber: "close to target", gentle warnings |
 | `line` | `rgba(242,235,227,0.10)` | `rgba(35,28,22,0.10)` | Hairline borders and dividers |
 
 Rules:
@@ -31,17 +31,18 @@ Rules:
 
 ### Changes from the interview pick
 The light palette's terracotta was picked as `#C4522F`. On the Sandstone background it measured
-3.96:1, below the 4.5:1 that small text needs, so it was deepened to `#B5472A` (4.66:1) with the
-same hue. Teal and secondary text were nudged slightly for the same reason on `surface2`.
+3.96:1, below the 4.5:1 that small text needs, so it was deepened to `#A84126` with the same hue
+(5.27:1 on the background, 4.65:1 on `surface2`). Teal, amber and secondary text were nudged
+slightly for the same reason on `surface2`.
 The dark palette is new: a warm charcoal version of Sandstone, since dark is the default theme.
 
 ## Type
 
 | Role | Face | Size / line height | Use |
 |---|---|---|---|
-| `display` | Bebas Neue | 40 / 40 | Screen titles, the timer |
+| `display` | Bebas Neue | 40 / 42 | Screen titles, the timer |
 | `title` | Bebas Neue | 28 / 30 | Card and section titles |
-| `stat` | Bebas Neue | 32 / 32 | Big numbers on tiles |
+| `stat` | Bebas Neue | 32 / 34 | Big numbers on tiles |
 | `body` | Barlow Regular | 16 / 22 | Running text |
 | `bodyStrong` | Barlow SemiBold | 16 / 22 | Emphasis, list item names |
 | `label` | Barlow SemiBold | 12 / 16, uppercase, 0.8 letter spacing | Eyebrows and tile labels |
