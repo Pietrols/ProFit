@@ -73,3 +73,22 @@ access token valid for 15 minutes and an opaque refresh token valid for 60 days.
 hash of each refresh token is stored. Refresh tokens rotate on every use, and presenting a used
 one revokes the whole chain. The phone treats itself as signed in from what it has stored, so the
 app opens offline.
+
+## D12. Refresh retry window
+A refresh token presented again within 60 seconds of its first use is treated as a retry and gets
+a fresh pair, instead of being treated as stolen. On mobile data the server can rotate a token and
+the reply can still be lost, and without this window those users would be signed out. Reuse after
+60 seconds still revokes the whole sign-in. The phone also never runs two refreshes at once.
+
+## D13. Developer sign-in
+`POST /auth/dev` signs in any email so emulators, local testing and Claude Code sessions work
+before Google OAuth clients exist. It is only mounted when `AUTH_DEV_LOGIN=true`, the config
+refuses that setting in production, and the app only shows its button in development builds that
+set `EXPO_PUBLIC_DEV_LOGIN=true`.
+
+## D14. Profile fields
+- Birth year instead of age, so it never goes stale. Accounts must be 13 or older.
+- A unit system (metric or imperial, default metric) is stored now, because the launch is global
+  and body weight logging in Phase 2 needs it.
+- Body weight is not a profile field. It lives in the Phase 2 weight log.
+- Display name comes from Google only at first sign-in; after that the user's own edit wins.
