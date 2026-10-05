@@ -37,3 +37,16 @@ rebuild, and the light terracotta was deepened slightly to meet text contrast. D
 - Android package and iOS bundle id are `com.quanticengineering.profit`, under Peter's company
   instead of the first build's `com.mundala.profit`. This can change freely until the first upload
   to Google Play, after which it is permanent.
+
+## D7. Development builds, not Expo Go
+The app uses native modules that Expo Go does not include, so it runs in a development build
+(`eas build --profile development --platform android`, then `npx expo start`). This was learned the
+hard way in `legacy-v1`.
+
+## D8. Small technical defaults in Phase 0
+- Tabs use `expo-router/js-tabs` (the plain `Tabs` export from `expo-router` is deprecated in SDK 57)
+  so the tab bar can use ProFit's fonts and colours.
+- The web build is a single-page app. It is only used to preview screens during development, and
+  static pre-rendering clashed with the time-of-day greeting.
+- The theme choice is kept in memory until the on-device store arrives in Phase 2, so it resets to
+  dark on restart until then.
