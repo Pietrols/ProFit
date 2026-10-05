@@ -12,7 +12,7 @@ first. Full product scope: `docs/SPEC.md`. Build order: `docs/ROADMAP.md`.
 
 ```
 backend/   Node 22 + Express 5 + TypeScript (ES modules). src/app.ts builds the app, src/index.ts starts it.
-mobile/    Expo SDK 57 + expo-router + TypeScript. app/ holds routes, src/ holds everything else.
+mobile/    Expo SDK 57 + expo-router + TypeScript. src/app/ holds routes only; src/theme, src/ui, src/features hold the rest.
 docs/      SPEC, ROADMAP, DESIGN, DECISIONS, REFERENCE.
 ```
 
@@ -33,15 +33,20 @@ npm test             # vitest for pure logic
 npm run typecheck
 ```
 
+Expo changes between SDK releases: read `mobile/AGENTS.md` and check the versioned docs before
+using an Expo API. If `npx expo install` cannot reach Expo's servers, take the version from
+`node_modules/expo/bundledNativeModules.json` and install it with npm.
+
 ## Rules
 
 1. **Small commits.** One logical change per commit, conventional prefixes: `feat:`, `fix:`,
    `test:`, `docs:`, `chore:`, `refactor:`. Commit as soon as a step works.
 2. **Branches.** Work on `feat/<name>` off `rebuild`. Merge only when tests and typechecks pass.
 3. **Logic that produces numbers lives in pure functions with tests beside them.** Progression,
-   streaks, calorie targets, macro totals, timers, sync merging. These go in `src/domain/` (mobile)
-   or `src/domain/` (backend) with a `*.test.ts` next to them. Screens call them; screens do not
-   contain them.
+   streaks, calorie targets, macro totals, timers, sync merging. They are plain TypeScript modules
+   with no React imports, kept in the feature's folder (or `src/domain/` when shared), with tests in
+   a `__tests__` folder beside them (`*.test.ts` next to the file on the backend). Screens call
+   them; screens do not contain them.
 4. **No borrowed code.** Never copy code, prompts, data or images from projects ProFit does not own
    unless they are public domain and logged in `docs/DECISIONS.md`. openGym is AGPL and is for ideas
    only. See `docs/REFERENCE.md`.
