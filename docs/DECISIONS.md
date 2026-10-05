@@ -50,3 +50,26 @@ hard way in `legacy-v1`.
   static pre-rendering clashed with the time-of-day greeting.
 - The theme choice is kept in memory until the on-device store arrives in Phase 2, so it resets to
   dark on restart until then.
+
+## D9. Drizzle ORM instead of Prisma
+D2 left the ORM to Phase 1 with Prisma 7 as the default. Prisma downloads an engine binary from
+`binaries.prisma.sh` to run migrations, and that host is blocked in the cloud environment where
+Claude Code builds ProFit, so migrations and database tests could not run there. Prisma 7 also
+caused breaking-change friction in `legacy-v1`. Drizzle (`drizzle-orm` with the `pg` driver, and
+`drizzle-kit` for migrations) is plain TypeScript with no binary or code generation step, and its
+migrations are SQL files checked into `backend/drizzle/`. Tested end to end against Postgres 16
+before choosing it. Changeable with a logged decision, but every table would need porting.
+
+## D10. Google sign-in library
+`react-native-nitro-google-signin` (MIT), which is one of the two libraries Expo's Google
+authentication guide recommends. It uses Android Credential Manager, which Google now requires in
+place of its deprecated sign-in SDK; the other recommended library only offers Credential Manager
+in its paid version. Needs `react-native-nitro-modules` and a development build.
+
+## D11. Sessions
+The phone sends Google's ID token once. The API verifies it (signature against Google's public
+keys, issuer, audience, expiry, verified email) with `jose`, then issues its own tokens: a JWT
+access token valid for 15 minutes and an opaque refresh token valid for 60 days. Only a SHA-256
+hash of each refresh token is stored. Refresh tokens rotate on every use, and presenting a used
+one revokes the whole chain. The phone treats itself as signed in from what it has stored, so the
+app opens offline.
