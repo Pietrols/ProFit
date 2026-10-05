@@ -8,6 +8,19 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: profit
+          POSTGRES_PASSWORD: profit
+          POSTGRES_DB: profit
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U profit"
+          --health-interval 5s
+          --health-retries 10
     defaults:
       run:
         working-directory: backend
