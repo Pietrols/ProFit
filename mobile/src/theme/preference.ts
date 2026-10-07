@@ -13,3 +13,10 @@ export function resolveMode(preference: ThemePreference, system: SystemScheme): 
   if (preference === 'system') return system === 'light' ? 'light' : 'dark';
   return preference;
 }
+
+export const PREFERENCE_KEY = 'profit.theme';
+
+// Reads the saved choice. Anything unknown falls back to the default.
+export function parsePreference(raw: string | null): ThemePreference {
+  return raw === 'dark' || raw === 'light' || raw === 'system' ? raw : DEFAULT_PREFERENCE;
+}

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_PREFERENCE, resolveMode } from '../preference';
+import { DEFAULT_PREFERENCE, parsePreference, resolveMode } from '../preference';
 
 describe('resolveMode', () => {
   it('defaults to dark', () => {
@@ -17,5 +17,14 @@ describe('resolveMode', () => {
     expect(resolveMode('system', 'dark')).toBe('dark');
     expect(resolveMode('system', 'unspecified')).toBe('dark');
     expect(resolveMode('system', null)).toBe('dark');
+  });
+});
+
+describe('parsePreference', () => {
+  it('reads a saved choice and falls back to dark for anything else', () => {
+    expect(parsePreference('light')).toBe('light');
+    expect(parsePreference('system')).toBe('system');
+    expect(parsePreference(null)).toBe('dark');
+    expect(parsePreference('blue')).toBe('dark');
   });
 });
