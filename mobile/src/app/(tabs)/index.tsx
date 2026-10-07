@@ -2,6 +2,7 @@ import { router } from 'expo-router';
 import { View } from 'react-native';
 import { useMe } from '@/features/auth/AuthProvider';
 import { formatHomeDate, greetingFor } from '@/features/home/greeting';
+import { SyncBanner } from '@/features/sync/SyncBanner';
 import { HubTile } from '@/features/home/HubTile';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { AppText } from '@/ui/AppText';
@@ -16,6 +17,7 @@ export default function HomeScreen() {
 
   return (
     <Screen eyebrow={formatHomeDate(now)} title={greetingFor(now.getHours(), me?.user.displayName)}>
+      <SyncBanner />
       <Card>
         <AppText variant="label" color="accent">Today</AppText>
         <AppText variant="title">No plan yet</AppText>
