@@ -1,4 +1,4 @@
-import { index, integer, pgEnum, pgTable, real, smallint, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { bigint, date, doublePrecision, index, integer, pgEnum, pgSequence, pgTable, real, smallint, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 // The values here are the API's values too, so the Zod schemas build their enums from these lists.
 export const GOALS = ['weight_loss', 'bodybuilding', 'calisthenics', 'athlete', 'powerlifting', 'general_fitness'] as const;
@@ -70,6 +70,35 @@ export const refreshTokens = pgTable(
   (t) => [index('refresh_tokens_family_idx').on(t.familyId), index('refresh_tokens_user_idx').on(t.userId)],
 );
 
+// Every write to a synced table takes the next number from this one sequence. A phone asks for
+// "everything after version N", so one number covers every synced table.
+export const syncVersionSeq = pgSequence('sync_version_seq');
+
+// Columns every synced table has. id is made on the phone; updated_at is the phone's edit time and
+// decides which copy wins a merge; deleted_at marks a delete so it can sync to other phones.
+const syncColumns = {
+  id: uuid('id').primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull(),
+  deletedAt: timestamp('deleted_at', { withTimezone: true }),
+  version: bigint('version', { mode: 'number' }).notNull(),
+};
+
+// Body-weight log: one weigh-in per user per day (the phone derives the id from user and date).
+export const weightEntries = pgTable(
+  'weight_entries',
+  {
+    ...syncColumns,
+    date: date('date', { mode: 'string' }).notNull(),
+    weightKg: doublePrecision('weight_kg').notNull(),
+    note: text('note'),
+  },
+  (t) => [index('weight_entries_user_version_idx').on(t.userId, t.version)],
+);
+
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
 export type RefreshToken = typeof refreshTokens.$inferSelect;
+export type WeightEntry = typeof weightEntries.$inferSelect;
