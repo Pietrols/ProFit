@@ -2,8 +2,11 @@ const { getDefaultConfig } = require('expo/metro-config');
 
 const config = getDefaultConfig(__dirname);
 
-// expo-sqlite in the web preview runs a WebAssembly build of SQLite that needs SharedArrayBuffer,
-// which browsers only allow on cross-origin isolated pages. Phones are not affected by any of this.
+// The web preview only (phones are not affected): expo-sqlite on web is a WebAssembly build of
+// SQLite, so Metro must bundle .wasm files, and it needs SharedArrayBuffer, which browsers only
+// allow on cross-origin isolated pages. Metro adds the isolation headers below to what it serves,
+// but in SDK 57 Expo's dev server sends the HTML page itself without them, so signed-in screens in
+// the preview need those headers added in front of it (see D24 in docs/DECISIONS.md).
 config.resolver.assetExts.push('wasm');
 config.server.enhanceMiddleware = (middleware) => (req, res, next) => {
   res.setHeader('Cross-Origin-Embedder-Policy', 'credentialless');
