@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { View } from 'react-native';
+import { useMe } from '@/features/auth/AuthProvider';
 import { formatHomeDate, greetingFor } from '@/features/home/greeting';
 import { HubTile } from '@/features/home/HubTile';
 import { useAppTheme } from '@/theme/ThemeProvider';
@@ -10,10 +11,11 @@ import { Screen } from '@/ui/Screen';
 
 export default function HomeScreen() {
   const { space } = useAppTheme();
+  const { me } = useMe();
   const now = new Date();
 
   return (
-    <Screen eyebrow={formatHomeDate(now)} title={greetingFor(now.getHours())}>
+    <Screen eyebrow={formatHomeDate(now)} title={greetingFor(now.getHours(), me?.user.displayName)}>
       <Card>
         <AppText variant="label" color="accent">Today</AppText>
         <AppText variant="title">No plan yet</AppText>

@@ -7,11 +7,16 @@ const MONTHS = [
   'July', 'August', 'September', 'October', 'November', 'December',
 ];
 
-export function greetingFor(hour: number): string {
-  if (hour < 5) return 'Late session';
-  if (hour < 12) return 'Good morning';
-  if (hour < 17) return 'Good afternoon';
-  return 'Good evening';
+export function greetingFor(hour: number, name?: string | null): string {
+  const base = hour < 5 ? 'Late session' : hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const first = firstName(name);
+  return first ? `${base}, ${first}` : base;
+}
+
+// The first word of a display name, kept short so the greeting fits on one line.
+export function firstName(name?: string | null): string {
+  const first = name?.trim().split(/\s+/)[0] ?? '';
+  return first.length > 12 ? first.slice(0, 12) : first;
 }
 
 export function formatHomeDate(date: Date): string {
