@@ -33,6 +33,7 @@ export type AuthSnapshot =
   | { status: 'signedOut'; notice: string | null }
   | {
       status: 'signedIn';
+      userId: string;
       // What the screens show: the last profile the server confirmed with unsent edits on top.
       // null until a profile has been loaded at least once on this phone.
       me: Me | null;
@@ -61,6 +62,7 @@ export function createAuthStore(deps: Deps) {
   function publishSignedIn(syncError: string | null = null) {
     publish({
       status: 'signedIn',
+      userId: auth!.user.id,
       me: confirmed ? applyPatch(confirmed, pending) : null,
       hasPendingChanges: !isEmptyPatch(pending),
       syncError,
@@ -141,6 +143,8 @@ export function createAuthStore(deps: Deps) {
   }
 
   return {
+    // The API client signed in as the current user, shared with the sync engine.
+    api,
     getSnapshot: () => snapshot,
     subscribe(listener: () => void) {
       listeners.add(listener);
