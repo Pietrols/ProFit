@@ -10,8 +10,9 @@ import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { authRouter } from './routes/auth.js';
 import { healthRouter } from './routes/health.js';
 import { meRouter } from './routes/me.js';
+import { syncRouter } from './routes/sync.js';
 
-export const API_VERSION = '0.2.0';
+export const API_VERSION = '0.3.0';
 
 // What the app needs from outside. Tests pass a test database, a fake Google verifier and a fixed clock.
 export type AppDeps = {
@@ -49,6 +50,7 @@ export function createApp(config: Config, logger: Logger, deps: AppDeps): Expres
     }),
   );
   app.use('/me', requireAuth(config.JWT_SECRET, now), meRouter(deps.db, now));
+  app.use('/sync', requireAuth(config.JWT_SECRET, now), syncRouter(deps.db, now));
 
   app.use(notFoundHandler);
   app.use(errorHandler(logger));
