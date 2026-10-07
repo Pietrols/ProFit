@@ -92,3 +92,42 @@ set `EXPO_PUBLIC_DEV_LOGIN=true`.
   and body weight logging in Phase 2 needs it.
 - Body weight is not a profile field. It lives in the Phase 2 weight log.
 - Display name comes from Google only at first sign-in; after that the user's own edit wins.
+
+## D15. Mobile copies the API's types by hand
+`mobile/src/features/profile/types.ts` mirrors `backend/src/me/dto.ts` and the enums in
+`backend/src/db/schema.ts`. A shared package would need workspace tooling that caused trouble in
+`legacy-v1`, and the contract is small. Rule: change both sides in the same commit. Revisit if the
+shared surface grows enough that drift becomes a real risk.
+
+## D16. Phase 1 storage on the phone
+- Tokens and the signed-in user are kept together in the keystore (`expo-secure-store`, readable
+  after the first unlock so the app can open after a restart).
+- The cached profile and unsent profile edits are kept in `expo-sqlite`'s key-value store, filed
+  under the user's id. Phase 2's local database and sync engine replace this.
+- The web preview has no keystore, so it keeps both in the browser's localStorage. The preview is a
+  development tool only.
+
+## D17. Edits the server rejects as invalid are dropped
+Unsent profile edits are retried until they reach the server. If the server answers 400 (the
+values are invalid), retrying can never succeed and would block every later edit, so those fields
+are dropped, the server's profile is kept, and You shows what was not saved. The profile form
+checks the same limits as the API, so this should not happen in practice.
+
+## D18. Signing out
+- The app first tries to send unsent edits. Anything it cannot send stays on the phone, filed under
+  the user, and is sent the next time that user signs in on this phone. The sign-in screen says so.
+- Signing out offline cannot cancel the sign-in on the server; that refresh token simply expires
+  after 60 days. The tokens are removed from the phone either way.
+- When the server refuses a refresh token, the app signs out locally with a notice and keeps
+  unsent edits the same way.
+
+## D19. Onboarding endings
+Four questions (name, goal, experience, where you train), each skippable. Finishing with at least
+one answer marks onboarding completed; finishing with none marks it skipped; "Skip for now" marks it
+skipped and keeps the answers given so far. A user whose profile has not reached the phone yet (for
+example a reinstall opened offline) goes to the app, not back into onboarding.
+
+## D20. Google button style
+The sign-in button is ProFit's own pill with a monochrome Google mark, so it matches the theme and
+works in the web preview. Google's branding guidelines ask for specific button styles; check the
+button against them before release (Phase 11) and switch to the library's native button if needed.
