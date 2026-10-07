@@ -131,3 +131,36 @@ example a reinstall opened offline) goes to the app, not back into onboarding.
 The sign-in button is ProFit's own pill with a monochrome Google mark, so it matches the theme and
 works in the web preview. Google's branding guidelines ask for specific button styles; check the
 button against them before release (Phase 11) and switch to the library's native button if needed.
+
+## D21. Sync protocol
+- Each record merges on its own: the copy with the later edit time (set by the phone) wins. Deletes
+  are tombstones (`deleted_at`) so they sync like any other edit.
+- One Postgres sequence numbers every write to every synced table, and pushes for one user take a
+  per-user lock, so a phone can pull "everything after version N" without ever skipping a row.
+- Edit times are capped at 5 minutes past the server's clock, so a phone whose clock runs ahead
+  cannot win every future merge.
+- Records the server rejects as invalid are listed in the reply and dropped on the phone with a
+  visible message, the same rule as D17, so one bad record never blocks the rest.
+- Pushes and pulls move at most 500 records per request; the phone loops until it is done.
+- Rejected alternative: whole-document sync with a revision number. Simpler for one person's data,
+  but every edit would resend everything, and community features need per-record rows anyway.
+
+## D22. One weigh-in per day
+A body-weight entry's id is a name-based UUID (version 5) from the user's id and the date, so two
+phones that both log the same day produce the same id and merge into one entry instead of two.
+The SHA-1 the UUID needs is written in plain TypeScript (`mobile/src/lib/uuid.ts`) and checked
+against reference values, because the app has no crypto library yet. Random ids for other records
+arrive with the first feature that needs them, using `expo-crypto`.
+
+## D23. What stays outside the sync engine
+- The profile keeps its own path (`PATCH /me` with the queue from Phase 1). It is one record edited
+  field by field, which a field-level patch handles better than whole-record "later edit wins".
+- The theme choice is a per-phone setting, saved in the key-value store. This completes D8.
+
+## D24. Web preview and SQLite
+The phone's database runs in the web preview through expo-sqlite's WebAssembly build, which needs a
+cross-origin isolated page. Expo's dev server in SDK 57 sends the isolation headers on scripts but
+not on the HTML page, and once a page is isolated, calls to the API on another port hang in the
+browser. So the preview of signed-in screens is driven by a small browser harness that adds the
+headers and reaches the API through the page's own origin. This only affects the development
+preview; Android and iOS use native SQLite and talk to the API directly.
