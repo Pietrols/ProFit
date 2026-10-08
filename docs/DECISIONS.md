@@ -164,3 +164,28 @@ not on the HTML page, and once a page is isolated, calls to the API on another p
 browser. So the preview of signed-in screens is driven by a small browser harness that adds the
 headers and reaches the API through the page's own origin. This only affects the development
 preview; Android and iOS use native SQLite and talk to the API directly.
+
+## D25. The exercise library ships with the app
+Built-in exercises come from free-exercise-db (public domain, pinned commit, see Phase 3) and are
+bundled as JSON instead of synced. They are the same for everyone, so syncing them would only cost
+data; updates ship with app updates. Plans refer to built-ins by their slug, which stays stable
+because the source commit is pinned. ProFit adds a few exercises the dataset lacks (burpee,
+jumping jacks, wall sit, bird dog), written by us.
+
+## D26. A "common" list drives search order and image order
+About 90 exercises most people look for are marked common with a popularity rank. Search ranks
+them above obscure variants with similar names, and images are made in that order, so the
+exercises people see most get images first.
+
+## D27. Photos are files, not database rows
+A custom exercise photo is cropped square, shrunk to 1080 px and saved as JPEG on the phone, then
+uploaded (`PUT /media/:id`) before the records that point at it, and fetched once by other
+phones. The server keeps files on disk under `MEDIA_DIR` with a row per file; only the owner can
+read them until sharing arrives in Phase 9. A photo the server refuses (too big, wrong type) is
+not retried, and the user is told why. The web preview has no app folder, so photos are phone only.
+
+## D28. New Expo modules for Phase 3
+`expo-crypto` (random ids), `expo-image-picker` (gallery only: camera and microphone permissions
+are off), `expo-image-manipulator` (crop and shrink), `expo-file-system` (keep, upload and
+download photos). All are Expo SDK 57 modules installed at the versions in
+`bundledNativeModules.json`, implied by the stack in D1.
