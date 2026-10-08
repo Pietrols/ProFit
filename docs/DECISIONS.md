@@ -211,8 +211,8 @@ is a synced edit. No completion data is stored until Phases 5 and 6.
 Gentle is 80% and Hard 120% of Standard reps, time and distance. Round to a whole rep,
 second or metre, minimum 1, capped at the API limits. Sets and rest are unchanged.
 Stored targets remain Standard so switching difficulty does not compound rounding.
-A cycle advances after completion, not after a missed calendar day. Same-day completion
-keeps that day visible until tomorrow. Weekly days use the phone's local calendar date,
+A cycle advances after completion, not after a missed calendar day. A completion selects the next day immediately, including on the same calendar day.
+Repeated reads of that completion keep selecting the same next day. Weekly days use the phone's local calendar date,
 Monday 1 to Sunday 7. Missing weekdays mean rest. Phase 5 supplies completion records;
 Phase 4 shows the first cycle day. If sync leaves several active plans, latest edit wins
 with id as a stable tie breaker. These defaults can change with a logged decision.

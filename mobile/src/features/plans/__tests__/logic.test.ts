@@ -7,7 +7,7 @@ describe('today in a plan', () => {
   it('starts at first day and advances only after completion', () => {
     expect(todaysDay(plan, days, null, '2026-10-08')?.id).toBe('0');
     expect(todaysDay(plan, days, { planId: 'p', dayId: '0', date: '2026-10-06' }, '2026-10-08')).toEqual(days[1]);
-    expect(todaysDay(plan, days, { planId: 'p', dayId: '0', date: '2026-10-08' }, '2026-10-08')?.id).toBe('0');
+    expect(todaysDay(plan, days, { planId: 'p', dayId: '0', date: '2026-10-08' }, '2026-10-08')?.id).toBe('1');
     expect(todaysDay(plan, days, { planId: 'p', dayId: '2', date: '2026-10-07' }, '2026-10-08')?.id).toBe('0');
   });
   it('handles empty, deleted, foreign and future completion days', () => {

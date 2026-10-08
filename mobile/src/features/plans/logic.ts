@@ -13,7 +13,7 @@ export function todaysDay(plan: Plan, days: PlanDay[], lastCompleted: Completion
   if (!lastCompleted || lastCompleted.planId !== plan.id || !validDate(lastCompleted.date) || lastCompleted.date > today) return ordered[0]!;
   const index = ordered.findIndex((d) => d.id === lastCompleted.dayId);
   if (index < 0) return ordered[0]!;
-  return ordered[lastCompleted.date === today ? index : (index + 1) % ordered.length]!;
+  return ordered[(index + 1) % ordered.length]!;
 }
 export function defaultLogFields(tracking: Tracking): LogField[] {
   switch (tracking) {

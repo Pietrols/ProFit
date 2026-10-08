@@ -36,8 +36,7 @@ todaysDay(plan, days, lastCompleted, today):
   invalid calendar date or no days -> null
   weekly -> day matching today's calendar weekday, or null (rest)
   cycle -> first day without a completion for this plan
-    completion today -> that day, avoiding a second advance today
-    older completion -> next day, wrapping
+    completion on or before today -> next day, wrapping
     deleted completed day -> first day
   return explicit rest days too
 
@@ -100,3 +99,43 @@ API proxy verify the done-when flow on two browser phones.
 - Exercise substitutions and difficulty ladders: current library has no relationships for these.
 - Sharing and AI plans: Phases 9 and 10.
 - New dependencies and generated exercise images.
+
+## Validation checkpoint
+
+Steps 4.1 to 4.7 are implemented and pushed. Both typechecks and all 199 mobile tests pass.
+Backend tests run against PostgreSQL 16 in GitHub CI under BUILD_PLAN rule 8 because Docker
+is unavailable here and installing PostgreSQL fails with environment permissions. CI covers
+all 86 backend tests, including round trips, validation, ownership, tombstones and pagination.
+The web export bundles successfully. No dependencies were added.
+
+Step 4.8 is pending: the cloud browser refused the local preview URL with
+`net::ERR_BLOCKED_BY_CLIENT`. This is a preview access blocker, not a passed browser check.
+`scripts/phase4-preview.ts` provides a disposable two-origin preview using D24 isolation
+headers, real browser SQLite, and the existing fake sync server. It deliberately has no
+production credentials or data. Real API integration is separately covered by CI.
+
+To run the browser check locally from the repo root:
+
+```sh
+cd mobile
+EXPO_PUBLIC_API_URL=/api npx expo export --platform web --output-dir ../phase4-web
+cd ..
+node --import ./backend/node_modules/tsx/dist/loader.mjs scripts/phase4-preview.ts ./phase4-web
+```
+
+Open `http://localhost:8082/phone` and `http://localhost:8083/phone`. The iframes are
+390 by 844 and their origins have independent SQLite stores for the same fixture account.
+Build a three-day cycle, choose custom log fields, return to Home, rename a day, reorder it
+and delete it. Verify the second phone after reloading. Edit the daily habit and copy each
+starter plan. Change to weekly and verify weekday and rest states. Switch fixture sync off
+with `/fixture/offline` and back on with `/fixture/online`; offline local edits must survive.
+Check light theme, keyboard access, and loading, empty and invalid-target states.
+
+The existing `npm run lint` command tries to configure missing ESLint tooling and fails
+with an HTTP proxy timeout. Package files are unchanged. Peter: may we add the missing
+ESLint tooling and configuration in a separate step? Until approved, typecheck and tests
+are the available code gates.
+
+Before marking this phase complete, Peter must also check native keyboard interaction,
+small-phone scrolling, real-account two-device sync and airplane-mode edits on Android.
+Phase 5 has not been started. Final phase summary awaits the browser done-when check.
