@@ -1,4 +1,4 @@
-import { bigint, date, doublePrecision, index, integer, pgEnum, pgSequence, pgTable, real, smallint, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { bigint, boolean, date, doublePrecision, index, integer, pgEnum, pgSequence, pgTable, real, smallint, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 // The values here are the API's values too, so the Zod schemas build their enums from these lists.
 export const GOALS = ['weight_loss', 'bodybuilding', 'calisthenics', 'athlete', 'powerlifting', 'general_fitness'] as const;
@@ -141,3 +141,23 @@ export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
 export type RefreshToken = typeof refreshTokens.$inferSelect;
 export type WeightEntry = typeof weightEntries.$inferSelect;
+
+// Soft references allow independently synced children to arrive before their parents.
+export const plans = pgTable('plans', {
+  ...syncColumns, name: text('name').notNull(), shape: text('shape').notNull(),
+  difficulty: text('difficulty').notNull(), active: boolean('active').notNull(),
+}, (t) => [index('plans_user_version_idx').on(t.userId, t.version)]);
+export const planDays = pgTable('plan_days', {
+  ...syncColumns, planId: uuid('plan_id').notNull(), position: integer('position').notNull(),
+  weekday: integer('weekday'), name: text('name').notNull(), restDay: boolean('rest_day').notNull(),
+}, (t) => [index('plan_days_user_version_idx').on(t.userId, t.version)]);
+export const planExercises = pgTable('plan_exercises', {
+  ...syncColumns, dayId: uuid('day_id').notNull(), exerciseId: text('exercise_id').notNull(),
+  position: integer('position').notNull(), sets: integer('sets').notNull(),
+  targetReps: integer('target_reps'), targetTimeSeconds: integer('target_time_seconds'),
+  targetDistanceMetres: doublePrecision('target_distance_metres'), restSeconds: integer('rest_seconds').notNull(),
+  logFields: text('log_fields').array().notNull(),
+}, (t) => [index('plan_exercises_user_version_idx').on(t.userId, t.version)]);
+export const dailyHabit = pgTable('daily_habit', {
+  ...syncColumns, exerciseIds: text('exercise_ids').array().notNull(),
+}, (t) => [index('daily_habit_user_version_idx').on(t.userId, t.version)]);

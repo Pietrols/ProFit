@@ -69,7 +69,7 @@ Done when: build a 3-day cycle with custom log fields, see today's day on Home, 
   (order or weekday, name, rest day flag), plan exercises (exercise id, order, sets, target reps or
   time or distance, rest seconds, log fields chosen from reps, weight, time, distance, rest, RPE,
   notes, done), and the daily habit (list of exercises, shown every day).
-- [ ] 4.2 Backend: tables, migration, sync collections for plans, days, plan exercises and habit;
+- [x] 4.2 Backend: tables, migration, sync collections for plans, days, plan exercises and habit;
   sync tests like `routes/exercises.sync.test.ts`.
 - [ ] 4.3 Mobile: SQLite migration, sync collections, `features/plans/plans.ts` (create, update,
   delete with tombstones, list) with tests.

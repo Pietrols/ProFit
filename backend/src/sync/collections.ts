@@ -1,6 +1,6 @@
 import type { PgTable } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
-import { customExercises, exerciseFavourites, weightEntries } from '../db/schema.js';
+import { customExercises, dailyHabit, exerciseFavourites, planDays, planExercises, plans, weightEntries } from '../db/schema.js';
 
 // The tables phones sync, and how each record looks on the wire. Adding a synced feature later means
 // adding one entry here: a table with the sync columns, a Zod schema, and the two mappings.
@@ -57,6 +57,26 @@ export const favouriteRecord = z.strictObject({
   exerciseId: z.string().regex(/^[A-Za-z0-9_-]{1,100}$/, 'must be an exercise id'),
 });
 
+export const LOG_FIELDS = ['reps', 'weight', 'time', 'distance', 'rest', 'RPE', 'notes', 'done'] as const;
+const exerciseId = z.string().regex(/^[A-Za-z0-9_-]{1,100}$/, 'must be an exercise id');
+const position = z.number().int().min(0).max(10000);
+const name = z.string().trim().min(1).max(80);
+export const planRecord = z.strictObject({
+  ...syncFields, name, shape: z.enum(['cycle', 'weekly']), difficulty: z.enum(['gentle', 'standard', 'hard']), active: z.boolean(),
+});
+export const planDayRecord = z.strictObject({
+  ...syncFields, planId: z.uuid(), position, weekday: z.number().int().min(1).max(7).nullable(), name, restDay: z.boolean(),
+});
+export const planExerciseRecord = z.strictObject({
+  ...syncFields, dayId: z.uuid(), exerciseId, position, sets: z.number().int().min(1).max(100),
+  targetReps: z.number().int().min(1).max(1000).nullable(),
+  targetTimeSeconds: z.number().int().min(1).max(86400).nullable(),
+  targetDistanceMetres: z.number().min(1).max(1000000).nullable(),
+  restSeconds: z.number().int().min(0).max(3600),
+  logFields: z.array(z.enum(LOG_FIELDS)).min(1).max(8).refine((v) => new Set(v).size === v.length, 'log fields must be unique'),
+});
+export const habitRecord = z.strictObject({ ...syncFields, exerciseIds: z.array(exerciseId).max(100) });
+
 export type WeightRecord = z.infer<typeof weightRecord>;
 export type CustomExerciseRecord = z.infer<typeof customExerciseRecord>;
 export type FavouriteRecord = z.infer<typeof favouriteRecord>;
@@ -83,6 +103,26 @@ function define<R, Row extends SyncRow>(spec: CollectionSpec<R, Row>) {
 }
 
 export const collections = {
+  plans: define({
+    table: plans, schema: planRecord,
+    toRow: (r) => ({ name: r.name, shape: r.shape, difficulty: r.difficulty, active: r.active }),
+    toWire: (row: typeof plans.$inferSelect) => ({ ...syncWire(row), name: row.name as z.infer<typeof planRecord>['name'], shape: row.shape as z.infer<typeof planRecord>['shape'], difficulty: row.difficulty as z.infer<typeof planRecord>['difficulty'], active: row.active as z.infer<typeof planRecord>['active'] }),
+  }),
+  plan_days: define({
+    table: planDays, schema: planDayRecord,
+    toRow: (r) => ({ planId: r.planId, position: r.position, weekday: r.weekday, name: r.name, restDay: r.restDay }),
+    toWire: (row: typeof planDays.$inferSelect) => ({ ...syncWire(row), planId: row.planId as z.infer<typeof planDayRecord>['planId'], position: row.position as z.infer<typeof planDayRecord>['position'], weekday: row.weekday as z.infer<typeof planDayRecord>['weekday'], name: row.name as z.infer<typeof planDayRecord>['name'], restDay: row.restDay as z.infer<typeof planDayRecord>['restDay'] }),
+  }),
+  plan_exercises: define({
+    table: planExercises, schema: planExerciseRecord,
+    toRow: (r) => ({ dayId: r.dayId, exerciseId: r.exerciseId, position: r.position, sets: r.sets, targetReps: r.targetReps, targetTimeSeconds: r.targetTimeSeconds, targetDistanceMetres: r.targetDistanceMetres, restSeconds: r.restSeconds, logFields: r.logFields }),
+    toWire: (row: typeof planExercises.$inferSelect) => ({ ...syncWire(row), dayId: row.dayId as z.infer<typeof planExerciseRecord>['dayId'], exerciseId: row.exerciseId as z.infer<typeof planExerciseRecord>['exerciseId'], position: row.position as z.infer<typeof planExerciseRecord>['position'], sets: row.sets as z.infer<typeof planExerciseRecord>['sets'], targetReps: row.targetReps as z.infer<typeof planExerciseRecord>['targetReps'], targetTimeSeconds: row.targetTimeSeconds as z.infer<typeof planExerciseRecord>['targetTimeSeconds'], targetDistanceMetres: row.targetDistanceMetres as z.infer<typeof planExerciseRecord>['targetDistanceMetres'], restSeconds: row.restSeconds as z.infer<typeof planExerciseRecord>['restSeconds'], logFields: row.logFields as z.infer<typeof planExerciseRecord>['logFields'] }),
+  }),
+  daily_habit: define({
+    table: dailyHabit, schema: habitRecord,
+    toRow: (r) => ({ exerciseIds: r.exerciseIds }),
+    toWire: (row: typeof dailyHabit.$inferSelect) => ({ ...syncWire(row), exerciseIds: row.exerciseIds as z.infer<typeof habitRecord>['exerciseIds'] }),
+  }),
   weight_entries: define({
     table: weightEntries,
     schema: weightRecord,
