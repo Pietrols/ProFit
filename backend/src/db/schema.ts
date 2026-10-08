@@ -98,6 +98,45 @@ export const weightEntries = pgTable(
   (t) => [index('weight_entries_user_version_idx').on(t.userId, t.version)],
 );
 
+// Exercises a user made themselves. Built-in exercises live in the app, not here.
+export const customExercises = pgTable(
+  'custom_exercises',
+  {
+    ...syncColumns,
+    name: text('name').notNull(),
+    category: text('category').notNull(),
+    equipment: text('equipment'),
+    primaryMuscles: text('primary_muscles').array().notNull(),
+    secondaryMuscles: text('secondary_muscles').array().notNull(),
+    tracking: text('tracking').notNull(),
+    instructions: text('instructions'),
+    photoId: uuid('photo_id'),
+  },
+  (t) => [index('custom_exercises_user_version_idx').on(t.userId, t.version)],
+);
+
+// A starred exercise. The phone derives the id from user and exercise, so starring the same exercise
+// on two phones is one row; un-starring sets deleted_at.
+export const exerciseFavourites = pgTable(
+  'exercise_favourites',
+  {
+    ...syncColumns,
+    exerciseId: text('exercise_id').notNull(),
+  },
+  (t) => [index('exercise_favourites_user_version_idx').on(t.userId, t.version)],
+);
+
+// Uploaded images. The file lives on disk under MEDIA_DIR; this row says whose it is and what it is.
+export const media = pgTable('media', {
+  id: uuid('id').primaryKey(),
+  userId: uuid('user_id')
+    .notNull()
+    .references(() => users.id, { onDelete: 'cascade' }),
+  contentType: text('content_type').notNull(),
+  bytes: integer('bytes').notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type User = typeof users.$inferSelect;
 export type Profile = typeof profiles.$inferSelect;
 export type RefreshToken = typeof refreshTokens.$inferSelect;

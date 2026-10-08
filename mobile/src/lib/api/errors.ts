@@ -26,18 +26,23 @@ export function isNetworkError(error: unknown): error is NetworkError {
 
 // Reads the API's error body. Falls back to a generic message when the body is not ours
 // (a proxy error page, an empty body).
-export async function errorFromResponse(response: Response): Promise<ApiError> {
-  let code = 'HTTP_' + response.status;
+export function errorFromBody(status: number, text: string): ApiError {
+  let code = 'HTTP_' + status;
   let message = 'Something went wrong. Try again in a moment.';
   try {
-    const body: unknown = await response.json();
+    const body: unknown = JSON.parse(text);
     const error = (body as { error?: { code?: unknown; message?: unknown } } | null)?.error;
     if (typeof error?.code === 'string') code = error.code;
     if (typeof error?.message === 'string') message = error.message;
   } catch {
     // Not JSON: keep the generic message.
   }
-  return new ApiError(response.status, code, message);
+  return new ApiError(status, code, message);
+}
+
+export async function errorFromResponse(response: Response): Promise<ApiError> {
+  const text = await response.text().catch(() => '');
+  return errorFromBody(response.status, text);
 }
 
 // A short line a screen can show for any error the client raises.

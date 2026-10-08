@@ -28,6 +28,12 @@ export type ApiClient = {
   get: <T>(path: string) => Promise<T>;
   post: <T>(path: string, body?: unknown, options?: { auth?: boolean }) => Promise<T>;
   patch: <T>(path: string, body: unknown) => Promise<T>;
+  // For transfers that do not go through fetch (photo uploads and downloads run natively).
+  // The full address of an API path:
+  url: (path: string) => string;
+  // The Authorization header, refreshing the token first when it is about to run out, or always
+  // when refresh is true (the API answered TOKEN_EXPIRED to the last try).
+  authHeaders: (options?: { refresh?: boolean }) => Promise<Record<string, string>>;
 };
 
 const DEFAULT_TIMEOUT_MS = 15_000;
@@ -104,8 +110,17 @@ export function createApiClient(options: Options): ApiClient {
     return readBody<T>(response);
   }
 
+  async function authHeaders({ refresh: force = false }: { refresh?: boolean } = {}): Promise<Record<string, string>> {
+    let session = options.getSession();
+    if (!session) throw new ApiError(401, 'UNAUTHENTICATED', 'Sign in to continue.');
+    if (force || needsRefresh(session, now())) session = await refresh();
+    return { Authorization: `Bearer ${session.accessToken}` };
+  }
+
   return {
     request,
+    url: (path) => options.baseUrl + path,
+    authHeaders,
     get: (path) => request('GET', path),
     post: (path, body, opts) => request('POST', path, { body, auth: opts?.auth }),
     patch: (path, body) => request('PATCH', path, { body }),

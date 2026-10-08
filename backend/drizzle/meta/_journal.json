@@ -15,6 +15,13 @@
       "when": 1791365278245,
       "tag": "0001_sync_weight",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791424260103,
+      "tag": "0002_exercises_media",
+      "breakpoints": true
     }
   ]
 }

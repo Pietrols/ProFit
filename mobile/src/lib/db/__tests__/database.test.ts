@@ -6,10 +6,11 @@ import { nodeDriver } from './nodeDriver';
 describe('migrate', () => {
   it('creates the schema once and records the version', async () => {
     const db = createDatabase(nodeDriver());
-    expect(await migrate(db, migrations)).toBe(1);
-    expect(await migrate(db, migrations)).toBe(1);
+    const latest = Math.max(...migrations.map((m) => m.version));
+    expect(await migrate(db, migrations)).toBe(latest);
+    expect(await migrate(db, migrations)).toBe(latest);
     const tables = await db.all<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name");
-    expect(tables.map((t) => t.name)).toEqual(['sync_state', 'weight_entries']);
+    expect(tables.map((t) => t.name)).toEqual(['custom_exercises', 'exercise_favourites', 'media', 'sync_state', 'weight_entries']);
   });
 
   it('applies only the steps a database has not had yet', async () => {
