@@ -73,7 +73,7 @@ Done when: build a 3-day cycle with custom log fields, see today's day on Home, 
   sync tests like `routes/exercises.sync.test.ts`.
 - [x] 4.3 Mobile: SQLite migration, sync collections, `features/plans/plans.ts` (create, update,
   delete with tombstones, list) with tests.
-- [ ] 4.4 Pure logic with tests: `todaysDay(plan, days, lastCompleted, today)` for both shapes
+- [x] 4.4 Pure logic with tests: `todaysDay(plan, days, lastCompleted, today)` for both shapes
   (cycle advances after a completed session, weekly follows the weekday, rest days handled);
   default log fields from an exercise's tracking type; difficulty scaling of targets
   (gentle and hard as fixed percentages, logged in DECISIONS).
