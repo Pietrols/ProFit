@@ -188,4 +188,4 @@ not retried, and the user is told why. The web preview has no app folder, so pho
 `expo-crypto` (random ids), `expo-image-picker` (gallery only: camera and microphone permissions
 are off), `expo-image-manipulator` (crop and shrink), `expo-file-system` (keep, upload and
 download photos). All are Expo SDK 57 modules installed at the versions in
-`bundledNativeModules.json`, implied by the stack in D1.
+`bundledNativeModules.json`, implied by the stack in D2.
