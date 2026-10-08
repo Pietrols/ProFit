@@ -1,33 +1,57 @@
 {
   "expo": {
-    "name": "profit",
+    "name": "ProFit",
     "slug": "profit",
-    "version": "1.0.0",
+    "owner": "pietrols",
+    "version": "0.1.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/images/icon.png",
+    "scheme": "profit",
     "userInterfaceStyle": "automatic",
+    "backgroundColor": "#16120F",
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "com.quanticengineering.profit",
+      "supportsTablet": false
     },
     "android": {
+      "package": "com.quanticengineering.profit",
       "adaptiveIcon": {
-        "backgroundColor": "#050506",
-        "foregroundImage": "./assets/android-icon-foreground.png",
-        "backgroundImage": "./assets/android-icon-background.png",
-        "monochromeImage": "./assets/android-icon-monochrome.png"
+        "backgroundColor": "#16120F",
+        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "backgroundImage": "./assets/images/android-icon-background.png",
+        "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false,
-      "package": "com.mundala.profit"
+      "predictiveBackGestureEnabled": false
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "output": "single",
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
-      "expo-sqlite",
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#16120F",
+          "image": "./assets/images/splash-icon.png",
+          "imageWidth": 76
+        }
+      ],
       "expo-secure-store",
-      "expo-font"
+      "expo-sqlite",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ProFit uses your photos when you add one to an exercise you made.",
+          "cameraPermission": false,
+          "microphonePermission": false
+        }
+      ]
     ],
-    "backgroundColor": "#050506",
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
     "extra": {
       "eas": {
         "projectId": "2eb543ef-e939-4b2f-b288-af62bd6b5e76"

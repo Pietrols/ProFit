@@ -1,0 +1,72 @@
+[
+  {
+    "id": "ProFit_Burpee",
+    "name": "Burpee",
+    "category": "plyometrics",
+    "equipment": "body only",
+    "level": "beginner",
+    "force": "push",
+    "mechanic": "compound",
+    "primaryMuscles": ["quadriceps", "chest"],
+    "secondaryMuscles": ["shoulders", "triceps", "abdominals", "glutes"],
+    "instructions": [
+      "Stand with your feet about shoulder-width apart and your arms by your sides.",
+      "Squat down and place your hands on the floor just in front of your feet.",
+      "Jump or step your feet back so you are in a push-up position with your body in a straight line.",
+      "Optionally lower your chest to the floor and press back up.",
+      "Jump or step your feet back towards your hands, landing in a squat.",
+      "Stand up and jump, reaching your arms overhead. Land softly and go straight into the next rep."
+    ]
+  },
+  {
+    "id": "ProFit_Jumping_Jacks",
+    "name": "Jumping Jacks",
+    "category": "cardio",
+    "equipment": "body only",
+    "level": "beginner",
+    "force": "push",
+    "mechanic": "compound",
+    "primaryMuscles": ["quadriceps"],
+    "secondaryMuscles": ["calves", "shoulders", "glutes"],
+    "instructions": [
+      "Stand tall with your feet together and your arms by your sides.",
+      "Jump your feet out to slightly wider than your shoulders while raising your arms out to the sides and overhead.",
+      "Jump your feet back together while bringing your arms back down.",
+      "Keep a steady rhythm and land softly on the balls of your feet. Step instead of jumping for a low-impact version."
+    ]
+  },
+  {
+    "id": "ProFit_Wall_Sit",
+    "name": "Wall Sit",
+    "category": "strength",
+    "equipment": "body only",
+    "level": "beginner",
+    "force": "static",
+    "mechanic": "compound",
+    "primaryMuscles": ["quadriceps"],
+    "secondaryMuscles": ["glutes", "calves"],
+    "instructions": [
+      "Stand with your back flat against a wall and your feet about shoulder-width apart, a little in front of you.",
+      "Slide down the wall until your knees are bent to about 90 degrees, as if sitting on a chair. Go less deep if that is more comfortable.",
+      "Keep your knees above your ankles and your back against the wall.",
+      "Hold for the target time, breathing steadily, then slide back up."
+    ]
+  },
+  {
+    "id": "ProFit_Bird_Dog",
+    "name": "Bird Dog",
+    "category": "strength",
+    "equipment": "body only",
+    "level": "beginner",
+    "force": "static",
+    "mechanic": "compound",
+    "primaryMuscles": ["lower back"],
+    "secondaryMuscles": ["abdominals", "glutes", "shoulders"],
+    "instructions": [
+      "Start on your hands and knees with your hands under your shoulders and your knees under your hips.",
+      "Brace your stomach as if about to be poked, keeping your back flat.",
+      "Reach one arm forward and the opposite leg back until both are in line with your body. Keep your hips level.",
+      "Pause for a moment, return to the start, and repeat on the other side. Each side counts as one rep."
+    ]
+  }
+]

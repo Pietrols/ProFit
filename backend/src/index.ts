@@ -1,20 +1,29 @@
-import "dotenv/config";
-import { createApp } from "./app";
-import { logger } from "./lib/logger";
+import { createApp } from './app.js';
+import { createGoogleVerifier } from './auth/google.js';
+import { loadConfig } from './config.js';
+import { createDatabase } from './db/client.js';
+import { createLogger } from './lib/logger.js';
 
-// AUDIT S2: never boot production with a missing or placeholder JWT secret.
-const secret = process.env.JWT_SECRET;
-if (!secret || secret === "change-me" || secret.length < 32) {
-  const msg =
-    "JWT_SECRET is missing, the placeholder, or under 32 chars — refusing to start.";
-  if (process.env.NODE_ENV === "production") {
-    logger.fatal(msg);
-    process.exit(1);
-  }
-  logger.warn(`${msg} (allowed outside production — fix before deploying)`);
-}
+const config = loadConfig();
+const logger = createLogger(config);
+const database = createDatabase(config.DATABASE_URL);
+const verifyGoogle = createGoogleVerifier({ clientIds: config.googleClientIds });
+const app = createApp(config, logger, { db: database.db, verifyGoogle });
 
-const port = Number(process.env.PORT ?? 4000);
-createApp().listen(port, () => {
-  logger.info({ port }, "ProFit backend listening");
+if (config.AUTH_DEV_LOGIN) logger.warn('Developer sign-in is on (AUTH_DEV_LOGIN). Never enable this in production.');
+if (config.googleClientIds.length === 0) logger.warn('GOOGLE_CLIENT_IDS is empty, so Google sign-in will be refused.');
+
+const server = app.listen(config.PORT, () => {
+  logger.info(`ProFit API listening on http://localhost:${config.PORT}`);
 });
+
+// Finish in-flight requests before exiting when the host stops the process.
+for (const signal of ['SIGINT', 'SIGTERM'] as const) {
+  process.on(signal, () => {
+    logger.info(`${signal} received, shutting down`);
+    server.close(() => {
+      void database.close().finally(() => process.exit(0));
+    });
+    setTimeout(() => process.exit(1), 10_000).unref();
+  });
+}

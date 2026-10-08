@@ -1,18 +1,18 @@
 services:
   db:
-    image: postgres:16
-    restart: unless-stopped
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: profit
-      POSTGRES_PASSWORD: profit_dev_pass
+      POSTGRES_PASSWORD: profit
       POSTGRES_DB: profit
     ports:
-      - "5433:5432"
-      # Postgres.app (InventoryDB) also listens on 127.0.0.1:5433 and shadows the
-      # Docker mapping for loopback connections; 5434 is the reliable local port.
-      - "127.0.0.1:5434:5432"
+      - "5432:5432"
     volumes:
-      - profit_pgdata:/var/lib/postgresql/data
+      - profit-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U profit"]
+      interval: 5s
+      retries: 10
 
 volumes:
-  profit_pgdata:
+  profit-db:
