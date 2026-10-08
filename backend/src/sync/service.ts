@@ -1,6 +1,20 @@
 import { and, asc, eq, getTableColumns, gt, sql } from 'drizzle-orm';
+import type { z } from 'zod';
 import type { Db } from '../db/client.js';
+import type { weightEntries } from '../db/schema.js';
 import { COLLECTION_NAMES, collections, type CollectionName } from './collections.js';
+
+// Every synced table has the same sync columns, so the service treats them all through the shape of
+// one of them. Each collection's own fields go through its toRow and toWire.
+type SyncTable = typeof weightEntries;
+type SyncFields = { id: string; updatedAt: string; deletedAt: string | null };
+type Spec = {
+  table: SyncTable;
+  schema: z.ZodType<SyncFields>;
+  toRow: (record: SyncFields) => Record<string, unknown>;
+  toWire: (row: SyncTable['$inferSelect']) => unknown;
+};
+const specOf = (name: CollectionName) => collections[name] as unknown as Spec;
 
 // Push and pull for every synced table. See docs/phases/PHASE_2.md for the protocol.
 
@@ -23,7 +37,7 @@ export async function push(db: Db, userId: string, changes: Partial<Record<Colle
     await tx.execute(sql`SELECT pg_advisory_xact_lock(hashtextextended(${userId}, 0))`);
 
     for (const name of COLLECTION_NAMES) {
-      const { table, schema, toRow } = collections[name];
+      const { table, schema, toRow } = specOf(name);
       for (const raw of changes[name] ?? []) {
         const parsed = schema.safeParse(raw);
         if (!parsed.success) {
@@ -39,7 +53,7 @@ export async function push(db: Db, userId: string, changes: Partial<Record<Colle
         // A record id owned by someone else is never touched and simply reported as ignored.
         const written = await tx
           .insert(table)
-          .values({ id: record.id, userId, updatedAt, deletedAt, version: sql`nextval('sync_version_seq')`, ...data })
+          .values({ id: record.id, userId, updatedAt, deletedAt, version: sql`nextval('sync_version_seq')`, ...data } as unknown as SyncTable['$inferInsert'])
           .onConflictDoUpdate({
             target: table.id,
             set: excludedColumns(table, ['updatedAt', 'deletedAt', 'version', ...Object.keys(data)]),
@@ -60,7 +74,7 @@ export async function pull(db: Db, userId: string, since: number, limit: number)
   const items: Item[] = [];
 
   for (const name of COLLECTION_NAMES) {
-    const { table, toWire } = collections[name];
+    const { table, toWire } = specOf(name);
     const rows = await db
       .select()
       .from(table)
@@ -84,7 +98,7 @@ export async function pull(db: Db, userId: string, since: number, limit: number)
 }
 
 // SET col = excluded.col for each listed property of the table.
-function excludedColumns(table: (typeof collections)[CollectionName]['table'], keys: string[]) {
+function excludedColumns(table: SyncTable, keys: string[]) {
   const columns = getTableColumns(table) as Record<string, { name: string }>;
   return Object.fromEntries(keys.map((key) => [key, sql.raw(`excluded."${columns[key]!.name}"`)]));
 }
