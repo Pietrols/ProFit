@@ -1,0 +1,11 @@
+export const LOG_FIELDS = ['reps', 'weight', 'time', 'distance', 'rest', 'RPE', 'notes', 'done'] as const;
+export type LogField = typeof LOG_FIELDS[number];
+export type Shape = 'cycle' | 'weekly';
+export type Difficulty = 'gentle' | 'standard' | 'hard';
+export type PlanInput = { name: string; shape: Shape; difficulty: Difficulty; active: boolean };
+export type DayInput = { planId: string; position: number; weekday: number | null; name: string; restDay: boolean };
+export type Targets = { targetReps: number | null; targetTimeSeconds: number | null; targetDistanceMetres: number | null };
+export type PlanExerciseInput = Targets & { dayId: string; exerciseId: string; position: number; sets: number; restSeconds: number; logFields: LogField[] };
+export type Plan = PlanInput & { id: string; updatedAt: string };
+export type PlanDay = DayInput & { id: string };
+export type PlanExercise = PlanExerciseInput & { id: string };

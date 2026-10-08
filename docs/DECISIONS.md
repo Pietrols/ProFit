@@ -199,3 +199,10 @@ comparing each image with approved anchors and the last three kept images. Figur
 male by a hash of the exercise id, so the split is about even and never changes between runs.
 The finishing step uses `sharp`, installed only in `scripts/` (its own package.json) for build
 tools, never in the app.
+
+## D30. Plan relationships and daily habit
+Plan, day and exercise references are soft links so out-of-order sync accepts independently
+edited records. Mobile scopes joins by user, hides children of deleted parents and tombstones
+existing children when deleting a parent. A late child cannot resurrect a deleted parent.
+The daily habit is an ordered exercise id list with one UUIDv5 id per user. Clearing the list
+is a synced edit. No completion data is stored until Phases 5 and 6.

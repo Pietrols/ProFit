@@ -71,7 +71,7 @@ Done when: build a 3-day cycle with custom log fields, see today's day on Home, 
   notes, done), and the daily habit (list of exercises, shown every day).
 - [x] 4.2 Backend: tables, migration, sync collections for plans, days, plan exercises and habit;
   sync tests like `routes/exercises.sync.test.ts`.
-- [ ] 4.3 Mobile: SQLite migration, sync collections, `features/plans/plans.ts` (create, update,
+- [x] 4.3 Mobile: SQLite migration, sync collections, `features/plans/plans.ts` (create, update,
   delete with tombstones, list) with tests.
 - [ ] 4.4 Pure logic with tests: `todaysDay(plan, days, lastCompleted, today)` for both shapes
   (cycle advances after a completed session, weekly follows the weekday, rest days handled);

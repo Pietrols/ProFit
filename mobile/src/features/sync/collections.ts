@@ -7,7 +7,7 @@ export type Collection = {
   name: string; // the API's collection name, also the SQLite table name
   // Data columns besides the sync columns: SQLite column name and wire field name. json marks lists,
   // which SQLite keeps as JSON text and the API sends as arrays.
-  fields: { column: string; wire: string; json?: boolean }[];
+  fields: { column: string; wire: string; json?: boolean; boolean?: boolean }[];
 };
 
 export const weightEntriesCollection: Collection = {
@@ -38,15 +38,42 @@ export const exerciseFavouritesCollection: Collection = {
   fields: [{ column: 'exercise_id', wire: 'exerciseId' }],
 };
 
-export const syncedCollections: Collection[] = [weightEntriesCollection, customExercisesCollection, exerciseFavouritesCollection];
+export const plansCollection: Collection = { name: 'plans', fields: [
+  { column: 'name', wire: 'name' },
+  { column: 'shape', wire: 'shape' },
+  { column: 'difficulty', wire: 'difficulty' },
+  { column: 'active', wire: 'active', boolean: true },
+] };
+export const planDaysCollection: Collection = { name: 'plan_days', fields: [
+  { column: 'plan_id', wire: 'planId' },
+  { column: 'position', wire: 'position' },
+  { column: 'weekday', wire: 'weekday' },
+  { column: 'name', wire: 'name' },
+  { column: 'rest_day', wire: 'restDay', boolean: true },
+] };
+export const planExercisesCollection: Collection = { name: 'plan_exercises', fields: [
+  { column: 'day_id', wire: 'dayId' },
+  { column: 'exercise_id', wire: 'exerciseId' },
+  { column: 'position', wire: 'position' },
+  { column: 'sets', wire: 'sets' },
+  { column: 'target_reps', wire: 'targetReps' },
+  { column: 'target_time_seconds', wire: 'targetTimeSeconds' },
+  { column: 'target_distance_metres', wire: 'targetDistanceMetres' },
+  { column: 'rest_seconds', wire: 'restSeconds' },
+  { column: 'log_fields', wire: 'logFields', json: true },
+] };
+export const dailyHabitCollection: Collection = { name: 'daily_habit', fields: [
+  { column: 'exercise_ids', wire: 'exerciseIds', json: true },
+] };
+export const syncedCollections: Collection[] = [weightEntriesCollection, customExercisesCollection, exerciseFavouritesCollection, plansCollection, planDaysCollection, planExercisesCollection, dailyHabitCollection];
 
 type Row = Record<string, unknown>;
 
 export function toWire(collection: Collection, row: Row): WireRecord {
   const record: WireRecord = { id: String(row.id), updatedAt: String(row.updated_at), deletedAt: (row.deleted_at as string | null) ?? null };
-  for (const { column, wire, json } of collection.fields) {
+  for (const { column, wire, json, boolean } of collection.fields) {
     const value = row[column] ?? null;
-    record[wire] = json && typeof value === 'string' ? JSON.parse(value) : value;
+    record[wire] = boolean ? !!value : json && typeof value === 'string' ? JSON.parse(value) : value;
   }
   return record;
 }
@@ -60,7 +87,7 @@ export function fromWire(collection: Collection, record: WireRecord): { columns:
     record.deletedAt,
     ...collection.fields.map((f) => {
       const value = record[f.wire] ?? null;
-      return (f.json ? JSON.stringify(value ?? []) : value) as string | number | null;
+      return (f.boolean ? (value ? 1 : 0) : f.json ? JSON.stringify(value ?? []) : value) as string | number | null;
     }),
   ];
   return { columns, values };
