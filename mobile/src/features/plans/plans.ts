@@ -1,6 +1,7 @@
 import type { Database, Sql } from '../../lib/db/database';
 import { randomId } from '../../lib/randomId';
 import { uuidv5 } from '../../lib/uuid';
+import { daysForShape } from './logic';
 import { LOG_FIELDS, type DayInput, type Plan, type PlanDay, type PlanExercise, type PlanExerciseInput, type PlanInput } from './types';
 
 const exerciseId = (id: string) => /^[A-Za-z0-9_-]{1,100}$/.test(id);
@@ -48,6 +49,11 @@ export async function savePlan(db: Database, userId: string, input: PlanInput, n
   await db.transaction(async (tx) => {
     const existing = await tx.first<{ user_id: string; deleted_at: string | null }>('SELECT user_id, deleted_at FROM plans WHERE id = ?', [id]);
     if (existing && (existing.user_id !== userId || existing.deleted_at)) throw new Error('This plan is no longer available.');
+    const previous = await tx.first<{ shape: string }>('SELECT shape FROM plans WHERE id = ? AND user_id = ?', [id, userId]);
+    if (previous && previous.shape !== input.shape) {
+      const days = await listDays(tx, userId, id);
+      for (const day of daysForShape(days, input.shape)) await tx.run('UPDATE plan_days SET weekday = ?, updated_at = ?, dirty = 1 WHERE id = ? AND user_id = ?', [day.weekday, now.toISOString(), day.id, userId]);
+    }
     if (input.active) await tx.run('UPDATE plans SET active = 0, updated_at = ?, dirty = 1 WHERE user_id = ? AND id != ? AND active = 1 AND deleted_at IS NULL', [now.toISOString(), userId, id]);
     await upsert(tx, 'plans', userId, id, { name: input.name.trim(), shape: input.shape, difficulty: input.difficulty, active: input.active ? 1 : 0 }, now);
   }); return id;
@@ -113,4 +119,15 @@ export async function saveHabit(db: Sql, userId: string, ids: string[], now: Dat
 export async function listHabit(db: Sql, userId: string): Promise<string[]> {
   const row = await db.first<{ exercise_ids: string }>('SELECT exercise_ids FROM daily_habit WHERE user_id = ? AND deleted_at IS NULL ORDER BY updated_at DESC, id LIMIT 1', [userId]);
   return row ? JSON.parse(row.exercise_ids) as string[] : [];
+}
+
+// Reorder as one transaction so sync never sees a partially reordered local list.
+export async function reorderDays(db: Database, userId: string, planId: string, days: PlanDay[], now: Date) {
+  await db.transaction(async (tx) => {
+    await owner(tx, 'plans', userId, planId);
+    for (const day of days) {
+      if (day.planId !== planId || !integer(day.position, 0, 10000)) throw new Error('Choose days from this plan.');
+      await tx.run('UPDATE plan_days SET position = ?, updated_at = ?, dirty = 1 WHERE id = ? AND plan_id = ? AND user_id = ? AND deleted_at IS NULL', [day.position, now.toISOString(), day.id, planId, userId]);
+    }
+  });
 }

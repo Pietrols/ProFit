@@ -37,3 +37,9 @@ export function moveDay(days: PlanDay[], id: string, direction: -1 | 1): PlanDay
 export function activePlan(plans: Plan[]): Plan | null {
   return [...plans].filter((p) => p.active).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt) || a.id.localeCompare(b.id))[0] ?? null;
 }
+
+export function daysForShape(days: PlanDay[], shape: Plan['shape']): PlanDay[] {
+  const ordered = orderedDays(days);
+  if (shape === 'weekly' && ordered.length > 7) throw new Error('Weekly plans allow up to seven days. Remove extra days first.');
+  return ordered.map((day, index) => ({ ...day, weekday: shape === 'weekly' ? index + 1 : null }));
+}

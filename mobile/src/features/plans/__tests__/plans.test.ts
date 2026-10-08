@@ -3,7 +3,7 @@ import { testDatabase } from '../../../lib/db/__tests__/nodeDriver';
 import { syncedCollections } from '../../sync/collections';
 import { createSyncEngine } from '../../sync/engine';
 import { fakeSyncServer } from '../../sync/__tests__/fakeSyncServer';
-import { deleteDay, deletePlan, deletePlanExercise, habitId, listDays, listHabit, listPlanExercises, listPlans, saveDay, saveHabit, savePlan, savePlanExercise, validatePlanExercise } from '../plans';
+import { deleteDay, deletePlan, deletePlanExercise, habitId, listDays, listHabit, listPlanExercises, listPlans, saveDay, saveHabit, savePlan, savePlanExercise, reorderDays, validatePlanExercise } from '../plans';
 import type { PlanExerciseInput } from '../types';
 const user = '00000000-0000-4000-8000-000000000001';
 const other = '00000000-0000-4000-8000-000000000002';
@@ -66,6 +66,16 @@ describe('plans on SQLite', () => {
     await expect(saveDay(db, user, day, at(1))).rejects.toThrow('already');
     await expect(saveDay(db, user, { ...day, weekday: null }, at(1))).rejects.toThrow('weekday');
     await expect(savePlanExercise(db, user, exercise(dayId), at(1))).rejects.toThrow('training day');
+  });
+  it('converts shape without losing days and reorders atomically', async () => {
+    const { db, planId, dayId } = await fixture();
+    const second = await saveDay(db, user, { planId, name: 'B', position: 1, weekday: null, restDay: false }, at(1));
+    await savePlan(db, user, { ...input, shape: 'weekly' }, at(2), planId);
+    const days = await listDays(db, user, planId); expect(days.map((d) => d.weekday)).toEqual([1, 2]);
+    await reorderDays(db, user, planId, [{ ...days[1]!, position: 0 }, { ...days[0]!, position: 1 }], at(3));
+    expect((await listDays(db, user, planId)).map((d) => d.id)).toEqual([second, dayId]);
+    await savePlan(db, user, input, at(4), planId);
+    expect((await listDays(db, user, planId)).map((d) => d.weekday)).toEqual([null, null]);
   });
   it('stores one habit per account and clearing is a synced edit', async () => {
     const db = await testDatabase(); await saveHabit(db, user, ['Plank'], at(0)); await saveHabit(db, user, ['Pushups', 'Plank'], at(1));

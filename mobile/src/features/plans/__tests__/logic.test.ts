@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activePlan, defaultLogFields, moveDay, scaleTargets, todaysDay } from '../logic';
+import { activePlan, daysForShape, defaultLogFields, moveDay, scaleTargets, todaysDay } from '../logic';
 import type { Plan, PlanDay } from '../types';
 const plan: Plan = { id: 'p', name: 'Cycle', shape: 'cycle', difficulty: 'standard', active: true, updatedAt: '2026-10-08' };
 const days: PlanDay[] = [0, 1, 2].map((n) => ({ id: String(n), planId: 'p', name: String(n), position: n, weekday: n + 1, restDay: n === 1 }));
@@ -48,6 +48,11 @@ describe('targets and editing', () => {
     const moved = moveDay(days, '1', -1); expect(moved.map((d) => d.id)).toEqual(['1', '0', '2']);
     expect(moved.map((d) => d.position)).toEqual([0, 1, 2]); expect(moved[0]?.weekday).toBe(2);
     expect(moveDay(days, '0', -1)).toEqual(days); expect(moveDay(days, 'missing', 1)).toEqual(days); expect(days[0]?.id).toBe('0');
+  });
+  it('assigns weekdays on shape change and refuses more than seven', () => {
+    expect(daysForShape(days, 'weekly').map((d) => d.weekday)).toEqual([1, 2, 3]);
+    expect(daysForShape(days, 'cycle').map((d) => d.weekday)).toEqual([null, null, null]);
+    expect(() => daysForShape([...days, ...days, ...days], 'weekly')).toThrow('seven');
   });
   it('picks a stable latest active plan after concurrent activation', () => {
     expect(activePlan([{ ...plan, id: 'b' }, { ...plan, id: 'a' }])?.id).toBe('a');

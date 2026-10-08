@@ -77,7 +77,7 @@ Done when: build a 3-day cycle with custom log fields, see today's day on Home, 
   (cycle advances after a completed session, weekly follows the weekday, rest days handled);
   default log fields from an exercise's tracking type; difficulty scaling of targets
   (gentle and hard as fixed percentages, logged in DECISIONS).
-- [ ] 4.5 Plan list and plan editor screens: create a plan, choose shape, add, rename, reorder and
+- [x] 4.5 Plan list and plan editor screens: create a plan, choose shape, add, rename, reorder and
   delete days, add exercises from the library (reuse the library list as a picker), set targets
   and log fields per exercise.
 - [ ] 4.6 Starter plans: 3 to 4 plans written by us (beginner full body 3 days, push pull legs,
