@@ -34,4 +34,48 @@ export const migrations: Migration[] = [
       );
     `,
   },
+  {
+    version: 2,
+    sql: `
+      -- The user's own exercises. Muscle lists are JSON arrays.
+      CREATE TABLE custom_exercises (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT NOT NULL,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        equipment TEXT,
+        primary_muscles TEXT NOT NULL,
+        secondary_muscles TEXT NOT NULL,
+        tracking TEXT NOT NULL,
+        instructions TEXT,
+        photo_id TEXT,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT,
+        dirty INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE INDEX custom_exercises_user_dirty ON custom_exercises (user_id, dirty);
+
+      -- Starred exercises. The id is derived from user and exercise, so each pair has one row.
+      CREATE TABLE exercise_favourites (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT NOT NULL,
+        exercise_id TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        deleted_at TEXT,
+        dirty INTEGER NOT NULL DEFAULT 0
+      );
+      CREATE INDEX exercise_favourites_user_dirty ON exercise_favourites (user_id, dirty);
+
+      -- Photos: where the file is on this phone, and whether the server has it yet.
+      CREATE TABLE media (
+        id TEXT PRIMARY KEY NOT NULL,
+        user_id TEXT NOT NULL,
+        local_path TEXT,
+        content_type TEXT NOT NULL,
+        uploaded INTEGER NOT NULL DEFAULT 0,
+        created_at TEXT NOT NULL
+      );
+      CREATE INDEX media_user_uploaded ON media (user_id, uploaded);
+    `,
+  },
 ];
