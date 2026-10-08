@@ -80,7 +80,7 @@ Done when: build a 3-day cycle with custom log fields, see today's day on Home, 
 - [x] 4.5 Plan list and plan editor screens: create a plan, choose shape, add, rename, reorder and
   delete days, add exercises from the library (reuse the library list as a picker), set targets
   and log fields per exercise.
-- [ ] 4.6 Starter plans: 3 to 4 plans written by us (beginner full body 3 days, push pull legs,
+- [x] 4.6 Starter plans: 3 to 4 plans written by us (beginner full body 3 days, push pull legs,
   upper lower 4 days, home bodyweight) as data in the app, using library ids only; "Use this plan"
   copies one into the user's plans as an ordinary editable plan. Test that every id exists.
 - [ ] 4.7 Daily habit editor and Home: Home hub tiles with today's session on top (from 4.4) and

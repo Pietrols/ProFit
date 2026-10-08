@@ -2,6 +2,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { useSyncContext, useSyncStatus } from '../sync/SyncProvider';
+import { copyStarter, type StarterPlan } from './starters';
 import * as store from './plans';
 import type { DayInput, Plan, PlanDay, PlanExercise, PlanExerciseInput, PlanInput } from './types';
 export type PlansData = { plans: Plan[]; days: PlanDay[]; exercises: PlanExercise[]; habit: string[] };
@@ -26,6 +27,7 @@ export function usePlans() {
     const result = await action(userId); reload(); void engine.noteLocalChange(); return result;
   }, [engine, userId, reload]);
   return { data, error, retry: reload,
+    useStarter: (starter: StarterPlan) => write((user) => copyStarter(db, user, starter, new Date())),
     savePlan: (input: PlanInput, id?: string) => write((user) => store.savePlan(db, user, input, new Date(), id)),
     saveDay: (input: DayInput, id?: string) => write((user) => store.saveDay(db, user, input, new Date(), id)),
     saveExercise: (input: PlanExerciseInput, id?: string) => write((user) => store.savePlanExercise(db, user, input, new Date(), id)),
