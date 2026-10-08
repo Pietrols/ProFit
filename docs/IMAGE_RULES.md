@@ -15,7 +15,8 @@ not a before-and-after.
 | Rule | Detail |
 |---|---|
 | Form | A realistic, anatomically proportioned human form, like a matte grey mannequin or 3D anatomy figure. Not a cartoon, not a stick figure. |
-| Surface | Smooth matte mid-grey (around `#9A9A9A`), the same grey on every image. No clothing, no shoes, no hair, no tattoos, no skin texture. |
+| Surface | Smooth matte mid-grey (around `#9A9A9A`) on all visible skin, the same grey on every image. No hair, no tattoos, no skin texture. |
+| Clothing | Plain black gym wear, the same on every image. Male: black fitted gym T-shirt or black vest (tank top) and black athletic shorts. Female: black fitted gym top or vest and black athletic shorts. Plain black trainers. No logos, stripes, prints or text on any of it. |
 | Face | No face: a smooth head with no eyes, nose, mouth or ears. Nobody identifiable. |
 | Body type | Athletic and natural, neither bodybuilder nor thin. Female or male as set in the job (`figure`), roughly half each across the library. Shown only through body shape, never explicitly. |
 | Count | One figure only. A partner or spotter appears only if the exercise cannot be done without one. |

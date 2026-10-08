@@ -18,8 +18,8 @@ const figureFor = (id) => (createHash('sha1').update(id).digest()[0] % 2 === 0 ?
 const FRONT = /lateral raise|side lateral|jumping jack|side lunge|lateral lunge|side bend|side bridge|side plank|lateral band walk|abduct|adduct/i;
 
 const STYLE =
-  'Realistic 3D render of a faceless, anatomically proportioned human mannequin with a smooth matte mid-grey surface (#9A9A9A), ' +
-  'no clothing, hair or facial features. One figure only. Plain seamless light grey studio backdrop (#E6E6E6) with a soft floor shadow, ' +
+  'Realistic 3D render of a faceless, anatomically proportioned human mannequin with smooth matte mid-grey skin (#9A9A9A), no hair or facial features, ' +
+  'wearing plain black gym clothes: a fitted black gym T-shirt or black vest, black athletic shorts and plain black trainers, with no logos, stripes or prints. One figure only. Plain seamless light grey studio backdrop (#E6E6E6) with a soft floor shadow, ' +
   'soft even studio light from the front left, camera level at hip height. Whole figure and equipment in frame, centred, about 75% of the frame height. ' +
   'Equipment realistic in dark charcoal metal and black rubber with no branding. Square 1:1. No text, letters, numbers, arrows, logos or watermarks.';
 
