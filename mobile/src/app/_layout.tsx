@@ -80,6 +80,9 @@ function ThemedNavigation() {
           <Stack.Screen name="progress" options={{ title: 'Progress' }} />
           <Stack.Screen name="coach" options={{ title: 'Coach' }} />
           <Stack.Screen name="profile" options={{ title: 'Edit profile' }} />
+          <Stack.Screen name="exercises/index" options={{ title: 'Exercises' }} />
+          <Stack.Screen name="exercises/[id]" options={{ title: 'Exercise' }} />
+          <Stack.Screen name="exercises/form" options={{ title: 'New exercise' }} />
         </Stack.Protected>
         <Stack.Protected guard={area === 'onboarding'}>
           <Stack.Screen name="onboarding" options={{ headerShown: false }} />
