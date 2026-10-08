@@ -26,10 +26,13 @@ type Options = {
   db: Database;
   api: ApiClient;
   collections: Collection[];
+  // Runs before records are pushed (photo uploads, so the server has a photo before the records
+  // that point at it). Returns problems to report; throws to end the run like a failed push.
+  beforePush?: (userId: string) => Promise<string[]>;
   now?: () => Date;
 };
 
-export function createSyncEngine({ db, api, collections, now = () => new Date() }: Options) {
+export function createSyncEngine({ db, api, collections, beforePush, now = () => new Date() }: Options) {
   let status: SyncStatus = { syncing: false, pending: 0, offline: false, lastSyncedAt: null, problem: null };
   let currentUser: string | null = null;
   const listeners = new Set<() => void>();
@@ -140,7 +143,8 @@ export function createSyncEngine({ db, api, collections, now = () => new Date() 
     if (!userId) return;
     setStatus({ syncing: true });
     try {
-      const problems = await pushAll(userId);
+      const problems = beforePush ? await beforePush(userId) : [];
+      problems.push(...(await pushAll(userId)));
       await pullAll(userId);
       if (currentUser !== userId) return;
       const state = await db.first<{ last_synced_at: string | null }>('SELECT last_synced_at FROM sync_state WHERE user_id = ?', [userId]);
