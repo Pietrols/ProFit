@@ -27,6 +27,8 @@ const EnvSchema = z
     GOOGLE_CLIENT_IDS: z.string().default(''),
     // Developer sign-in without Google, for emulators and local testing. Never allowed in production.
     AUTH_DEV_LOGIN: flag,
+    // Folder for uploaded images (exercise photos). Back it up with the database.
+    MEDIA_DIR: z.string().min(1).default('./data/media'),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;

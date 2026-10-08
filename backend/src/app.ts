@@ -9,6 +9,8 @@ import { requireAuth } from './middleware/auth.js';
 import { errorHandler, notFoundHandler } from './middleware/errors.js';
 import { authRouter } from './routes/auth.js';
 import { healthRouter } from './routes/health.js';
+import { mediaStore, type MediaStore } from './media/store.js';
+import { mediaRouter } from './routes/media.js';
 import { meRouter } from './routes/me.js';
 import { syncRouter } from './routes/sync.js';
 
@@ -19,6 +21,8 @@ export type AppDeps = {
   db: Db;
   verifyGoogle: GoogleVerifier;
   now?: () => Date;
+  // Where uploaded images go. Defaults to config.MEDIA_DIR on disk.
+  media?: MediaStore;
 };
 
 // Builds the Express app without starting a server, so tests can drive it directly.
@@ -51,6 +55,7 @@ export function createApp(config: Config, logger: Logger, deps: AppDeps): Expres
   );
   app.use('/me', requireAuth(config.JWT_SECRET, now), meRouter(deps.db, now));
   app.use('/sync', requireAuth(config.JWT_SECRET, now), syncRouter(deps.db, now));
+  app.use('/media', requireAuth(config.JWT_SECRET, now), mediaRouter(deps.db, deps.media ?? mediaStore(config.MEDIA_DIR)));
 
   app.use(notFoundHandler);
   app.use(errorHandler(logger));
