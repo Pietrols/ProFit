@@ -3,15 +3,18 @@ import { AppState } from 'react-native';
 import { getAppDatabase } from '@/lib/db/appDatabase';
 import type { Database } from '@/lib/db/database';
 import { useAuth, useAuthStore } from '../auth/AuthProvider';
+import { mediaFiles } from '../media/files';
+import { createMediaSync, type MediaSync } from '../media/mediaSync';
 import { syncedCollections } from './collections';
 import { createSyncEngine, type SyncEngine, type SyncStatus } from './engine';
 
 // Opens the phone's database, runs the sync engine for whoever is signed in, and syncs at sign-in,
-// when the app returns to the foreground, and every minute while changes are waiting.
+// when the app returns to the foreground, and every minute while changes are waiting. Photos go up
+// at the start of each run, before the records that point at them.
 
 const RETRY_MS = 60_000;
 
-type SyncValue = { db: Database; engine: SyncEngine };
+type SyncValue = { db: Database; engine: SyncEngine; photos: MediaSync };
 
 const SyncContext = createContext<SyncValue | null>(null);
 
@@ -26,7 +29,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     getAppDatabase().then(setDb, (error: unknown) => setFailed(error instanceof Error ? error.message : String(error)));
   }, []);
 
-  const engine = useMemo(() => (db ? createSyncEngine({ db, api: auth.api, collections: syncedCollections }) : null), [db, auth]);
+  const photos = useMemo(() => (db ? createMediaSync({ db, api: auth.api, files: mediaFiles }) : null), [db, auth]);
+  const engine = useMemo(
+    () => (db && photos ? createSyncEngine({ db, api: auth.api, collections: syncedCollections, beforePush: photos.uploadPending }) : null),
+    [db, auth, photos],
+  );
 
   useEffect(() => {
     if (!engine) return;
@@ -48,8 +55,8 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   }, [engine]);
 
   if (failed) throw new Error(`ProFit could not open its storage on this phone: ${failed}`);
-  if (!db || !engine) return null;
-  return <SyncContext.Provider value={{ db, engine }}>{children}</SyncContext.Provider>;
+  if (!db || !engine || !photos) return null;
+  return <SyncContext.Provider value={{ db, engine, photos }}>{children}</SyncContext.Provider>;
 }
 
 export function useSyncContext(): SyncValue {
