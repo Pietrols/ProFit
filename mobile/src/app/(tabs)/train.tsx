@@ -26,6 +26,7 @@ export default function TrainScreen() {
         <AppText variant="label" color="text2">Plans and workouts</AppText>
         <AppText color="text2">Build a cycle or a weekly schedule and choose what to log.</AppText>
         <Button label="My plans" onPress={() => router.push('/plans')} />
+        <Button label="Daily habit" variant="secondary" onPress={() => router.push('/plans/habit')} />
       </Card>
     </Screen>
   );

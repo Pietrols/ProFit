@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activePlan, daysForShape, defaultLogFields, moveDay, scaleTargets, todaysDay } from '../logic';
+import { activePlan, daysForShape, defaultLogFields, moveDay, moveHabit, targetSummary, scaleTargets, todaysDay } from '../logic';
 import type { Plan, PlanDay } from '../types';
 const plan: Plan = { id: 'p', name: 'Cycle', shape: 'cycle', difficulty: 'standard', active: true, updatedAt: '2026-10-08' };
 const days: PlanDay[] = [0, 1, 2].map((n) => ({ id: String(n), planId: 'p', name: String(n), position: n, weekday: n + 1, restDay: n === 1 }));
@@ -53,6 +53,15 @@ describe('targets and editing', () => {
     expect(daysForShape(days, 'weekly').map((d) => d.weekday)).toEqual([1, 2, 3]);
     expect(daysForShape(days, 'cycle').map((d) => d.weekday)).toEqual([null, null, null]);
     expect(() => daysForShape([...days, ...days, ...days], 'weekly')).toThrow('seven');
+  });
+  it('reorders habit entries without mutating or losing duplicates', () => {
+    const ids = ['a', 'b', 'a']; expect(moveHabit(ids, 1, -1)).toEqual(['b', 'a', 'a']);
+    expect(moveHabit(ids, 0, -1)).toEqual(ids); expect(moveHabit(ids, 5, -1)).toEqual(ids); expect(ids).toEqual(['a', 'b', 'a']);
+  });
+  it('summarises scaled targets for Home', () => {
+    const e = { dayId: 'd', exerciseId: 'e', position: 0, sets: 3, targetReps: 10, targetTimeSeconds: null, targetDistanceMetres: null, restSeconds: 60, logFields: ['reps'] as const };
+    expect(targetSummary({ ...e, logFields: ['reps'] }, 'gentle')).toBe('3 sets · 8 reps');
+    expect(targetSummary({ ...e, sets: 1, targetReps: null, logFields: ['done'] }, 'standard')).toBe('1 set');
   });
   it('picks a stable latest active plan after concurrent activation', () => {
     expect(activePlan([{ ...plan, id: 'b' }, { ...plan, id: 'a' }])?.id).toBe('a');

@@ -43,3 +43,14 @@ export function daysForShape(days: PlanDay[], shape: Plan['shape']): PlanDay[] {
   if (shape === 'weekly' && ordered.length > 7) throw new Error('Weekly plans allow up to seven days. Remove extra days first.');
   return ordered.map((day, index) => ({ ...day, weekday: shape === 'weekly' ? index + 1 : null }));
 }
+
+export function moveHabit(ids: string[], index: number, direction: -1 | 1): string[] {
+  const next = index + direction; const copy = [...ids];
+  if (index < 0 || index >= copy.length || next < 0 || next >= copy.length) return copy;
+  [copy[index], copy[next]] = [copy[next]!, copy[index]!]; return copy;
+}
+export function targetSummary(exercise: import('./types').PlanExerciseInput, difficulty: Difficulty): string {
+  const targets = scaleTargets(exercise, difficulty);
+  const values = [targets.targetReps === null ? null : `${targets.targetReps} reps`, targets.targetTimeSeconds === null ? null : `${targets.targetTimeSeconds} seconds`, targets.targetDistanceMetres === null ? null : `${targets.targetDistanceMetres} metres`].filter(Boolean);
+  return `${exercise.sets} ${exercise.sets === 1 ? 'set' : 'sets'}${values.length ? ` · ${values.join(' · ')}` : ''}`;
+}
