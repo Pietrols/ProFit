@@ -150,7 +150,7 @@ describe('sync', () => {
     expect(seen).toEqual(ids);
 
     const nothingNew = await pullAs(token, cursor);
-    expect(nothingNew.body).toEqual({ changes: { weight_entries: [], custom_exercises: [], exercise_favourites: [] }, cursor, hasMore: false });
+    expect(nothingNew.body).toEqual({ changes: { weight_entries: [], custom_exercises: [], exercise_favourites: [], plans: [], plan_days: [], plan_exercises: [], daily_habit: [] }, cursor, hasMore: false });
 
     await pushAs(token, [weight({ id: ids[2], date: '2026-10-03', weightKg: 80, updatedAt: '2026-10-07T07:59:59.000Z' })]);
     const update = await pullAs(token, cursor);
