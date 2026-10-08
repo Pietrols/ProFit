@@ -139,3 +139,18 @@ are the available code gates.
 Before marking this phase complete, Peter must also check native keyboard interaction,
 small-phone scrolling, real-account two-device sync and airplane-mode edits on Android.
 Phase 5 has not been started. Final phase summary awaits the browser done-when check.
+
+## Browser done-when check (step 4.8)
+
+Run by Claude on 8 October 2026 against the real API and Postgres (not the fake sync server),
+two browser phones signed in to the same dev account, D24 harness:
+
+- Phone A: created "PPL Test" as a 3-day cycle (Push, Pull, Legs), added Barbell Bench Press to
+  Push with 8 target reps and custom log fields (reps, weight, effort, notes).
+- Home on A showed today as Push with the bench press, 3 sets of 8.
+- Edited on A: renamed Pull to "Pull Heavy", deleted Legs.
+- Phone B after sync: same two days ("Push", "Pull Heavy"), Legs gone, bench press present with
+  the same four log fields selected. Postgres rows confirmed the tombstone and log fields.
+
+Result: passed. Still to check on a real Android phone: keyboard behaviour, small-screen scrolling,
+airplane-mode edits, and real-account two-device sync.

@@ -85,7 +85,7 @@ Done when: build a 3-day cycle with custom log fields, see today's day on Home, 
   copies one into the user's plans as an ordinary editable plan. Test that every id exists.
 - [x] 4.7 Daily habit editor and Home: Home hub tiles with today's session on top (from 4.4) and
   the habit card; guided first step "Pick a starter plan" when there is no plan.
-- [ ] 4.8 Done-when check on two browser phones (harness in D24), phase summary, PR, stop.
+- [x] 4.8 Done-when check on two browser phones (harness in D24), phase summary, PR, stop.
 
 ## Phase 5: Guided workout and timers (`feat/workout`)
 
