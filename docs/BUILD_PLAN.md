@@ -64,7 +64,7 @@ Legend: `[x]` done and merged, `[ ]` to do, `[~]` deferred on purpose (reason gi
 
 Done when: build a 3-day cycle with custom log fields, see today's day on Home, edit and delete a day.
 
-- [ ] 4.1 Write `docs/phases/PHASE_4.md` (model, pseudocode, screens). Model to cover: plan
+- [x] 4.1 Write `docs/phases/PHASE_4.md` (model, pseudocode, screens). Model to cover: plan
   (name, shape `cycle` or `weekly`, difficulty `gentle|standard|hard`, active flag), plan days
   (order or weekday, name, rest day flag), plan exercises (exercise id, order, sets, target reps or
   time or distance, rest seconds, log fields chosen from reps, weight, time, distance, rest, RPE,
