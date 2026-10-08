@@ -20,3 +20,6 @@ expo-env.d.ts
 
 # Uploaded images in local development
 /backend/data/
+images/incoming/
+images/review.html
+scripts/node_modules/

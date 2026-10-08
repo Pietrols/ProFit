@@ -1,0 +1,9 @@
+{
+  "name": "profit-scripts",
+  "private": true,
+  "description": "Tools for build scripts only. Never shipped in the app.",
+  "type": "module",
+  "devDependencies": {
+    "sharp": "^0.34.0"
+  }
+}

@@ -14,7 +14,7 @@ a custom exercise made on one phone appears on another.
   `tracking` type per exercise (what a set records), a `common` flag and `popularity` rank on the
   exercises most people look for, and a library version number. The output is checked in, so
   builds never download it.
-- **Images:** ProFit's own, made by Peter in batches (see `docs/IMAGE_GUIDE.md`). An exercise
+- **Images:** ProFit's own, generated with Codex from a job list (see `docs/IMAGE_GUIDE.md`). An exercise
   without an image shows a placeholder drawn from its category and main muscle.
 
 ## How the library is stored
