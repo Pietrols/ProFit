@@ -144,3 +144,25 @@ describe('createApiClient', () => {
     await expect(client.post('/auth/dev', {}, { auth: false })).rejects.toThrow(/EXPO_PUBLIC_API_URL/);
   });
 });
+
+describe('auth headers for native transfers', () => {
+  it('gives the current token while it is fresh', async () => {
+    const { client, calls } = setup(() => json(500, {}));
+    await expect(client.authHeaders()).resolves.toEqual({ Authorization: 'Bearer access-1' });
+    expect(calls).toEqual([]);
+    expect(client.url('/media/x')).toBe('http://api.test/media/x');
+  });
+
+  it('refreshes first when the token is about to run out, or when asked to', async () => {
+    const { client, saved } = setup(() => json(200, { session: nextSession }), { ...freshSession, accessTokenExpiresAt: inMinutes(0.5) });
+    await expect(client.authHeaders()).resolves.toEqual({ Authorization: 'Bearer access-2' });
+    const second = setup(() => json(200, { session: nextSession }));
+    await expect(second.client.authHeaders({ refresh: true })).resolves.toEqual({ Authorization: 'Bearer access-2' });
+    expect(saved).toEqual([nextSession]);
+  });
+
+  it('refuses when signed out', async () => {
+    const { client } = setup(() => json(500, {}), null);
+    await expect(client.authHeaders()).rejects.toBeInstanceOf(ApiError);
+  });
+});
