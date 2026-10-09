@@ -222,3 +222,16 @@ Changing a cycle to weekly assigns existing days Monday onward in their current 
 editor then lets the user choose different weekdays. More than seven days blocks the change
 without losing data. Changing weekly to cycle clears weekday assignments. Targets, names and
 exercise rows are preserved. Rest days keep existing targets so changing back loses nothing.
+
+## D33. Workout snapshots and calculations (Phase 5 design)
+Sessions preserve a bounded snapshot of the day at start, including Standard targets and chosen
+log fields. Plan edits do not rewrite history. Sets have deterministic ids per session exercise
+position and set index; only selected, entered values are stored. Stored units are kg, seconds
+and metres. Easier today uses Gentle scaling from Standard for future prefills only.
+PRs compare the same exercise id: heaviest load, reps at the same stored load, longest time and
+Epley estimated 1RM for 1 to 10 reps (one rep uses the actual load). Ties are not new PRs; the
+first eligible value establishes a record. Volume is external kg times reps, without estimated
+body weight. Abandoned sessions do not advance plans or contribute PRs. A confirmed partial
+finish advances a cycle; a cycle rest day has an explicit completion with no sets. Timers are
+local timestamp state, never synced; notifications are operating-system effects of that state.
+These are design defaults for steps 5.2 onward, not implemented behaviour or dependency approval.
