@@ -78,4 +78,14 @@ export const migrations: Migration[] = [
       CREATE INDEX media_user_uploaded ON media (user_id, uploaded);
     `,
   },
+  { version: 3, sql: `
+CREATE TABLE plans (id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL, name TEXT NOT NULL, shape TEXT NOT NULL, difficulty TEXT NOT NULL, active INTEGER NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, dirty INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX plans_user_dirty ON plans (user_id, dirty);
+CREATE TABLE plan_days (id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL, plan_id TEXT NOT NULL, position INTEGER NOT NULL, weekday INTEGER, name TEXT NOT NULL, rest_day INTEGER NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, dirty INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX plan_days_user_dirty ON plan_days (user_id, dirty);
+CREATE TABLE plan_exercises (id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL, day_id TEXT NOT NULL, exercise_id TEXT NOT NULL, position INTEGER NOT NULL, sets INTEGER NOT NULL, target_reps INTEGER, target_time_seconds INTEGER, target_distance_metres REAL, rest_seconds INTEGER NOT NULL, log_fields TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, dirty INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX plan_exercises_user_dirty ON plan_exercises (user_id, dirty);
+CREATE TABLE daily_habit (id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL, exercise_ids TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, dirty INTEGER NOT NULL DEFAULT 0);
+CREATE INDEX daily_habit_user_dirty ON daily_habit (user_id, dirty);
+` },
 ];

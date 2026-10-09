@@ -64,28 +64,28 @@ Legend: `[x]` done and merged, `[ ]` to do, `[~]` deferred on purpose (reason gi
 
 Done when: build a 3-day cycle with custom log fields, see today's day on Home, edit and delete a day.
 
-- [ ] 4.1 Write `docs/phases/PHASE_4.md` (model, pseudocode, screens). Model to cover: plan
+- [x] 4.1 Write `docs/phases/PHASE_4.md` (model, pseudocode, screens). Model to cover: plan
   (name, shape `cycle` or `weekly`, difficulty `gentle|standard|hard`, active flag), plan days
   (order or weekday, name, rest day flag), plan exercises (exercise id, order, sets, target reps or
   time or distance, rest seconds, log fields chosen from reps, weight, time, distance, rest, RPE,
   notes, done), and the daily habit (list of exercises, shown every day).
-- [ ] 4.2 Backend: tables, migration, sync collections for plans, days, plan exercises and habit;
+- [x] 4.2 Backend: tables, migration, sync collections for plans, days, plan exercises and habit;
   sync tests like `routes/exercises.sync.test.ts`.
-- [ ] 4.3 Mobile: SQLite migration, sync collections, `features/plans/plans.ts` (create, update,
+- [x] 4.3 Mobile: SQLite migration, sync collections, `features/plans/plans.ts` (create, update,
   delete with tombstones, list) with tests.
-- [ ] 4.4 Pure logic with tests: `todaysDay(plan, days, lastCompleted, today)` for both shapes
+- [x] 4.4 Pure logic with tests: `todaysDay(plan, days, lastCompleted, today)` for both shapes
   (cycle advances after a completed session, weekly follows the weekday, rest days handled);
   default log fields from an exercise's tracking type; difficulty scaling of targets
   (gentle and hard as fixed percentages, logged in DECISIONS).
-- [ ] 4.5 Plan list and plan editor screens: create a plan, choose shape, add, rename, reorder and
+- [x] 4.5 Plan list and plan editor screens: create a plan, choose shape, add, rename, reorder and
   delete days, add exercises from the library (reuse the library list as a picker), set targets
   and log fields per exercise.
-- [ ] 4.6 Starter plans: 3 to 4 plans written by us (beginner full body 3 days, push pull legs,
+- [x] 4.6 Starter plans: 3 to 4 plans written by us (beginner full body 3 days, push pull legs,
   upper lower 4 days, home bodyweight) as data in the app, using library ids only; "Use this plan"
   copies one into the user's plans as an ordinary editable plan. Test that every id exists.
-- [ ] 4.7 Daily habit editor and Home: Home hub tiles with today's session on top (from 4.4) and
+- [x] 4.7 Daily habit editor and Home: Home hub tiles with today's session on top (from 4.4) and
   the habit card; guided first step "Pick a starter plan" when there is no plan.
-- [ ] 4.8 Done-when check on two browser phones (harness in D24), phase summary, PR, stop.
+- [x] 4.8 Done-when check on two browser phones (harness in D24), phase summary, PR, stop.
 
 ## Phase 5: Guided workout and timers (`feat/workout`)
 

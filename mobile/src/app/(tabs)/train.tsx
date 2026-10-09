@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { Pressable, View } from 'react-native';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { AppText } from '@/ui/AppText';
+import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { Screen } from '@/ui/Screen';
 
@@ -23,7 +24,9 @@ export default function TrainScreen() {
       </Pressable>
       <Card>
         <AppText variant="label" color="text2">Plans and workouts</AppText>
-        <AppText color="text2">Your plans and every session you log will live here.</AppText>
+        <AppText color="text2">Build a cycle or a weekly schedule and choose what to log.</AppText>
+        <Button label="My plans" onPress={() => router.push('/plans')} />
+        <Button label="Daily habit" variant="secondary" onPress={() => router.push('/plans/habit')} />
       </Card>
     </Screen>
   );

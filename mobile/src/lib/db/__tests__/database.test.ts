@@ -10,7 +10,7 @@ describe('migrate', () => {
     expect(await migrate(db, migrations)).toBe(latest);
     expect(await migrate(db, migrations)).toBe(latest);
     const tables = await db.all<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name");
-    expect(tables.map((t) => t.name)).toEqual(['custom_exercises', 'exercise_favourites', 'media', 'sync_state', 'weight_entries']);
+    expect(tables.map((t) => t.name)).toEqual(['custom_exercises', 'daily_habit', 'exercise_favourites', 'media', 'plan_days', 'plan_exercises', 'plans', 'sync_state', 'weight_entries']);
   });
 
   it('applies only the steps a database has not had yet', async () => {

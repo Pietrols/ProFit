@@ -199,3 +199,26 @@ comparing each image with approved anchors and the last three kept images. Figur
 male by a hash of the exercise id, so the split is about even and never changes between runs.
 The finishing step uses `sharp`, installed only in `scripts/` (its own package.json) for build
 tools, never in the app.
+
+## D30. Plan relationships and daily habit
+Plan, day and exercise references are soft links so out-of-order sync accepts independently
+edited records. Mobile scopes joins by user, hides children of deleted parents and tombstones
+existing children when deleting a parent. A late child cannot resurrect a deleted parent.
+The daily habit is an ordered exercise id list with one UUIDv5 id per user. Clearing the list
+is a synced edit. No completion data is stored until Phases 5 and 6.
+
+## D31. Difficulty and today's plan day
+Gentle is 80% and Hard 120% of Standard reps, time and distance. Round to a whole rep,
+second or metre, minimum 1, capped at the API limits. Sets and rest are unchanged.
+Stored targets remain Standard so switching difficulty does not compound rounding.
+A cycle advances after completion, not after a missed calendar day. A completion selects the next day immediately, including on the same calendar day.
+Repeated reads of that completion keep selecting the same next day. Weekly days use the phone's local calendar date,
+Monday 1 to Sunday 7. Missing weekdays mean rest. Phase 5 supplies completion records;
+Phase 4 shows the first cycle day. If sync leaves several active plans, latest edit wins
+with id as a stable tie breaker. These defaults can change with a logged decision.
+
+## D32. Changing plan shape
+Changing a cycle to weekly assigns existing days Monday onward in their current order; the
+editor then lets the user choose different weekdays. More than seven days blocks the change
+without losing data. Changing weekly to cycle clears weekday assignments. Targets, names and
+exercise rows are preserved. Rest days keep existing targets so changing back loses nothing.
