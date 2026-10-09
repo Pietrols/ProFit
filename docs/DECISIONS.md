@@ -235,3 +235,8 @@ body weight. Abandoned sessions do not advance plans or contribute PRs. A confir
 finish advances a cycle; a cycle rest day has an explicit completion with no sets. Timers are
 local timestamp state, never synced; notifications are operating-system effects of that state.
 These are design defaults for steps 5.2 onward, not implemented behaviour or dependency approval.
+
+D33 implementation clarification: a nonempty notes-only set is a valid result because Phase 4
+permits any chosen log field, including notes alone. Empty input and done=false alone are not
+a logged result. A deleted set can be explicitly logged again using its original slot id; a
+deleted session cannot be resumed.

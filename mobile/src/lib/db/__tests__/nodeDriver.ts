@@ -4,8 +4,8 @@ import { migrations } from '../migrations';
 
 // A Driver over Node's built-in SQLite, so tests run the app's real SQL. Each call opens a fresh
 // in-memory database, which stands for one phone.
-export function nodeDriver(): Driver & { raw: DatabaseSync } {
-  const raw = new DatabaseSync(':memory:');
+export function nodeDriver(filename = ':memory:'): Driver & { raw: DatabaseSync } {
+  const raw = new DatabaseSync(filename);
   return {
     raw,
     async exec(sql) {

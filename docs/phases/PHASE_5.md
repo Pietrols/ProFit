@@ -29,7 +29,7 @@ fake sync server and backend Postgres route fixtures.
   time 0 to 86400 seconds, distance 0 to 1000000 metres, rest 0 to 3600 seconds, RPE 0 to 10,
   notes at most 2000 characters, done a boolean. Selected fields are unique and nonempty.
   Reject unknown value keys and unselected fields. Zero is a value, not a missing input.
-- Logging requires at least one numeric result or `done: true`. Notes alone do not log a set.
+- Logging requires a numeric result, nonempty notes or `done: true`, including notes-only plans.
   Blank optional fields stay absent. The log action itself records completion when `done` is
   not selected; explicitly false `done` does not count as a completed set.
 - Session end cannot precede start. Active sessions have no end; completed or abandoned ones
@@ -237,3 +237,11 @@ at the bottom of this file. Browser tests cannot establish background notificati
 - Nutrition, sharing, AI plans and exercise substitutions.
 - Wearables, remote push alerts, background workout execution or a new sync protocol.
 - Dependency installation without Peter's approval.
+
+## Implementation checkpoint
+
+Step 5.1 was committed before code and passed both CI jobs. Step 5.2 adds the session and set
+tables, generated Postgres migration, SQLite migration, strict sync records and the tested
+mobile storage module. Both typechecks and 244 mobile tests pass locally, including SQLite
+reopen, migration, offline retry and two-phone sync. Backend integration uses PostgreSQL 16
+in CI under BUILD_PLAN rule 8; local Postgres remains unavailable. No dependency was added.

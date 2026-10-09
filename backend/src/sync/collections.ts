@@ -1,6 +1,6 @@
 import type { PgTable } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
-import { customExercises, dailyHabit, exerciseFavourites, planDays, planExercises, plans, weightEntries } from '../db/schema.js';
+import { customExercises, dailyHabit, exerciseFavourites, planDays, planExercises, plans, setLogs, weightEntries, workoutSessions } from '../db/schema.js';
 
 // The tables phones sync, and how each record looks on the wire. Adding a synced feature later means
 // adding one entry here: a table with the sync columns, a Zod schema, and the two mappings.
@@ -77,6 +77,35 @@ export const planExerciseRecord = z.strictObject({
 });
 export const habitRecord = z.strictObject({ ...syncFields, exerciseIds: z.array(exerciseId).max(100) });
 
+// Mirrored in mobile/src/features/workouts/model.ts.
+export const workoutSnapshot = z.strictObject({
+  planName: name, dayName: name, difficulty: z.enum(['gentle', 'standard', 'hard']), restDay: z.boolean(),
+  exercises: z.array(z.strictObject({
+    exerciseId, name, sets: planExerciseRecord.shape.sets,
+    targetReps: planExerciseRecord.shape.targetReps,
+    targetTimeSeconds: planExerciseRecord.shape.targetTimeSeconds,
+    targetDistanceMetres: planExerciseRecord.shape.targetDistanceMetres,
+    restSeconds: planExerciseRecord.shape.restSeconds, logFields: planExerciseRecord.shape.logFields,
+  })).max(100),
+}).refine((s) => s.restDay ? s.exercises.length === 0 : s.exercises.length > 0, 'choose a training exercise or a rest day');
+export const workoutSessionRecord = z.strictObject({
+  ...syncFields, planId: z.uuid(), dayId: z.uuid(), localDate: calendarDate,
+  startedAt: isoTime, endedAt: isoTime.nullable(), status: z.enum(['active', 'completed', 'abandoned']),
+  notes: z.string().max(2000), easierToday: z.boolean(), snapshot: workoutSnapshot,
+}).refine((s) => s.status === 'active' ? s.endedAt === null : s.endedAt !== null && Date.parse(s.endedAt) >= Date.parse(s.startedAt), 'end time must match status and follow start');
+const setValues = z.strictObject({
+  reps: z.number().int().min(0).max(1000).optional(), weight: z.number().min(0).max(2000).optional(),
+  time: z.number().min(0).max(86400).optional(), distance: z.number().min(0).max(1000000).optional(),
+  rest: z.number().min(0).max(3600).optional(), RPE: z.number().min(0).max(10).optional(),
+  notes: z.string().max(2000).optional(), done: z.boolean().optional(),
+});
+export const setLogRecord = z.strictObject({
+  ...syncFields, sessionId: z.uuid(), exercisePosition: z.number().int().min(0).max(99),
+  setIndex: z.number().int().min(0).max(99), loggedAt: isoTime,
+  logFields: planExerciseRecord.shape.logFields, values: setValues,
+}).refine((s) => Object.keys(s.values).every((key) => s.logFields.includes(key as typeof LOG_FIELDS[number])), 'values must use selected fields')
+  .refine((s) => Object.values(s.values).some((v) => typeof v === 'number' || v === true || typeof v === 'string' && v.trim().length > 0), 'enter a result or mark done');
+
 export type WeightRecord = z.infer<typeof weightRecord>;
 export type CustomExerciseRecord = z.infer<typeof customExerciseRecord>;
 export type FavouriteRecord = z.infer<typeof favouriteRecord>;
@@ -103,6 +132,24 @@ function define<R, Row extends SyncRow>(spec: CollectionSpec<R, Row>) {
 }
 
 export const collections = {
+  workout_sessions: define({
+    table: workoutSessions, schema: workoutSessionRecord,
+    toRow: (r) => ({ planId: r.planId, dayId: r.dayId, localDate: r.localDate,
+      startedAt: new Date(r.startedAt), endedAt: r.endedAt ? new Date(r.endedAt) : null,
+      status: r.status, notes: r.notes, easierToday: r.easierToday, snapshot: r.snapshot }),
+    toWire: (row: typeof workoutSessions.$inferSelect) => ({ ...syncWire(row),
+      planId: row.planId, dayId: row.dayId, localDate: row.localDate, startedAt: row.startedAt.toISOString(),
+      endedAt: row.endedAt?.toISOString() ?? null, status: row.status as z.infer<typeof workoutSessionRecord>['status'],
+      notes: row.notes, easierToday: row.easierToday, snapshot: row.snapshot as z.infer<typeof workoutSnapshot> }),
+  }),
+  set_logs: define({
+    table: setLogs, schema: setLogRecord,
+    toRow: (r) => ({ sessionId: r.sessionId, exercisePosition: r.exercisePosition, setIndex: r.setIndex,
+      loggedAt: new Date(r.loggedAt), logFields: r.logFields, values: r.values }),
+    toWire: (row: typeof setLogs.$inferSelect) => ({ ...syncWire(row), sessionId: row.sessionId,
+      exercisePosition: row.exercisePosition, setIndex: row.setIndex, loggedAt: row.loggedAt.toISOString(),
+      logFields: row.logFields as z.infer<typeof setLogRecord>['logFields'], values: row.values as z.infer<typeof setValues> }),
+  }),
   plans: define({
     table: plans, schema: planRecord,
     toRow: (r) => ({ name: r.name, shape: r.shape, difficulty: r.difficulty, active: r.active }),
