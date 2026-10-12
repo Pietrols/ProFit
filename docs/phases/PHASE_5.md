@@ -56,26 +56,29 @@ validateSession(input), validateSet(input, snapshot):
   require the set position/index to exist in the snapshot
   reject unknown or unselected values; return field errors
 
-sessionSnapshot(plan, day, exercises):
+sessionSnapshot(plan, day, exercises, exerciseNames):
   sort exercises by position then id; copy names, ids, Standard targets and selected fields
   retain the original difficulty; do not keep references to mutable plan objects
+  rest days snapshot no exercises; missing names or invalid targets block starting
 
 sessionTargets(snapshotExercise, difficulty, easierToday):
   use Phase 4 scaleTargets with gentle when easierToday, otherwise the saved difficulty
   always scale from Standard, never from an already rounded result
 
-prefill(snapshotExercise, targets, history):
+prefill(snapshotExercise, targets, history, before):
   keep valid completed logs for this exercise from completed sessions owned by this user
+  require those sessions to end by the supplied cutoff
   order by logged time then id; for each selected numeric field find its last recorded value
   prefer explicit target reps/time/distance and configured rest over history
   use history for weight and numeric fields without a target; otherwise leave blank
   never prefill notes, RPE or done; return only selected fields
 
-completedSets(snapshot, logs):
-  keep one live valid log per snapshot exercise position and set index
+completedSets(session, logs):
+  pick the latest edit per log id before filtering tombstones and incomplete copies
+  keep only this session's deterministic slot ids, valid selected fields and in-session times
   exclude done=false; return in exercise and set order
 
-workoutProgress(snapshot, logs):
+workoutProgress(session, logs):
   total = sum of planned sets; completed = count(completedSets)
   next = first missing exercise/set slot; return counts and next, or null when finished
 
@@ -87,16 +90,17 @@ personalRecords(candidate, previousLogs):
   compare only the same exercise id, valid completed sets and chronological earlier logs
   evaluate heaviest positive weight, most reps at exactly the same stored weight,
     estimatedOneRepMax, and longest positive time when their required fields exist
+  explicit zero reps disqualifies a load PR; missing weight is never inferred
   a first eligible value establishes a record; ties do not create another record
   return metric, value and previous best (or null); round only for display
 
-sessionVolume(logs):
+sessionVolume(session, logs):
   sum weightKg * reps for completed sets containing both fields
   missing weight contributes zero; never estimate body weight or machine resistance
 
-sessionSummary(session, logs, earlierHistory):
+sessionSummary(session, logs, earlierHistory, now):
   return completed/planned sets, elapsed time, volume and records
-  compare each set with earlier completed sessions and earlier sets in this session
+  compare each set with sessions completed by its session start and earlier sets in this session
   ignore abandoned sessions and tombstones; edits cause records to be recomputed
 
 lastCompletion(planId, sessions):
@@ -245,3 +249,13 @@ tables, generated Postgres migration, SQLite migration, strict sync records and 
 mobile storage module. Both typechecks and 244 mobile tests pass locally, including SQLite
 reopen, migration, offline retry and two-phone sync. Backend integration uses PostgreSQL 16
 in CI under BUILD_PLAN rule 8; local Postgres remains unavailable. No dependency was added.
+
+Step 5.3 adds the pure snapshot, target, prefill, progress, PR, volume, summary and completion
+functions with 31 additional tests. Both typechecks and all 275 mobile tests pass locally.
+Backend execution still requires the rule 8 CI gate. D34 records history cutoffs, timestamp
+ordering, incomplete-set handling and zero/missing values. No UI or dependency changes are
+part of this step. The timer engine remains the next step, 5.4.
+
+The lint command was attempted for step 5.3. It asks to install missing ESLint configuration
+and dependencies; installation was declined under Peter's dependency rule. No lint success
+is claimed. The previously documented ESLint approval question remains open.

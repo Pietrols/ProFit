@@ -1,6 +1,7 @@
 import type { Database, Sql } from '../../lib/db/database';
 import { randomId } from '../../lib/randomId';
-import { uuidv5 } from '../../lib/uuid';
+import { setLogId } from './identity';
+export { setLogId } from './identity';
 import { sessionInput, setInput, validateSession, validateSet } from './model';
 import type { SessionInput, SetInput, SetLog, WorkoutSession } from './types';
 
@@ -67,8 +68,6 @@ export async function finishSession(db: Database, userId: string, id: string, st
   });
 }
 
-// A slot has one id across retries and devices; repeated exercise ids still have distinct slots.
-export const setLogId = (sessionId: string, exercisePosition: number, setIndex: number) => uuidv5(`${exercisePosition}:${setIndex}`, sessionId);
 export async function saveSet(db: Database, userId: string, input: SetInput, now: Date): Promise<string> {
   check(validateSet(input));
   const id = setLogId(input.sessionId, input.exercisePosition, input.setIndex);

@@ -240,3 +240,16 @@ D33 implementation clarification: a nonempty notes-only set is a valid result be
 permits any chosen log field, including notes alone. Empty input and done=false alone are not
 a logged result. A deleted set can be explicitly logged again using its original slot id; a
 deleted session cannot be resumed.
+
+## D34. Workout history ordering and incomplete sets
+Step 5.3 calculations take the signed-in user's session and log reads. Prefill uses only
+completed sessions ending by the supplied cutoff; a summary compares sessions completed by
+the current session's start, then earlier sets within the current session. Compare timestamp
+instants, with set id breaking equal logged times. The latest edit per set id wins before
+filtering tombstones or done=false, so an older copy cannot restore a removed result.
+A recorded zero reps produces no load PR, even when a weight was entered. Weight-only logs
+can establish a load PR; reps at an explicitly recorded zero weight can establish a reps PR.
+Missing weight remains unknown, with zero volume contribution. Targets and configured rest
+override history, including zero rest; notes, effort and done are never prefilled. The
+functions copy snapshot arrays and do not modify plan targets or stored logs. These defaults
+implement D33 and can change with a logged decision.
