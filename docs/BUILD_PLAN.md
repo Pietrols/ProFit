@@ -94,7 +94,7 @@ Done when: complete a logged session in airplane mode; the rest alert fires with
 - [x] 5.1 Write `docs/phases/PHASE_5.md`.
 - [x] 5.2 Sessions and set logs: backend tables and sync, mobile tables and module, tests. A
   session records plan day, start, end, notes; each set records only its chosen log fields.
-- [ ] 5.3 Pure logic with tests: prefill targets and last used values per exercise; personal
+- [x] 5.3 Pure logic with tests: prefill targets and last used values per exercise; personal
   record detection (heaviest weight, most reps at a weight, estimated 1RM, longest time); session
   volume.
 - [ ] 5.4 Timer engine as a pure module with tests, driven by timestamps not intervals (so it is
