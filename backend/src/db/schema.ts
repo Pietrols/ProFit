@@ -1,4 +1,4 @@
-import { bigint, boolean, date, doublePrecision, index, integer, pgEnum, pgSequence, pgTable, real, smallint, text, timestamp, uuid } from 'drizzle-orm/pg-core';
+import { bigint, boolean, date, doublePrecision, index, integer, jsonb, pgEnum, pgSequence, pgTable, real, smallint, text, timestamp, uuid } from 'drizzle-orm/pg-core';
 
 // The values here are the API's values too, so the Zod schemas build their enums from these lists.
 export const GOALS = ['weight_loss', 'bodybuilding', 'calisthenics', 'athlete', 'powerlifting', 'general_fitness'] as const;
@@ -161,3 +161,20 @@ export const planExercises = pgTable('plan_exercises', {
 export const dailyHabit = pgTable('daily_habit', {
   ...syncColumns, exerciseIds: text('exercise_ids').array().notNull(),
 }, (t) => [index('daily_habit_user_version_idx').on(t.userId, t.version)]);
+
+// Snapshots keep history independent of later plan edits. References remain soft for sync.
+export const workoutSessions = pgTable('workout_sessions', {
+  ...syncColumns,
+  planId: uuid('plan_id').notNull(), dayId: uuid('day_id').notNull(),
+  localDate: date('local_date', { mode: 'string' }).notNull(),
+  startedAt: timestamp('started_at', { withTimezone: true }).notNull(),
+  endedAt: timestamp('ended_at', { withTimezone: true }),
+  status: text('status').notNull(), notes: text('notes').notNull(),
+  easierToday: boolean('easier_today').notNull(), snapshot: jsonb('snapshot').notNull(),
+}, (t) => [index('workout_sessions_user_version_idx').on(t.userId, t.version)]);
+export const setLogs = pgTable('set_logs', {
+  ...syncColumns,
+  sessionId: uuid('session_id').notNull(), exercisePosition: integer('exercise_position').notNull(),
+  setIndex: integer('set_index').notNull(), loggedAt: timestamp('logged_at', { withTimezone: true }).notNull(),
+  logFields: text('log_fields').array().notNull(), values: jsonb('values').notNull(),
+}, (t) => [index('set_logs_user_version_idx').on(t.userId, t.version)]);

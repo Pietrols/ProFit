@@ -65,7 +65,19 @@ export const planExercisesCollection: Collection = { name: 'plan_exercises', fie
 export const dailyHabitCollection: Collection = { name: 'daily_habit', fields: [
   { column: 'exercise_ids', wire: 'exerciseIds', json: true },
 ] };
-export const syncedCollections: Collection[] = [weightEntriesCollection, customExercisesCollection, exerciseFavouritesCollection, plansCollection, planDaysCollection, planExercisesCollection, dailyHabitCollection];
+export const workoutSessionsCollection: Collection = { name: 'workout_sessions', fields: [
+  { column: 'plan_id', wire: 'planId' }, { column: 'day_id', wire: 'dayId' },
+  { column: 'local_date', wire: 'localDate' }, { column: 'started_at', wire: 'startedAt' },
+  { column: 'ended_at', wire: 'endedAt' }, { column: 'status', wire: 'status' },
+  { column: 'notes', wire: 'notes' }, { column: 'easier_today', wire: 'easierToday', boolean: true },
+  { column: 'snapshot', wire: 'snapshot', json: true },
+] };
+export const setLogsCollection: Collection = { name: 'set_logs', fields: [
+  { column: 'session_id', wire: 'sessionId' }, { column: 'exercise_position', wire: 'exercisePosition' },
+  { column: 'set_index', wire: 'setIndex' }, { column: 'logged_at', wire: 'loggedAt' },
+  { column: 'log_fields', wire: 'logFields', json: true }, { column: 'values_json', wire: 'values', json: true },
+] };
+export const syncedCollections: Collection[] = [weightEntriesCollection, customExercisesCollection, exerciseFavouritesCollection, plansCollection, planDaysCollection, planExercisesCollection, dailyHabitCollection, workoutSessionsCollection, setLogsCollection];
 
 type Row = Record<string, unknown>;
 

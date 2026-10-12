@@ -88,4 +88,22 @@ CREATE INDEX plan_exercises_user_dirty ON plan_exercises (user_id, dirty);
 CREATE TABLE daily_habit (id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL, exercise_ids TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, dirty INTEGER NOT NULL DEFAULT 0);
 CREATE INDEX daily_habit_user_dirty ON daily_habit (user_id, dirty);
 ` },
+  { version: 4, sql: `
+CREATE TABLE workout_sessions (
+  id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL, plan_id TEXT NOT NULL, day_id TEXT NOT NULL,
+  local_date TEXT NOT NULL, started_at TEXT NOT NULL, ended_at TEXT, status TEXT NOT NULL,
+  notes TEXT NOT NULL, easier_today INTEGER NOT NULL, snapshot TEXT NOT NULL,
+  updated_at TEXT NOT NULL, deleted_at TEXT, dirty INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX workout_sessions_user_dirty ON workout_sessions (user_id, dirty);
+CREATE INDEX workout_sessions_user_start ON workout_sessions (user_id, started_at);
+CREATE TABLE set_logs (
+  id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL, session_id TEXT NOT NULL,
+  exercise_position INTEGER NOT NULL, set_index INTEGER NOT NULL, logged_at TEXT NOT NULL,
+  log_fields TEXT NOT NULL, values_json TEXT NOT NULL,
+  updated_at TEXT NOT NULL, deleted_at TEXT, dirty INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX set_logs_user_dirty ON set_logs (user_id, dirty);
+CREATE INDEX set_logs_user_session ON set_logs (user_id, session_id);
+` },
 ];

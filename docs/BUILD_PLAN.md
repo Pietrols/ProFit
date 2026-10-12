@@ -91,8 +91,8 @@ Done when: build a 3-day cycle with custom log fields, see today's day on Home, 
 
 Done when: complete a logged session in airplane mode; the rest alert fires with the app in the background.
 
-- [ ] 5.1 Write `docs/phases/PHASE_5.md`.
-- [ ] 5.2 Sessions and set logs: backend tables and sync, mobile tables and module, tests. A
+- [x] 5.1 Write `docs/phases/PHASE_5.md`.
+- [x] 5.2 Sessions and set logs: backend tables and sync, mobile tables and module, tests. A
   session records plan day, start, end, notes; each set records only its chosen log fields.
 - [ ] 5.3 Pure logic with tests: prefill targets and last used values per exercise; personal
   record detection (heaviest weight, most reps at a weight, estimated 1RM, longest time); session

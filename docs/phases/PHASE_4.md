@@ -100,7 +100,7 @@ API proxy verify the done-when flow on two browser phones.
 - Sharing and AI plans: Phases 9 and 10.
 - New dependencies and generated exercise images.
 
-## Validation checkpoint
+## Validation checkpoint before the browser check
 
 Steps 4.1 to 4.7 are implemented and pushed. Both typechecks and all 199 mobile tests pass.
 Backend tests run against PostgreSQL 16 in GitHub CI under BUILD_PLAN rule 8 because Docker
@@ -108,7 +108,7 @@ is unavailable here and installing PostgreSQL fails with environment permissions
 all 86 backend tests, including round trips, validation, ownership, tombstones and pagination.
 The web export bundles successfully. No dependencies were added.
 
-Step 4.8 is pending: the cloud browser refused the local preview URL with
+At this checkpoint step 4.8 was pending: the cloud browser refused the local preview URL with
 `net::ERR_BLOCKED_BY_CLIENT`. This is a preview access blocker, not a passed browser check.
 `scripts/phase4-preview.ts` provides a disposable two-origin preview using D24 isolation
 headers, real browser SQLite, and the existing fake sync server. It deliberately has no
@@ -136,9 +136,9 @@ with an HTTP proxy timeout. Package files are unchanged. Peter: may we add the m
 ESLint tooling and configuration in a separate step? Until approved, typecheck and tests
 are the available code gates.
 
-Before marking this phase complete, Peter must also check native keyboard interaction,
-small-phone scrolling, real-account two-device sync and airplane-mode edits on Android.
-Phase 5 has not been started. Final phase summary awaits the browser done-when check.
+Native keyboard interaction, small-phone scrolling, real-account two-device sync and
+airplane-mode edits on Android remain device follow-ups. The browser check below resolves
+the step 4.8 blocker recorded at this checkpoint.
 
 ## Browser done-when check (step 4.8)
 
@@ -154,3 +154,15 @@ two browser phones signed in to the same dev account, D24 harness:
 
 Result: passed. Still to check on a real Android phone: keyboard behaviour, small-screen scrolling,
 airplane-mode edits, and real-account two-device sync.
+
+## Phase summary
+
+Built cycle and weekly plans, editable days and exercises, selected set fields, difficulty
+scaling, four starter routines, daily habit editing and today's plan on Home. All records use
+the existing offline store and sync engine. Both typechecks, 199 mobile tests and 86 backend
+tests passed; backend CI used PostgreSQL 16. The recorded real-API two-browser check above
+passed. Native checks remain listed above. No dependencies were added.
+
+Decisions D30 to D32 document soft relationships, habit identity, target scaling, day selection
+and shape changes. PR #4 was merged into rebuild after green CI and Peter's request to proceed
+on 9 October 2026. Phase 5 begins with its design document, before implementation.
