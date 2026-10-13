@@ -259,3 +259,21 @@ part of this step. The timer engine remains the next step, 5.4.
 The lint command was attempted for step 5.3. It asks to install missing ESLint configuration
 and dependencies; installation was declined under Peter's dependency rule. No lint success
 is claimed. The previously documented ESLint approval question remains open.
+
+Step 5.4 implements all seven timestamp timer modes, pause/resume/reset, restoration
+validation and pure rest-alert scheduling intent. Twenty new tests cover exact boundaries,
+long sleeps, final-round behaviour, clock rollback, invalid state and stale alert replacement.
+Both typechecks and 295 mobile tests pass locally; backend tests require the rule 8 CI gate.
+No notification or keep-awake dependency has been added.
+
+Additional pure timer helpers:
+
+```
+readTimer(value): validate configuration, timestamps and generation; return a copy or null
+sessionClock(start, end, now): validate timestamps; max(0, (end or now) - start)
+formatTimer(milliseconds, countdown): clamp at zero; ceil countdown seconds, floor elapsed;
+  format minutes:seconds, including hours for long sessions
+```
+
+A timer reset requires a new generation. Session clocks cannot pause or reset. Tabata has
+eight work periods and seven rest periods, matching the no-final-rest rule above.

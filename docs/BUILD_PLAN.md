@@ -97,7 +97,7 @@ Done when: complete a logged session in airplane mode; the rest alert fires with
 - [x] 5.3 Pure logic with tests: prefill targets and last used values per exercise; personal
   record detection (heaviest weight, most reps at a weight, estimated 1RM, longest time); session
   volume.
-- [ ] 5.4 Timer engine as a pure module with tests, driven by timestamps not intervals (so it is
+- [x] 5.4 Timer engine as a pure module with tests, driven by timestamps not intervals (so it is
   correct after the app sleeps): rest, interval (work, rest, rounds), Tabata, EMOM, AMRAP,
   stopwatch, session clock.
 - [ ] 5.5 Workout screen: start from Home or a plan day, current set first with timer and progress,
