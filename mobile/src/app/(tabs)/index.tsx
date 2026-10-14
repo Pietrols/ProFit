@@ -1,3 +1,6 @@
+import { StartWorkout } from '@/features/workouts/StartWorkout';
+import { lastCompletion } from '@/features/workouts/logic';
+import { useWorkouts } from '@/features/workouts/useWorkouts';
 import { router } from 'expo-router';
 import { View } from 'react-native';
 import { useExerciseLibrary } from '@/features/exercises/useExerciseLibrary';
@@ -19,15 +22,16 @@ export default function HomeScreen() {
   const { space } = useAppTheme();
   const { me } = useMe();
   const now = new Date();
-  const plans = usePlans(); const library = useExerciseLibrary();
-  if (plans.error || library.error || !plans.data || !library.exercises) return <PlanState error={plans.error ?? library.error} retry={() => { plans.retry(); library.retry(); }} />;
+  const plans = usePlans(); const library = useExerciseLibrary(); const workouts = useWorkouts();
+  if (plans.error || library.error || workouts.error || !plans.data || !library.exercises || !workouts.data) return <PlanState error={plans.error ?? library.error ?? workouts.error} retry={() => { plans.retry(); library.retry(); workouts.retry(); }} />;
   const plan = activePlan(plans.data.plans);
-  const day = plan ? todaysDay(plan, plans.data.days, null, localDay(now)) : null;
+  const day = plan ? todaysDay(plan, plans.data.days, lastCompletion(plan.id, workouts.data.map((h) => h.session)), localDay(now)) : null;
   const exercises = plans.data.exercises.filter((e) => e.dayId === day?.id);
 
   return (
     <Screen eyebrow={formatHomeDate(now)} title={greetingFor(now.getHours(), me?.user.displayName)}>
       <SyncBanner />
+      {!day ? workouts.data.filter((h) => h.session.status === 'active').map(({ session }) => <Button key={session.id} label={`Resume ${session.snapshot.dayName}`} onPress={() => router.push({ pathname: '/workouts/[id]', params: { id: session.id } })} />) : null}
       <Card>
         <AppText variant="label" color="accent">Today</AppText>
         <AppText variant="title">{plan ? (day?.name ?? 'Rest day') : 'No active plan'}</AppText>
@@ -35,8 +39,9 @@ export default function HomeScreen() {
           <AppText color="text2">{plan.name} · {plan.difficulty}</AppText>
           {!day || day.restDay ? <AppText color="text2">No training scheduled today. Your daily habit is still here.</AppText> : <>
             {!exercises.length ? <AppText color="text2">Add exercises and targets to this day.</AppText> : exercises.map((exercise) => <View key={exercise.id}><AppText variant="bodyStrong">{library.find(exercise.exerciseId)?.name ?? 'Exercise no longer in your library'}</AppText><AppText color="text2">{targetSummary(exercise, plan.difficulty)}</AppText></View>)}
-            <AppText variant="caption" color="text2">Guided session logging is coming next. Your plan is saved and ready.</AppText>
+
           </>}
+          <>{day ? <StartWorkout plan={plan} day={day} exercises={exercises} names={new Map(library.exercises.map((e) => [e.id, e.name]))} /> : null}</>
           <Button label="View today's day" onPress={() => day ? router.push({ pathname: '/plans/day', params: { id: day.id } }) : router.push({ pathname: '/plans/form', params: { id: plan.id } })} />
         </> : <><AppText color="text2">Choose a starter plan or make your own. Activate it to see your next day here.</AppText><Button label="Pick a starter plan" onPress={() => router.push('/plans')} /></>}
       </Card>

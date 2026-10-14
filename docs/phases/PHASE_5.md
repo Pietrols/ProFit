@@ -277,3 +277,39 @@ formatTimer(milliseconds, countdown): clamp at zero; ceil countdown seconds, flo
 
 A timer reset requires a new generation. Session clocks cannot pause or reset. Tabata has
 eight work periods and seven rest periods, matching the no-final-rest rule above.
+
+## Step 5.5 preparation, approval still required
+
+The dependency-free workout flow is implemented: start/resume from Home or a plan day,
+current-set logging, unit-aware prefills, set/session notes, easier-today for future drafts,
+PR feedback, finish/abandon confirmation and summary. Home now advances from completed
+sessions. The foreground timer controls use the pure engine and persist transitions per
+user/session through the existing key-value store (SQLite on native). Advanced timer settings
+are collapsed initially. Saves guard repeat taps and keep the current draft on errors.
+
+Pure form helpers added with tests:
+
+```
+setDraft(values, units): convert kg/metres for display, round numeric input text to 3 decimals
+parseSetDraft(draft, fields, units, original): keep only selected nonblank fields; reject
+  malformed numbers; convert edited values to storage units; retain exact original numbers
+  when their displayed text is unchanged; never infer done from an unchecked button
+fieldLabel(field, units), recordLabel(record, units), volumeLabel(volume, units):
+  return plain labels using the user's units; round only for display
+setLabel(index, total): show the zero-based slot as Set index+1 of total
+timerConfig(mode, duration, rest, rounds): parse integer text into the selected mode's config;
+  the timer validator rejects missing, malformed or out-of-range values
+```
+
+Both typechecks and 308 mobile tests pass. The web export bundles successfully. Backend tests
+run in CI under rule 8 because local PostgreSQL remains unavailable. Lint again requested
+missing ESLint tooling; installation was declined. No dependencies were added. The existing
+local icon change is not part of these commits.
+
+Step 5.5 stays unticked: expo-keep-awake needs Peter's approval before installation, and the
+new screen still needs device interaction checks. Step 5.6 needs expo-notifications approval;
+step 5.7 requires an actual airplane-mode session and background notification on a phone.
+No background alert or keep-awake success is claimed. Those gates prevent advancing to 6.1.
+
+Peter's request also permits more exercise images if credits remain. This environment exposes
+no image-credit balance; no image generation has been charged or claimed in this batch.
