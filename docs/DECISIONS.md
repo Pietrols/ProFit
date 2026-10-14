@@ -253,3 +253,11 @@ Missing weight remains unknown, with zero volume contribution. Targets and confi
 override history, including zero rest; notes, effort and done are never prefilled. The
 functions copy snapshot arrays and do not modify plan targets or stored logs. These defaults
 implement D33 and can change with a logged decision.
+
+## D35. Workout form units and local timer recovery
+Workout forms display weight in kg/lb and distance in metres/miles using the profile units.
+Unchanged numeric prefills preserve their original values exactly, avoiding conversion and
+rounding drift in PR comparisons. Edited values convert to kg/metres before validation.
+Timer transitions use the existing per-phone key-value store, namespaced by user and session;
+only the phone that starts a timer resumes it. Invalid saved state requires an explicit reset.
+These choices need no new dependency. Keep-awake and notification modules still await approval.

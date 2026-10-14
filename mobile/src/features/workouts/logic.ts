@@ -54,7 +54,7 @@ export function completedSets(session: Stored<WorkoutSession>, logs: readonly St
     (session.endedAt === null || Date.parse(log.loggedAt) <= Date.parse(session.endedAt)))
     .sort((a, b) => a.exercisePosition - b.exercisePosition || a.setIndex - b.setIndex);
 }
-export function workoutProgress(session: Stored<WorkoutSession>, logs: readonly Stored<SetLog>[]) {
+export function workoutProgress(session: Stored<WorkoutSession>, logs: readonly Stored<SetLog>[]): { total: number; completed: number; next: { exercisePosition: number; setIndex: number } | null } {
   const done = completedSets(session, logs);
   const slots = new Set(done.map((s) => `${s.exercisePosition}:${s.setIndex}`));
   let total = 0;
