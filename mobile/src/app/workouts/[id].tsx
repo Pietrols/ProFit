@@ -8,6 +8,7 @@ import { TimerControls } from '@/features/workouts/TimerControls';
 import { loadWorkoutTimer, saveWorkoutTimer } from '@/features/workouts/timerStorage';
 import { formatTimer, pauseTimer, resumeTimer, sessionClock, startTimer, type TimerState } from '@/features/workouts/timers';
 import { useWorkouts } from '@/features/workouts/useWorkouts';
+import { useWorkoutAwake } from '@/features/workouts/useWorkoutAwake';
 import type { SetValues } from '@/features/workouts/types';
 import { recordLabel, setLabel, volumeLabel } from '@/features/workouts/workoutForm';
 import { randomId } from '@/lib/randomId';
@@ -40,6 +41,7 @@ function Workout({ current, workouts, user }: { current: WorkoutHistory; workout
   }, [user, session.id]);
   const summary = sessionSummary(session, logs, workouts.data ?? [], new Date(now).toISOString());
   const active = session.status === 'active'; const next = summary.next;
+  const awakeError = useWorkoutAwake(active);
   const exercise = next ? session.snapshot.exercises[next.exercisePosition]! : null;
   const initial = exercise ? prefill(exercise, sessionTargets(exercise, session.snapshot.difficulty, session.easierToday), workouts.data ?? [], session.startedAt) : {};
   async function saveTimer(value: TimerState | null) { ++timerVersion.current; await saveWorkoutTimer(kvStore, user, session.id, value); setTimer(value); setReady(true); }
@@ -71,6 +73,7 @@ function Workout({ current, workouts, user }: { current: WorkoutHistory; workout
     </Card>
     {workouts.error ? <><AppText color="caution">{workouts.error}</AppText><Button label="Retry workout read" variant="secondary" onPress={workouts.retry} /></> : null}
     {error ? <AppText color="caution">{error}</AppText> : null}
+    {awakeError && active ? <AppText color="caution">{awakeError}</AppText> : null}
     {active && !ready ? error ? <Button label="Reset saved timer" disabled={busy} onPress={() => fire(() => saveTimer(null))} /> : <AppText color="text2">Loading saved timer</AppText> : null}
     {active ? <>
       <Card><TimerControls timer={timer} now={now} busy={busy || !ready}

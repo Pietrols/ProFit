@@ -313,3 +313,16 @@ No background alert or keep-awake success is claimed. Those gates prevent advanc
 
 Peter's request also permits more exercise images if credits remain. This environment exposes
 no image-credit balance; no image generation has been charged or claimed in this batch.
+
+## Step 5.5 implementation, 15 October 2026
+
+Peter approved both native workout dependencies. Added expo-keep-awake at the SDK manifest
+version and an active/focused/foreground wake-lock lifecycle. Late activation after leaving
+is released; activation errors show a message. The existing screen flow completes step 5.5's
+implementation. Actual device interaction and wake-lock behaviour remain in the 5.7 gate.
+Both typechecks and 310 mobile tests pass. Backend tests cannot connect to local PostgreSQL;
+CI remains the rule 8 gate. Lint attempted to install unapproved ESLint tooling and automatic
+approval review blocked it. The attempted package changes were removed; lint is not passed.
+
+Effect lifecycle: acquire a unique wake-lock tag for each visible active interval; release on
+blur, background, finish or unmount; release again if activation resolves after cleanup.

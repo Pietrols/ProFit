@@ -261,3 +261,9 @@ rounding drift in PR comparisons. Edited values convert to kg/metres before vali
 Timer transitions use the existing per-phone key-value store, namespaced by user and session;
 only the phone that starts a timer resumes it. Invalid saved state requires an explicit reset.
 These choices need no new dependency. Keep-awake and notification modules still await approval.
+
+## D36. Native workout effects approved
+On 15 October 2026 Peter approved expo-keep-awake and expo-notifications. Install their SDK 57
+manifest versions. Keep-awake is scoped to an active, focused workout while the app is in the
+foreground, with a distinct tag per visible interval. A late activation is released again
+after leaving, so it cannot keep another screen awake. Native behaviour still needs a phone.
