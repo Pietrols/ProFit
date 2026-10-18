@@ -26,7 +26,10 @@ export function useWorkouts() {
   useEffect(() => { let current = true; void read().catch((e: unknown) => { if (current) setError(e instanceof Error ? e.message : 'Could not read workouts.'); }); return () => { current = false; }; }, [read, revision, syncing]);
   const write = async <T,>(action: (user: string) => Promise<T>) => {
     if (!userId) throw new Error('Sign in to save a workout.');
-    const value = await action(userId); void engine.noteLocalChange(); await read(); return value;
+    const value = await action(userId); void engine.noteLocalChange();
+    // A refresh failure must not turn a committed write into a failed save or skip its effects.
+    try { await read(); } catch { setError('Saved on this phone. Could not refresh workouts; retry the read.'); }
+    return value;
   };
   return { userId, data: result?.user === userId ? result.history : null, error, retry,
     start: (plan: Plan, day: PlanDay, exercises: PlanExercise[], names: ReadonlyMap<string, string>) => write((user) => store.startSession(db, user, { planId: plan.id, dayId: day.id, localDate: localDay(new Date()), snapshot: sessionSnapshot(plan, day, exercises, names) }, new Date())),

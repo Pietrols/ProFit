@@ -1,6 +1,11 @@
 import { readTimer, type TimerState } from './timers';
 type Storage = { getItem(key: string): Promise<string | null>; setItem(key: string, value: string): Promise<void>; removeItem(key: string): Promise<void> };
 const key = (user: string, session: string) => `workout-timer:${encodeURIComponent(user)}:${encodeURIComponent(session)}`;
+// A set can commit just before a crash prevents its replacement timer from being saved.
+export function timerAfterLogs(timer: TimerState | null, loggedAt: readonly string[]): TimerState | null {
+  if (timer?.runningSince !== null && timer && loggedAt.some((at) => Date.parse(at) > timer.runningSince!)) return null;
+  return timer;
+}
 export async function loadWorkoutTimer(store: Storage, user: string, session: string): Promise<TimerState | null> {
   const value = await store.getItem(key(user, session)); if (value === null) return null;
   let parsed: unknown;

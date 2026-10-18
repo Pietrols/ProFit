@@ -5,9 +5,11 @@ import { SyncBanner } from '@/features/sync/SyncBanner';
 import { prefill, sessionSummary, sessionTargets, type WorkoutHistory } from '@/features/workouts/logic';
 import { SetForm } from '@/features/workouts/SetForm';
 import { TimerControls } from '@/features/workouts/TimerControls';
-import { loadWorkoutTimer, saveWorkoutTimer } from '@/features/workouts/timerStorage';
+import { loadWorkoutTimer, saveWorkoutTimer, timerAfterLogs } from '@/features/workouts/timerStorage';
 import { formatTimer, pauseTimer, resumeTimer, sessionClock, startTimer, type TimerState } from '@/features/workouts/timers';
 import { useWorkouts } from '@/features/workouts/useWorkouts';
+import { useWorkoutAwake } from '@/features/workouts/useWorkoutAwake';
+import { useWorkoutAlerts } from '@/features/workouts/WorkoutAlerts';
 import type { SetValues } from '@/features/workouts/types';
 import { recordLabel, setLabel, volumeLabel } from '@/features/workouts/workoutForm';
 import { randomId } from '@/lib/randomId';
@@ -27,6 +29,7 @@ export default function WorkoutScreen() {
 }
 function Workout({ current, workouts, user }: { current: WorkoutHistory; workouts: ReturnType<typeof useWorkouts>; user: string }) {
   const { session, logs } = current; const { me } = useMe(); const units = me?.profile.unitSystem ?? 'metric';
+  const { alerts, error: alertError, report, enable } = useWorkoutAlerts();
   const [now, setNow] = useState(Date.now()); const [notes, setNotes] = useState(session.notes);
   const timerVersion = useRef(0);
   const [timer, setTimer] = useState<TimerState | null>(null); const [ready, setReady] = useState(false);
@@ -35,14 +38,24 @@ function Workout({ current, workouts, user }: { current: WorkoutHistory; workout
   useEffect(() => { const handle = setInterval(() => setNow(Date.now()), 250); return () => clearInterval(handle); }, []);
   useEffect(() => {
     let live = true; const version = ++timerVersion.current;
-    loadWorkoutTimer(kvStore, user, session.id).then((value) => { if (live && version === timerVersion.current) { setTimer(value); setReady(true); } }, (e: unknown) => { if (live && version === timerVersion.current) setError(e instanceof Error ? e.message : 'Could not read timer.'); });
+    loadWorkoutTimer(kvStore, user, session.id).then((value) => { if (live && version === timerVersion.current) { setTimer(timerAfterLogs(value, logs.map((log) => log.loggedAt))); setReady(true); } }, (e: unknown) => { if (live && version === timerVersion.current) setError(e instanceof Error ? e.message : 'Could not read timer.'); });
     return () => { live = false; };
   }, [user, session.id]);
   const summary = sessionSummary(session, logs, workouts.data ?? [], new Date(now).toISOString());
   const active = session.status === 'active'; const next = summary.next;
+  const awakeError = useWorkoutAwake(active);
+  useEffect(() => {
+    if (ready || !active) void alerts.update(user, session.id, active ? timer : null).catch(report);
+  }, [alerts, user, session.id, active, ready, timer]);
   const exercise = next ? session.snapshot.exercises[next.exercisePosition]! : null;
   const initial = exercise ? prefill(exercise, sessionTargets(exercise, session.snapshot.difficulty, session.easierToday), workouts.data ?? [], session.startedAt) : {};
-  async function saveTimer(value: TimerState | null) { ++timerVersion.current; await saveWorkoutTimer(kvStore, user, session.id, value); setTimer(value); setReady(true); }
+  async function saveTimer(value: TimerState | null) {
+    ++timerVersion.current;
+    await alerts.update(user, session.id, null).catch(report);
+    await saveWorkoutTimer(kvStore, user, session.id, value);
+    setTimer(value); setReady(true);
+    await alerts.update(user, session.id, value).catch(report);
+  }
   async function run(action: () => Promise<void>) {
     if (lock.current) return; lock.current = true; setBusy(true); setError(null);
     try { await action(); } catch (e) { setError(e instanceof Error ? e.message : 'Could not save.'); throw e; }
@@ -71,6 +84,7 @@ function Workout({ current, workouts, user }: { current: WorkoutHistory; workout
     </Card>
     {workouts.error ? <><AppText color="caution">{workouts.error}</AppText><Button label="Retry workout read" variant="secondary" onPress={workouts.retry} /></> : null}
     {error ? <AppText color="caution">{error}</AppText> : null}
+    {awakeError && active ? <AppText color="caution">{awakeError}</AppText> : null}
     {active && !ready ? error ? <Button label="Reset saved timer" disabled={busy} onPress={() => fire(() => saveTimer(null))} /> : <AppText color="text2">Loading saved timer</AppText> : null}
     {active ? <>
       <Card><TimerControls timer={timer} now={now} busy={busy || !ready}
@@ -78,7 +92,11 @@ function Workout({ current, workouts, user }: { current: WorkoutHistory; workout
         pause={() => fire(() => saveTimer(timer ? pauseTimer(timer, Date.now()) : null))}
         resume={() => fire(() => saveTimer(timer ? resumeTimer(timer, Date.now()) : null))}
         clear={() => fire(() => saveTimer(null))} />
-        <AppText variant="caption" color="text2">Background alerts are not enabled yet.</AppText>
+        <AppText variant="caption" color="text2">Rest alerts use your phone notifications. Silent mode and phone settings can suppress or delay them.</AppText>
+        {alertError ? <AppText color="caution">{alertError}</AppText> : null}
+        <Button label="Enable rest alerts" variant="secondary" disabled={busy || !ready} onPress={() => fire(async () => {
+          try { await enable(); await alerts.update(user, session.id, timer); } catch (e) { report(e); }
+        })} />
       </Card>
     </> : null}
     {active && exercise && next ? <Card><AppText variant="title">{exercise.name}</AppText>
