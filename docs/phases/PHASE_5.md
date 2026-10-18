@@ -326,3 +326,68 @@ approval review blocked it. The attempted package changes were removed; lint is 
 
 Effect lifecycle: acquire a unique wake-lock tag for each visible active interval; release on
 blur, background, finish or unmount; release again if activation resolves after cleanup.
+
+## Step 5.6 implementation, 18 October 2026
+
+Added the approved expo-notifications SDK 57 dependency, native config plugin, Android channel
+and exact-alarm permission declaration. Rest countdowns schedule OS local notifications.
+Early logging, pause/reset, replacement, finish/abandon and sign-out cancel old requests.
+Requests carry ownership and generation metadata and remain in the OS's persisted ledger.
+A serialized controller cancels late obsolete schedules and reconciles requests at startup,
+foreground return and sync changes. The web adapter explicitly reports native alerts unavailable.
+Enable rest alerts requests permission on a user tap; denial does not fail a workout save.
+
+Controller pseudocode:
+
+```
+setUser(user): invalidate old-account work immediately; queue cancellation of foreign requests
+update(user, session, timer): increment session revision; serialize OS operations;
+  retain at most one matching restAlertIntent, cancel obsolete ids;
+  require permission and a future deadline before scheduling;
+  after schedule resolves, cancel its id if account or session revision changed
+reconcile(readLocalTimer): inspect tagged OS requests; cancel foreign, stale, ended or duplicate
+  requests; defer to any newer explicit transition; never start a remote phone's timer
+timerAfterLogs(timer, loggedAt): discard a running timer if a set committed after it began;
+  otherwise preserve it; use the same check in screen restoration and alert reconciliation
+```
+
+Both typechecks and all 320 mobile tests pass. Tests cover matching requests, replacement,
+pause/reset, late scheduling after sign-out/pause, permission denial, OS failures, expired
+deadlines, duplicate cleanup and crash recovery. Web and Android JavaScript exports passed;
+this is not a native APK build or installation. Backend tests require
+CI's PostgreSQL service under rule 8. Lint remains unavailable because its automatic installer
+attempted unapproved ESLint packages and approval review blocked it; those package changes
+were removed. Only the two approved direct dependencies were added. The unrelated icon edit
+is excluded.
+
+## Phase 5 device handoff (step 5.7 still pending)
+
+A new native build is required for the added module and permissions. Expo Go and a web export
+do not establish the done-when condition. Use the existing Android development build workflow
+with the JavaScript bundle loaded before going offline. For a cold offline restart, use the
+existing internal preview APK profile, which embeds JavaScript and does not need Metro.
+The preview needs a reachable configured API and Google OAuth client/signing setup for initial
+sign-in; the developer sign-in button is deliberately absent in preview/release builds.
+
+Record device model, Android version, build/commit, notification permission, Alarms and reminders
+access, battery restrictions and actual results. No device run or APK installation is claimed.
+
+1. Install the new native build, sign in online and create a day with several sets and 30-second
+   rests. Include weight/reps, time/distance, notes and done-only fields. Tap Enable rest alerts.
+2. Enable airplane mode. Start from Home, log sets, background or lock the phone during rest,
+   and confirm one alert near its deadline. Return after the deadline and confirm the timer.
+3. Log another set early and confirm the old alert does not fire. Repeat with pause, reset,
+   another timer mode, finish and abandon. Sign out during rest and verify cancellation.
+4. Confirm the active visible workout stays awake beyond the system timeout, while Home and
+   a finished workout allow normal sleep. Check small-screen keyboard scrolling and both themes.
+5. Finish offline and reopen the app offline. Verify saved sets, notes and summary. Reconnect
+   and confirm one session with the same sets on a second signed-in phone.
+6. Deny notifications and repeat logging. Saving must work and the alert limitation must be
+   visible. Restore permission in phone settings and use Enable rest alerts to retry. Check
+   Alarms and reminders access on Android 12+; inexact fallback can be delayed.
+7. Restart during a rest countdown and verify no duplicate alert. Check account switching and
+   the existing timer modes after a long background interval. Manual clock changes can alter
+   wall-clock timers and are not treated as elapsed-time accuracy guarantees.
+
+Status: implementation ready for review; step 5.7 remains unticked until these real-phone
+results are recorded. Phase 6 has not started.

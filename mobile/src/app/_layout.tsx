@@ -7,6 +7,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
 import { AuthProvider, useArea } from '@/features/auth/AuthProvider';
 import { SyncProvider } from '@/features/sync/SyncProvider';
+import { WorkoutAlerts } from '@/features/workouts/WorkoutAlerts';
 import { ThemeProvider, useAppTheme } from '@/theme/ThemeProvider';
 import { fontFamilies } from '@/theme/tokens';
 
@@ -27,7 +28,7 @@ export default function RootLayout() {
     <ThemeProvider>
       <AuthProvider>
         <SyncProvider>
-          <ThemedNavigation />
+          <WorkoutAlerts><ThemedNavigation /></WorkoutAlerts>
         </SyncProvider>
       </AuthProvider>
     </ThemeProvider>

@@ -267,3 +267,23 @@ On 15 October 2026 Peter approved expo-keep-awake and expo-notifications. Instal
 manifest versions. Keep-awake is scoped to an active, focused workout while the app is in the
 foreground, with a distinct tag per visible interval. A late activation is released again
 after leaving, so it cannot keep another screen awake. Native behaviour still needs a phone.
+
+## D37. Rest notification ownership and recovery
+The approved expo-notifications module schedules local date-triggered rest alerts. The OS's
+persisted request list is the notification-id ledger: each ProFit rest request carries user,
+session, generation and deadline tags. Reconciliation compares it with the existing local timer
+and active session rather than keeping a second, potentially inconsistent id file. Only tagged
+rest requests are cancelled. Operations serialize; account/session revisions invalidate late
+scheduling results. Logging, pause, reset, timer replacement, finish and sign-out cancel alerts.
+
+Permission is requested only from Enable rest alerts. Android creates its channel first. iOS
+requires full authorization because provisional delivery is quiet. Android's exact-alarm
+permission is declared in app config; the user may still need to enable Alarms and reminders
+in phone settings. The SDK falls back to inexact scheduling without that access. OS settings,
+silent mode and battery restrictions may suppress or delay alerts; the UI does not promise
+exact delivery. No remote push registration or background JavaScript is required. Web previews
+show that native alerts are unavailable.
+
+If a set committed after a saved timer began, recovery discards that old timer. Failed refresh
+after a committed workout write is reported separately, so it does not skip the saved set's
+timer transition. Phone verification remains required before Phase 5 is complete.
