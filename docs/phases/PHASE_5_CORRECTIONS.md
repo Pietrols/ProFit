@@ -1,0 +1,552 @@
+# Phase 5 corrections: dependable workout logging
+
+Status: design and acceptance contract, 20 October 2026. Implementation is not complete.
+Branch: feat/workout-corrections, based on rebuild at
+850abec74ba48185c2c521f5be7801864a006149. Source of execution order: BUILD_PLAN.md.
+
+Peter authorized these corrections after Claude's review, including ESLint and Prettier.
+This document supplements PHASE_5.md. It does not claim a quality score, device result,
+installed dependency, benchmark or implemented feature. The desired quality must be
+demonstrated by the acceptance checks below, not by a self-assigned 8.9/10.
+
+## Done when
+
+A person can follow a routine, adapt it when equipment is occupied, correct a mistaken
+result, finish with an honest planned-versus-actual comparison, and reopen that workout
+offline from history. Six months of history must not make each timer tick or set save scan
+all previous workouts. Lint and formatting must be reproducible checks. The corrected
+build must also pass the original Phase 5 real-phone notification and offline checks.
+
+The order is 5.8.1 through 5.8.12, then the still-open 5.7 phone gate. The new 5.8 work is
+intentionally placed before 5.7 so the final phone check tests the corrected product.
+Phase 6 cannot start while either corrections or the phone gate are incomplete.
+
+## 1. Findings verified in the current source
+
+| Finding | Evidence in rebuild | Required correction |
+|---|---|---|
+| No set correction UI | SetForm only submits a new result; useWorkouts exposes no edit/delete action | Edit, delete and undo with original slot identity and timing |
+| Fixed exercise order | workoutProgress picks the first missing positional slot; the screen always uses summary.next | Explicit selection, do-later and skip with honest completion counts |
+| Unsafe naive reorder | identity.ts derives set ids from exercisePosition and setIndex | Separate immutable identity from presentation order before structural changes |
+| Current task buried | workouts/[id].tsx renders the session clock and timer/settings card before SetForm | One primary current-set card, compact timer/progress, secondary settings |
+| No history entry point | Train has plans and habit links; Home resumes active workouts only | Paginated history and linked session detail |
+| Broad repeated reads | useWorkouts lists all sessions; listSets re-reads each session before fetching its sets | Queries bounded to the consumer's needs, shared invalidation |
+| Repeated calculations | 250 ms state updates in the workout root call sessionSummary and prefill over all history | Isolate clock updates and prepare relevant history only when data changes |
+| Duplicate consumers | Home and StartWorkout each call useWorkouts | Pass the summary/commands down or share one subscribed read |
+| Dense code | Route, forms, timers and storage compress multiple statements and JSX branches onto long lines | Prettier plus component/module separation and targeted lint rules |
+| Incomplete tooling | Mobile lint invokes Expo with no installed ESLint; backend has no lint script; CI runs neither lint nor format | Checked-in configuration, locked tooling, CI enforcement |
+| Rest-day friction | StartWorkout starts a full session and navigates even for restDay | Atomic one-tap completion without timers or training navigation |
+
+For N sessions, one current useWorkouts history refresh performs approximately 1 + 2N
+database reads: listSessions, then getSession and the set query inside listSets for each
+session. A second hook instance repeats that work. This count follows the code; it is not
+a timing benchmark. Startup and save latency still need measurement on a phone.
+
+The reported 320 mobile and 111 backend tests are a prior reviewed baseline. Green unit
+tests established those tested properties, not completeness of the gym workflow. No new
+local test run was possible during this design pass because the execution environment
+was unavailable. GitHub source inspection and document publication remain possible.
+
+### What remains sound
+
+Keep timestamp timers, immutable original plan snapshots, device-generated ids, strict
+selected-field validation, canonical kg/metres/seconds, user-scoped reads, tombstones and
+OS-scheduled rest notifications. Preserve zero versus missing values and the existing
+rule that bodyweight or machine resistance is not guessed. Do not replace the sync engine
+or import code, assets or data from another fitness project.
+
+### Why the earlier process failed
+
+The implementation treated a large checklist step as the minimum commit unit, rather
+than splitting it into independently reviewable changes. It also treated tested storage
+and pure functions as sufficient evidence for a usable workout screen. The new workflow
+requires both small implementation commits and scenario-based product checks. Do not
+rewrite merged history to hide the large commits. Correct the process going forward.
+
+## 2. Timer behavior in plain language
+
+| Situation | Expected result |
+|---|---|
+| Start a 20-minute countdown, then the phone sleeps for 10 minutes | About 10 minutes remain on return |
+| Explicitly pause with 15 minutes remaining, then sleep for 10 minutes | Still 15 minutes remain |
+| Resume that paused countdown and wait 2 minutes | About 13 minutes remain |
+| Leave longer than the countdown's remaining time | Show complete, never a negative value |
+| Finish a workout and reopen it later | Session duration stays at its saved end time |
+
+The app stores the start timestamp and accumulated active time. Rendering derives elapsed
+time from the current timestamp. A screen refresh interval only updates the display; it
+does not count time. Screen sleep is not a pause action. Notification delivery is a
+separate OS effect and can be delayed or suppressed even when the displayed timer is right.
+Clock changes remain a documented limitation of wall-clock timestamps.
+
+Add explicit 20-minute/10-minute and paused-sleep tests to make this behavior easy to read.
+Retain tests for restore, long sleep, exact boundaries, final rounds, reset generations,
+pause/resume idempotency, clock rollback and notification cancellation. Do not display a
+paused label solely because the app is backgrounded.
+
+## 3. Product behavior and interaction contract
+
+### Current set and timer hierarchy
+
+Use one main training card in this order: exercise name, set position, compact progress,
+the relevant live timer, selected log fields, then the primary Log set action. A time-based
+exercise may give its work timer more space; ordinary strength logging gives reps and
+weight the emphasis. Keep the session clock as small supporting text.
+
+Directly below, show Next with the next eligible exercise and a Change exercise action.
+A workout overview lists every item and its state. Timer configuration, session notes,
+easier-today, notification settings and abandon belong in secondary sections. Keep essential
+save/permission failures visible near the action they affect. Once permission is granted,
+do not leave an Enable rest alerts button dominating every set.
+
+At 360 px width and default text size, the name, essential numeric fields and Log set
+action must be reachable without scrolling past settings. Larger text, notes-only fields
+and the software keyboard may require scrolling, but must never obscure the save action.
+Use existing tokens, clear focus/reading order, labeled controls and minimum 44 px targets.
+Verify dark and light themes and screen-reader labels. Never color-code status without text.
+
+### Edit, delete and undo
+
+Allow correction from the current workout's logged-set list and from completed history.
+Editing keeps the same logical set id, exercise identity, side and original loggedAt;
+updatedAt records the correction time. Preserve session start/end and original targets.
+Recompute volume, PRs, comparison results and relevant caches after a correction.
+
+Deleting a set creates a tombstone and offers Undo. Undo restores the same result identity
+with a new edit time, not another set. Confirm destructive actions that have no easy undo.
+If a newer remote edit exists, do not silently overwrite it with an old undo payload:
+show the saved and current values and require an explicit decision.
+
+Correcting an old set must not start a new rest timer, resume a completed workout, advance
+the routine again or emit another immediate PR celebration. Deleting the latest active
+set cancels only a rest timer attributable to that result, not an unrelated manual timer.
+Retain an explicit Edit/save/cancel mode so normal Log set remains a fast action.
+
+### Adapt the session without rewriting the routine
+
+| Action | Meaning | Effect on progress |
+|---|---|---|
+| Train this now | Select any available pending item | Nothing is completed merely by selection |
+| Do later | Move an unfinished item behind other pending work | It remains outstanding and is offered again |
+| Skip today | Explicitly omit remaining work for an item, optional reason | Count as skipped, never completed |
+| Restore skipped | Return omitted remaining work to the queue | Existing valid logs remain unchanged |
+| Add exercise | Pick a library/custom exercise and targets for this session | Mark as added work, separate from original plan |
+| Remove from session | Omit remaining work; retain original plan and any results | Show removed/omitted work in the comparison |
+| Replace exercise | Omit remaining original work and add a linked replacement | Attribute results and PRs to the replacement |
+| Add/remove set | Change remaining session work within limits | Preserve original target count and every saved result |
+| Reorder | Change presentation/execution order | Never change exercise or set identity |
+
+If some sets are already logged, skip/remove applies only to the remaining work. Never
+silently delete those results. Removing a saved result is a separate explicit delete.
+Replacing after partial completion shows the original partial work and the replacement.
+Do not transfer an old weight to a different exercise automatically.
+
+Session adjustments do not modify the saved plan. The UI states For this workout.
+A future Update my plan action would require its own explicit preview/approval; it is
+not part of this correction. Plan-day editors continue to handle permanent changes.
+
+Keep separate counts for original planned sets, completed planned sets, omitted planned
+sets, and added completed sets. Added work does not erase a miss. Finishing partial work
+keeps the existing explicit confirmation and single cycle advance. Abandoned workouts
+stay out of PR and progression history. An all-skipped workout must clearly say no sets
+were logged, not congratulate the user for hitting targets.
+
+Drafts are keyed by stable item/set identity. Selecting another exercise, editing a saved
+set, receiving sync, changing units or changing easier-today must not silently discard
+an unsaved draft. Save drafts locally or explicitly confirm before discarding them.
+A logged result takes precedence over an older persisted draft after restart.
+
+### Steppers and input behavior
+
+Add minus/plus controls alongside directly editable reps and weight. Reps default to
+steps of 1; weight defaults to 2.5 kg in metric and 5 lb in imperial, with a visible option
+to choose a suitable increment. These are input conveniences, not progression advice.
+Keep values in the displayed unit until validated conversion to canonical storage units.
+
+Blank plus starts at one step; blank minus remains blank. Minus from zero remains zero.
+Reject malformed text instead of converting it to zero. Prevent exceeding validation
+bounds and floating-point drift. Preserve the exact stored value when the display was
+not edited, as D35 requires. Test comma decimals, arbitrary typed weights, unit changes,
+repeated taps, disabled/busy state, limits and screen-reader labels. A typical prefilled
+set needs one tap to log, or one adjustment and one tap to log.
+
+### History and planned-versus-actual review
+
+Train gains Workout history; Home can show a recent-session link without loading all logs.
+List newest first with local date, plan/day snapshot name, status, duration and a concise
+completion figure. Include completed, abandoned and rest-day records with clear filters.
+Keep active sessions in a separate Resume section. Paginate by startedAt and id, not offset,
+so new synced records do not duplicate or skip an existing page.
+
+Detail shows original targets, session adjustments, actual sets, units, notes, duration,
+volume, records and sync status. It remains available offline after plan deletion/renaming.
+Offer a plan filter and exercise filter so users can follow the same routine over time.
+An exercise view shows recent comparable results; long-range charts remain Phase 8.
+
+The finish summary and history detail share the same comparison function. For each original
+item, show target sets/reps/time/distance, actual values, omitted work and replacements.
+Also show added exercises. Missing values are unknown, not zero. Compare against the targets
+actually in effect for that set, while retaining the original routine target separately.
+Changing easier-today halfway through cannot rewrite the target of a set already logged.
+
+A corrected historic result invalidates downstream bests and comparison caches. Existing
+PR computations remain authoritative until optimized projections pass equivalence tests.
+Do not approximate historical records with only the last few sessions.
+
+### One-tap rest-day completion
+
+Home's Rest day done action writes a completed zero-set record in one local transaction.
+It never opens a training screen, starts a timer or acquires a wake lock. Repeated taps
+and retries must reference the same occurrence id.
+
+For a cycle, identify the occurrence by plan/day plus the preceding completion id, or
+a stable initial-cycle token. A second legitimate cycle through that day has a new
+occurrence. For an explicit weekly rest day, identify it by plan/day/local date.
+An unscheduled weekly rest day needs no fabricated plan-day record.
+
+Show a small completion acknowledgement with Undo. Undo tombstones only that occurrence
+and recalculates today's day. If a successor workout has started, explain the dependency
+and do not silently rewind its active snapshot. Rest completion earns no lifting PR,
+volume or workout-duration credit. Two-device concurrent retries must converge.
+
+## 4. Data design and migration safeguards
+
+Do not splice, reorder or replace entries inside the original snapshot array. Existing
+setLogId(sessionId, exercisePosition, setIndex) makes the index part of identity.
+Display order must become a separate field before structural adaptation is exposed.
+
+Use the existing sync collection pattern. The intended additive design is:
+
+| Record/projection | Purpose |
+|---|---|
+| Existing workout session snapshot | Immutable original routine for comparison and old history |
+| Session items | Stable id, session id, original position or null, origin planned/added, replacement link, independent display order, exercise snapshot, active/skipped/removed state, reason and remaining-work targets |
+| Set slots/results | Stable session-item identity and slot identity; actual chosen values; original performance time; targets at performance; optional side |
+| Derived exercise history index | Local rebuildable searchable projection, never the authority for user data |
+| Local view state | Selected slot, drafts and timer source id, scoped to account/session |
+
+Planned item ids are deterministic UUIDv5 values from session id and original snapshot
+position. Added/replacement items get random device UUIDs. A repeated exercise in one
+session has distinct item ids. Do not derive added identity from current list length.
+Slot ids are independent of display order; existing positional set ids are preserved.
+
+Before implementation, finalize the additive wire shape and fixture tests in a small
+schema-contract commit. Prefer extending existing set records with a nullable item
+reference and side/target metadata, while retaining the legacy identity path. If that
+cannot preserve old records and validation cleanly, document the alternative before code.
+Do not invent a silent reinterpretation of exercisePosition.
+
+Legacy records are adapted on read; never rewrite every historic workout merely to show
+it. Existing dirty rows, tombstones, timestamps and ids must survive migration. Legacy
+sessions with no target-at-performance snapshot must show that the historic target is
+unknown if easier-today changes cannot be reconstructed. Do not guess it.
+
+Server deployment accepts both legacy and new wire variants before new clients write them.
+Define and test how older installed clients are prevented from corrupting new-format
+sessions. If a minimum-version/capability gate is needed, apply it before push/pull and
+retain unsynced data. Do not return ordinary per-record validation rejections for an
+unsupported client version: D17/D21 would otherwise risk dropping pending edits.
+New collections also need an explicit old-client pull strategy. Test compatibility before
+enabling adaptation; do not assume old clients ignore unknown fields or collections.
+
+Every new record uses ownership-scoped joins, existing sync metadata and tombstones.
+Soft references can arrive before parents. Hide orphaned/foreign/invalid results and
+re-evaluate once legitimate parents arrive. Deleting a session hides all late children.
+Use existing transactions for related local changes; no filesystem/network operation
+belongs inside a database transaction.
+
+Keep D21's per-record merge policy. Separate item records prevent edits to different
+exercises from overwriting an entire session array. Concurrent changes to the same item
+still need deterministic resolution and a visible reconciliation result. Never claim
+automatic conflict-free merging merely because ids are stable.
+
+Required migration fixtures: populated Phase 5 SQLite, unsent edits, completed and active
+workouts, tombstoned sets, duplicate exercise ids, mixed legacy/new sync, two offline phones
+adding exercises, concurrent reorder, removed items with late sets, and delete/undo races.
+
+## 5. Pure function contracts
+
+Write the relevant pseudocode and tests before each implementation slice. No React,
+database, Date.now, router or OS calls belong in these functions.
+
+~~~text
+effectiveSession(original, items, slots, results):
+  resolve latest records and tombstones using existing rules
+  join by stable owned identity; preserve original snapshot
+  sort display order with stable id as tie-breaker
+  return original targets, adjusted work, actual results and omissions separately
+
+chooseSlot(effective, selectedSlot, deferredOrder):
+  honor a valid user selection; otherwise choose the first eligible outstanding slot
+  do not select skipped/removed/completed slots automatically
+  return current and next; deferred work remains outstanding
+
+applySessionCommand(effective, command, suppliedIds):
+  validate active session, selected item and bounds
+  return records to write for select/defer/skip/restore/add/remove/replace/reorder
+  preserve results and original targets; never renumber identity
+  reject unsupported or stale commands with a usable error
+
+correctSet(existing, patch, expectedRevision, editTime):
+  preserve id, item, side, slot and loggedAt
+  validate chosen fields and values; update only entered result data and edit metadata
+  refuse a stale expected revision instead of silently overwriting another edit
+
+undoDeletion(deletedResult, currentResult, undoToken, editTime):
+  restore the same logical identity only if the deletion still matches the undo token
+  retain original performance time; create a later edit; otherwise report a conflict
+
+stepDraft(text, direction, increment, units, limits):
+  validate editable decimal text; handle blank and zero explicitly
+  perform decimal-safe arithmetic; enforce bounds
+  return new display text or validation error; no storage conversion until save
+
+compareSession(original, effective, completedResults):
+  return per-item planned, adjusted, completed, missing, skipped and added work
+  use per-set targets at performance when available
+  return per-metric comparisons without treating unknown as zero
+  never count added/replacement work as hitting the original exercise's target
+
+historyCursor(page):
+  return the last startedAt/id tuple or null
+  stable ordering and continuation must match the query predicate
+
+restOccurrenceId(user, plan, day, localDate, predecessor):
+  weekly uses local date; cycle uses predecessor or initial token
+  repeated attempts share an id; later cycle occurrences do not
+
+exerciseHistoryProjection(validSessions, results):
+  include only valid eligible performed results and the relevant exercise identity
+  retain ordering and tie semantics used by the current PR functions
+  derived data can be rebuilt; never change authoritative results
+
+sideSummary(results, convention):
+  report left/right separately; missing side remains unknown
+  sum only actually logged external-load volume under the explicit convention
+
+platePairs(target, bar, collarPair, denominations, inventory, unit):
+  validate unit consistency, nonnegative mass and paired inventory
+  convert to exact integer mass units; subtract bar/collars
+  find an achievable symmetric combination, exact when possible
+  otherwise choose nearest achievable total at or below target
+  return per-side plates, actual total and shortfall; never round up silently
+~~~
+
+Each command must distinguish a failed local write from a successful write followed by a
+failed read or sync. After a committed set, the UI must update its slot identity immediately
+or block another Log set action until refresh; otherwise a stale screen can overwrite the
+just-saved slot. Preserve drafts when the local write fails.
+
+## 6. Performance correction and evidence
+
+Separate reads by purpose:
+
+- Home: active session summaries and latest completion for the active plan, without set logs.
+- Active workout: one session, its items/results and relevant exercise history.
+- History list: one bounded page of session summaries, without a query for each row.
+- Session detail: that session's data, plus only the comparison/best data it needs.
+
+Replace per-session fan-out with bounded batched queries. A local derived exercise/result
+index may be needed because exercise identity currently lives inside JSON snapshots.
+It must update transactionally after saves, edits, deletes and sync, be rebuildable from
+canonical records, and be indexed by owner, exercise and performance ordering. Compare
+query plans before and after. Do not add a cache/state library just to avoid clear queries.
+
+Query count alone is insufficient: one query that returns every historic set still scales
+poorly. Prefill needs the latest eligible value per selected field. PRs need exact relevant
+bests, including reps at a specific weight and historical cutoffs. Batch these reads for
+the session's exercise ids. Invalidate corrected/deleted histories before exposing a
+cached record. Never load all unrelated exercise logs to compute one current set.
+
+Move ticking state into small clock components. A timer tick must issue zero database
+queries and cause zero calls to full history preparation, prefill or PR recomputation.
+Memoize data-derived summaries against stable data revisions, not the current timestamp.
+Do not mutate cached input arrays. Refresh immediately when foregrounded, stop display
+refreshes when not visible, and retain timestamp-derived correctness after sleep.
+
+Use request versions/account guards so stale async reads cannot replace newer local work.
+A sync state transition must not refresh all history twice. Preserve the existing current
+draft on background reads. Share summary reads between Home and StartWorkout.
+
+Performance fixtures and proposed budgets, to be measured rather than claimed:
+
+| Check | Fixture/target | Evidence |
+|---|---|---|
+| Scale | 0, 50, 500 and 2,000 sessions; up to 40,000 result rows | Original synthetic fixtures only |
+| Timer isolation | 60 seconds of clock updates | Zero DB calls and zero history/PR rebuilds |
+| Home/history query count | Same query count at 50 and 2,000 sessions | SQL instrumentation; no per-session fan-out |
+| Active read volume | Bounded current-session rows and relevant exercise aggregates | Row counts and query plans |
+| History first page | 25 records with stable cursor | No full log materialization |
+| Interaction | Proposed p95 local set-save feedback under 200 ms | At least 30 runs on named Android device |
+| Warm entry | Proposed p95 history first page under 300 ms; workout ready under 500 ms | Same device/build and dataset before/after |
+| Account isolation | Switch during a slow read | No prior-account data or draft flashes |
+
+Do not gate CI on fragile wall-clock timings from arbitrary runners. Use deterministic
+query-count, returned-row and render-invocation regressions there, and record device
+timings separately. If the target device cannot meet a budget, document the measurements
+and cause before changing the budget. No unmeasured claim that it is fast.
+
+## 7. Plate loading and unilateral results
+
+These are explicit correction slices, not hidden additions to progression logic.
+
+Plate calculator: a collapsible tool for barbell work, with editable bar weight, collars,
+available plate sizes and pair counts. Treat logged barbell weight as total external load.
+Do not assume all bars are 20 kg or that a gym has unlimited plates. The result states
+plates per side and achieved total. A greedy algorithm is not sufficient for arbitrary
+inventory; test exact combinations, unavailable pairs, odd totals, below-bar targets,
+mixed units, zero load and unreachable totals. Applying a calculated weight needs a tap.
+
+Per-side logging: an explicit bilateral/per-side setting, not a guess from exercise name.
+Offer left and right fields/results and label whether load is total or per-hand. Store
+the convention in the session item. Existing records remain bilateral/unspecified and
+must not be silently doubled. One side logged is partial work; never fabricate the other.
+PRs compare compatible conventions and sides. Progression will consume both sides and
+must not increase load from one successful side while the other is missing or missed.
+
+## 8. Tooling, readability and commit discipline
+
+Peter's 20 October approval covers ESLint, Prettier and the configuration/parser packages
+needed for mobile and backend checks, including eslint-config-expo. Log installed names
+and versions. No need to ask again for this tooling. New runtime libraries still require
+approval. Resolve versions against the installed Expo/TypeScript versions and official
+docs; generate lockfiles with the package manager, never by guessing integrity hashes.
+
+Use a checked-in Prettier configuration with 100-column print width, single quotes,
+semicolons and the repository's line endings. ESLint should enforce hooks correctness,
+unused variables, valid imports and readable statements. Avoid blanket disable comments,
+disabled hooks rules or ignoring entire feature folders to obtain a green check.
+Prettier is not an architectural refactor: extract readable components and commands too.
+
+Install/configure first, then separate formatting-only commits by feature area from
+behavior changes. Exclude generated builds, dependency trees and generated datasets.
+A temporary, explicit baseline for untouched formatting may be used only during the
+formatting rollout; remove it before 5.8.2 completes. Lint errors have no permanent baseline.
+Do not mix a repository-wide rewrite with a functional fix.
+
+After tooling is established, each backend/mobile check sequence is:
+~~~sh
+npm run format:check
+npm run lint
+npm run typecheck
+npm test
+~~~
+Backend also runs its build in CI; mobile exports web and Android bundles when routes or
+native adapters change. These exports are not APK builds. CI must use npm ci and include
+format/lint as required jobs without continue-on-error or silent successful skips.
+
+A reviewable commit contains one logical change and its necessary tests. Aim for 50 to
+200 hand-written changed lines and at most five related files; these are review triggers,
+not incentives to split a working invariant into broken commits. Stop and split when a
+diff grows beyond roughly 300 hand-written lines. Generated lockfiles/migrations, this
+design document and mechanical formatting have separate, explicitly identified exceptions.
+No more 2,118-line mixed implementation commits.
+
+Before each commit: inspect the diff, run the applicable complete gates, verify ownership
+of changed files, check no em dashes, then commit with a conventional message and push.
+Do not wait for a whole checklist step if a smaller tested change is ready. Keep the box
+open until the final commit completing that step, and tick it in that commit. Never tick
+a feature because only its data layer exists. Failed CI means the slice remains open.
+Do not squash away the requested reviewable history or rewrite already merged commits.
+
+If local PostgreSQL is unavailable, use the existing rule 8 CI gate. If the entire coding
+workspace is unavailable, publish documentation and report the constraint. Do not hand-edit
+lockfiles, claim local checks, or mark executable fixes complete without running them.
+
+## 9. Ordered implementation slices
+
+Each row is a checklist step; commit boundaries inside it are deliberately smaller.
+
+| Step | Work and suggested commit boundaries | Completion evidence |
+|---|---|---|
+| 5.8.1 | Source audit, this contract, scope decisions and checklist order | Design committed before code; links and invariants reviewed |
+| 5.8.2 | Lock/configure tooling; format workout pure modules; format storage/hooks; format screens; format remaining authored areas in small commits; enable all CI gates | Fresh npm ci, both format/lint/typecheck/test suites green, no temporary exclusions |
+| 5.8.3 | Add bounded session/detail/history queries and regression fixtures; isolate ticking displays; introduce relevant exercise projections/aggregates with equivalence tests | No N+1 reads or timer-driven history work; measured query/row evidence |
+| 5.8.4 | Transactional correction/delete/undo commands; conflict tests; active logged-set editor | Correct 80 to 60 kg, delete/undo offline, retain time/id, no stale-slot overwrite |
+| 5.8.5 | Legacy/new contract and identity tests; backend acceptance/migration; matching SQLite/sync support; effective-session functions | Existing histories and unsent edits survive; mixed-version behavior tested |
+| 5.8.6 | Selection/defer/skip/restore; add/remove/replace/reorder and set-count actions, each with storage/tests/UI commits | Adapt a busy-gym workout without rewriting the plan or misattributing sets |
+| 5.8.7 | Current-set layout; next item/overview; unit-safe steppers; draft persistence/recovery | Small-screen and keyboard scenarios pass, fast normal logging, readable components |
+| 5.8.8 | Paginated history route; detail/correction route; per-exercise comparison and finish read-back | Saved routine and deviations traceable offline; edits update bests and totals |
+| 5.8.9 | Rest occurrence identity and atomic completion; Home action and undo | One tap, no training route/timer, idempotent retries and two-device convergence |
+| 5.8.10 | Plate algorithm/tests, then collapsible UI; side metadata/contracts, then left/right UI and calculations | Honest total load and side-specific results; no legacy doubling |
+| 5.8.11 | Notification permission/status UI; source-linked rest effects; exact-alarm behavior review; integrated timer tests | Denied/revoked permissions and set correction do not break saved data or alerts |
+| 5.8.12 | Integrated offline/sync scenarios; populated-history benchmark; visual/readability audit; correction summary | Acceptance matrix complete except explicitly pending physical 5.7 results |
+| 5.7 | Fresh native build, physical Android acceptance, final phase summary and review PR | Recorded build/device/results, green CI, no assumed passes |
+
+5.8.5 precedes structural adaptation. Editing existing legacy sets in 5.8.4 does not require
+renumbering them. History UI arrives after bounded queries so it cannot cement the current
+all-history hook. Side-dependent summary support is extended in 5.8.10 after its schema
+contract is tested. Stop within Phase 5 if the final device gate is unavailable.
+
+## 10. Acceptance matrix
+
+| Scenario | Required result |
+|---|---|
+| Mistyped 80 kg, correct to 60 | Same set/time, corrected volume and eligible records, no new rest |
+| Delete latest set, then undo offline | One result identity, correct progress, no duplicate after sync |
+| Another phone edits before undo | Explicit conflict handling, no silent stale overwrite |
+| Bench occupied, train rows first | Select rows, preserve bench draft and outstanding work |
+| Skip remaining bench sets | Already logged sets retained, misses visible, no false target success |
+| Add then replace an exercise | Plan unchanged, separate identities, results attributed correctly |
+| Reorder with existing logs | Saved sets still belong to their original exercise |
+| Concurrent offline additions | Both additions survive, no index collision |
+| Finish partial workout | Honest counts and one confirmed cycle advance |
+| Reopen history after deleting plan | Snapshot, results and comparisons still readable |
+| Correct a past record | Relevant later best/PR caches invalidated without replaying celebration |
+| Change units or easier-today mid-session | No draft loss or rewriting of recorded targets |
+| Rest day complete twice | One occurrence; no timer or training UI |
+| 20-minute running timer, sleep 10 minutes | Approximately 10 minutes remain |
+| Explicitly paused timer, sleep 10 minutes | Same remaining time |
+| Early logging, pause, reset, replacement, finish, sign-out | Obsolete rest notification cancelled |
+| Permission denied or later revoked | Workout saves; visible honest alert status |
+| App killed/reopened offline | Saved workout/drafts recovered consistently, no duplicated result |
+| 2,000-session fixture | Query/render budgets verified; no per-tick history work |
+| Unilateral left-only result | Partial status, no invented right side or doubled volume |
+| Limited plates cannot reach target | Achievable total and shortfall shown, never a silent higher load |
+| Light/dark, 360 px, large text, keyboard, screen reader | Current action remains usable and errors readable |
+
+Record a result and evidence for every row. Add a regression test when a discovered
+failure represents behavior, persistence or concurrency; do not add tests that merely
+assert the implementation's internal shape.
+
+## 11. Android, release and final evidence
+
+Notification permission and exact-alarm access are separate. Verify SDK 57 capabilities
+against installed source and official docs before choosing a settings/status API.
+Android 14 behavior must be checked on a fresh install, including denied exact-alarm
+access and notification permission revocation. The manifest declaration alone is not
+evidence that exact scheduling is granted. Do not switch to a different alarm permission
+to avoid the user's settings or store requirements.
+
+Keep plain status text: alerts enabled, permission needed, scheduling failed, or delivery
+may be delayed. Do not repeatedly prompt at every set. Add a user-initiated settings path
+when supported. Check current Play policy for the actual permission/build before release;
+do not assert eligibility or a required declaration from memory.
+
+The 5.7 report must identify commit, native build, phone model/OS, install type, relevant
+permissions and battery settings. Run airplane-mode logging, background alert, cancellation,
+finish/restart offline, then reconnect and verify on a second signed-in phone. Capture
+screens for current-set hierarchy, history, corrections, deviations and finish comparison.
+A JavaScript export, unit test or browser simulation cannot replace those observations.
+
+Deliver the correction summary with: what changed, before/after evidence, test commands
+and results, remaining risks, and exact device follow-ups. Review the result against this
+contract. Do not claim an 8.9/10 outcome merely because CI passes.
+
+## 12. References and current checkpoint
+
+Official references checked during design:
+- Expo lint/format setup: https://docs.expo.dev/guides/using-eslint/
+- Prettier configuration: https://prettier.io/docs/configuration
+- React render profiling: https://react.dev/reference/react/Profiler
+- Android exact-alarm access changes:
+  https://developer.android.com/about/versions/14/changes/schedule-exact-alarms
+
+Use the installed SDK version for implementation APIs. References guide implementation;
+they do not replace tests in this repo.
+
+Checkpoint, 20 October 2026: merged Phase 5 source reviewed through GitHub. Correction
+branch and design prepared. The execution environment is unavailable, so no package
+installation, code correction, local test, device run or performance measurement is
+claimed in this checkpoint. The first implementation step after the documentation is
+5.8.2, the approved lint/format setup. All executable correction boxes remain open.
