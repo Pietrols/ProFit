@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { latestRecords } from '../recordOrder';
+import { latestRecords, resolveRecordRevisions } from '../recordOrder';
 
 const first = { id: 'set', updatedAt: '2026-10-21T08:00:00.000Z', deletedAt: null, value: 60 };
 
@@ -26,4 +26,5 @@ it('keeps a newer payload before eligibility checks and never resurrects an olde
   ]);
   expect(records[0]).toBe(first);
   expect(first.value).toBe(60);
+  expect(resolveRecordRevisions(records).unavailableIds).toEqual(['set']);
 });

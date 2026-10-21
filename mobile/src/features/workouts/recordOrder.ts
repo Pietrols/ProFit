@@ -4,21 +4,37 @@ type Revision = { id: string; updatedAt: string; deletedAt?: string | null };
 
 // Scope to the owned parent before calling. Resolve before filtering invalid or deleted payloads.
 export function latestRecords<T extends Revision>(records: readonly T[]): T[] {
-  const latest = new Map<string, T>();
+  return resolveRecordRevisions(records).latest;
+}
+
+export function resolveRecordRevisions<T extends Revision>(records: readonly T[]) {
+  const latest = new Map<string, { record: T; time: number }>();
+  const times = new Map<string, number | null>();
+  const unavailable = new Set<string>();
   for (const record of records) {
-    if (!validTime(record.updatedAt)) continue;
+    if (!times.has(record.updatedAt))
+      times.set(
+        record.updatedAt,
+        validTime(record.updatedAt) ? Date.parse(record.updatedAt) : null,
+      );
+    const time = times.get(record.updatedAt)!;
+    if (time === null) {
+      unavailable.add(record.id);
+      continue;
+    }
     const previous = latest.get(record.id);
-    const time = Date.parse(record.updatedAt);
-    const previousTime = previous ? Date.parse(previous.updatedAt) : -Infinity;
     if (
       !previous ||
-      time > previousTime ||
-      (time === previousTime &&
-        ((Boolean(record.deletedAt) && !previous.deletedAt) ||
-          (Boolean(record.deletedAt) === Boolean(previous.deletedAt) &&
-            JSON.stringify(record) > JSON.stringify(previous))))
+      time > previous.time ||
+      (time === previous.time &&
+        ((Boolean(record.deletedAt) && !previous.record.deletedAt) ||
+          (Boolean(record.deletedAt) === Boolean(previous.record.deletedAt) &&
+            JSON.stringify(record) > JSON.stringify(previous.record))))
     )
-      latest.set(record.id, record);
+      latest.set(record.id, { record, time });
   }
-  return [...latest.values()];
+  return {
+    latest: [...latest.values()].map(({ record }) => record),
+    unavailableIds: [...unavailable].sort(),
+  };
 }

@@ -1,5 +1,5 @@
-import { sessionInput, validateSession, validTime, validUuid } from './model';
-import { latestRecords } from './recordOrder';
+import { sessionInput, validateSession, validUuid } from './model';
+import { resolveRecordRevisions } from './recordOrder';
 import type { SessionItemsView } from './sessionItemsView';
 import { resultValidatorForItem } from './structureModel';
 import type { PerformanceTargets, WorkoutResult } from './structureTypes';
@@ -35,13 +35,11 @@ export function workoutResultsView(
     itemView.items.map((item) => [item.id, resultValidatorForItem(session, item)]),
   );
   const scoped = records.filter((result) => result.sessionId === session.id);
-  const unavailable = new Set([
-    ...unavailableIds,
-    ...scoped.filter((result) => !validTime(result.updatedAt)).map((result) => result.id),
-  ]);
+  const revisions = resolveRecordRevisions(scoped);
+  const unavailable = new Set([...unavailableIds, ...revisions.unavailableIds]);
   const results: ResolvedWorkoutResult[] = [];
   // Both variants share this identity space. Never resolve them in separate passes.
-  for (const log of latestRecords(scoped)) {
+  for (const log of revisions.latest) {
     if (unavailable.has(log.id) || log.deletedAt) continue;
     let itemId: string;
     let targets: PerformanceTargets | null = null;

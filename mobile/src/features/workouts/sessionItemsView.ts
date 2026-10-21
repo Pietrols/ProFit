@@ -1,5 +1,5 @@
-import { sessionInput, validateSession, validTime, validUuid } from './model';
-import { latestRecords } from './recordOrder';
+import { sessionInput, validateSession, validUuid } from './model';
+import { resolveRecordRevisions } from './recordOrder';
 import { plannedItemId } from './structureIdentity';
 import { validateSessionItem } from './structureModel';
 import type { SessionItem } from './structureTypes';
@@ -38,17 +38,15 @@ export function sessionItemsView(
     return { items: [], unavailableItemIds: [], available: false };
   const items = new Map(plannedItems(session).map((item) => [item.id, item]));
   const scoped = records.filter((item) => item.sessionId === session.id);
-  const blocked = new Set([
-    ...unavailableIds,
-    ...scoped.filter((item) => !validTime(item.updatedAt)).map((item) => item.id),
-  ]);
+  const revisions = resolveRecordRevisions(scoped);
+  const blocked = new Set([...unavailableIds, ...revisions.unavailableIds]);
   const unavailable = new Set(blocked);
   // Any stored override blocks fallback, even if it has an unreadable edit time.
   for (const item of scoped) {
     items.delete(item.id);
     unavailable.add(item.id);
   }
-  for (const item of latestRecords(scoped)) {
+  for (const item of revisions.latest) {
     if (blocked.has(item.id) || validateSessionItem(item, session)) continue;
     items.set(item.id, {
       ...item,
