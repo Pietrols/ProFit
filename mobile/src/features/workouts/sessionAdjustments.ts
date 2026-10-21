@@ -1,10 +1,13 @@
 import type { Database, Sql } from '../../lib/db/database';
 import { getSession } from './sessionReads';
 import { changeSessionItem, type ItemChange } from './sessionChanges';
+import { moveSessionItem, type MoveDirection } from './sessionOrder';
 import { readSessionStructure } from './structureReads';
 import type { SessionItem } from './structureTypes';
 
-export type SessionAdjustment = { kind: 'change'; item: SessionItem; change: ItemChange };
+export type SessionAdjustment =
+  | { kind: 'change'; item: SessionItem; change: ItemChange }
+  | { kind: 'move'; item: SessionItem; order: readonly SessionItem[]; direction: MoveDirection };
 
 async function writeItems(tx: Sql, user: string, items: readonly SessionItem[]) {
   for (const item of items) {
@@ -47,7 +50,10 @@ export async function adjustSession(
     const session = await getSession(tx, user, sessionId);
     if (!session) throw new Error('This workout is no longer available.');
     const detail = { session, ...(await readSessionStructure(tx, user, session)) };
-    const writes = [changeSessionItem(detail, command.item, command.change, now)];
+    const writes =
+      command.kind === 'change'
+        ? [changeSessionItem(detail, command.item, command.change, now)]
+        : moveSessionItem(detail, command.item, command.order, command.direction, now);
     await writeItems(tx, user, writes);
   });
 }
