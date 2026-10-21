@@ -343,3 +343,24 @@ cutoffs and loggedAt/id ordering, including equal instants. Return only the repr
 needed for current-session calculations. Keep legacy pure-function entry points as equivalence
 oracles while introducing the bounded input path. This contract was approved before the cache
 code. Its implementation and verification are recorded in PHASE_5_CORRECTIONS.md.
+
+## D41. Set corrections, undo and rest ownership
+Step 5.8.4 uses transactional commands over existing set rows. A correction preserves id,
+session, exercise position, slot, chosen fields and loggedAt; only values and edit metadata
+change. A revision fingerprint includes the full saved result and deletion state, so even a
+different result with an equal timestamp is stale. Edit times are strictly later than the
+previous edit (at least one millisecond), without changing D21's server clock cap or merge rule.
+
+Delete returns an undo receipt containing the prior values and the exact deletion revision.
+Undo restores that identity only while that deletion still matches. Conflicts show the current
+result and the attempted values; replacing/restoring a newer version requires an explicit UI
+action and another fresh revision check. Failed local writes retain drafts. A successful write
+followed by failed refresh remains saved and blocks another mutation until a fresh read.
+These checks prevent stale local commands; simultaneous offline phones still follow D21's
+latest-edit merge policy. Do not claim a server-wide compare-and-swap protocol.
+
+New automatic rest timers carry an optional local sourceSetId, never a synced field. Editing
+does not restart a timer or repeat a PR celebration. Deleting a linked source clears that rest;
+startup recovery also discards it if its source is no longer an eligible result. Manual/legacy
+unlinked timers are kept by deletion, with an explicit clear action available. The complete
+native recovery/cancellation matrix remains in 5.8.11 and the physical 5.7 gate.
