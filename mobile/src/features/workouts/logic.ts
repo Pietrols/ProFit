@@ -1,6 +1,7 @@
 import { scaleTargets, type Completion } from '../plans/logic';
 import type { Difficulty, Plan, PlanDay, PlanExercise, Targets } from '../plans/types';
 import { setLogId } from './identity';
+import { latestRecords } from './recordOrder';
 import {
   sessionInput,
   setInput,
@@ -78,21 +79,7 @@ export function completedSets(
   logs: readonly Stored<SetLog>[],
 ): SetLog[] {
   if (!liveSession(session)) return [];
-  const latest = new Map<string, Stored<SetLog>>();
-  for (const log of logs) {
-    if (log.sessionId !== session.id || !validTime(log.updatedAt)) continue;
-    const previous = latest.get(log.id);
-    if (
-      !previous ||
-      Date.parse(log.updatedAt) > Date.parse(previous.updatedAt) ||
-      (Date.parse(log.updatedAt) === Date.parse(previous.updatedAt) &&
-        ((Boolean(log.deletedAt) && !previous.deletedAt) ||
-          (Boolean(log.deletedAt) === Boolean(previous.deletedAt) &&
-            JSON.stringify(log) > JSON.stringify(previous))))
-    )
-      latest.set(log.id, log);
-  }
-  return [...latest.values()]
+  return latestRecords(logs.filter((log) => log.sessionId === session.id))
     .filter(
       (log) =>
         validLog(log) &&
