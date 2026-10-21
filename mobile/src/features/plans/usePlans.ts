@@ -60,7 +60,7 @@ export function usePlans() {
     data,
     error,
     retry: reload,
-    useStarter: (starter: StarterPlan) =>
+    copyStarter: (starter: StarterPlan) =>
       write((user) => copyStarter(db, user, starter, new Date())),
     savePlan: (input: PlanInput, id?: string) =>
       write((user) => store.savePlan(db, user, input, new Date(), id)),

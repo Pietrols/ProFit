@@ -127,8 +127,8 @@ export default function SignInScreen() {
               </AppText>
             ) : null}
             <AppText variant="caption" color="text2">
-              Your training is saved on this phone first and backed up to ProFit's server, so it
-              works offline and follows you to a new phone.
+              Your training is saved on this phone first and backed up to ProFit&apos;s server, so
+              it works offline and follows you to a new phone.
             </AppText>
           </View>
 

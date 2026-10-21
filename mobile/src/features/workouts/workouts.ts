@@ -1,9 +1,10 @@
 import type { Database, Sql } from '../../lib/db/database';
 import { randomId } from '../../lib/randomId';
 import { setLogId } from './identity';
-export { setLogId } from './identity';
 import { sessionInput, setInput, validateSession, validateSet } from './model';
 import type { SessionInput, SetInput, SetLog, WorkoutSession } from './types';
+
+export { setLogId } from './identity';
 
 const SESSION_COLUMNS = `id, plan_id AS planId, day_id AS dayId, local_date AS localDate,
   started_at AS startedAt, ended_at AS endedAt, status, notes, easier_today AS easierToday,

@@ -13,7 +13,6 @@ let cache: { version: number; list: Exercise[]; byId: Map<string, Exercise> } | 
 
 function load() {
   if (!cache) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
     const file = require('./data/library.json') as LibraryFile;
     const list = file.exercises.map((x) => ({ ...x, photoId: null }) as Exercise);
     cache = { version: file.version, list, byId: new Map(list.map((x) => [x.id, x])) };

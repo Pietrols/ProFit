@@ -10,7 +10,7 @@ import { Card } from '@/ui/Card';
 import { EmptyState } from '@/ui/EmptyState';
 import { Screen } from '@/ui/Screen';
 export default function PlansScreen() {
-  const { data, error, retry, useStarter } = usePlans();
+  const { data, error, retry, copyStarter } = usePlans();
   const [busy, setBusy] = useState(false);
   const [failed, setFailed] = useState<string | null>(null);
   if (error || !data) return <PlanState error={error} retry={retry} />;
@@ -55,7 +55,7 @@ export default function PlansScreen() {
             onPress={() => {
               setBusy(true);
               setFailed(null);
-              void useStarter(starter)
+              void copyStarter(starter)
                 .then(
                   (id) => router.push({ pathname: '/plans/form', params: { id } }),
                   (e: unknown) =>
