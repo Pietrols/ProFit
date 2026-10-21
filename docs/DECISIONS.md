@@ -306,3 +306,14 @@ results. Finalize stable identities and backward-compatible contracts before str
 Preserve legacy histories, unsynced edits and tombstones. These corrections supersede the
 original Phase 5 exclusions for replacement and history. Automatic progression and broader
 progress charts remain in their later phases. Physical notification testing remains mandatory.
+
+## D39. Reproducible lint and format tooling
+The approved development tooling uses ESLint 9.39.5 with Expo's SDK 57 configuration 57.0.2,
+TypeScript ESLint 8.72.0 and Prettier 3.9.10. Backend also declares @eslint/js 9.39.5 and
+globals 17.13.0. Lockfiles record the full resolved trees; no runtime dependency was added.
+
+TypeScript ESLint supports TypeScript >=4.8.4 and <6.1.0, so the backend compiler is aligned
+to mobile's TypeScript 6.0.3 instead of forcing an unsupported TypeScript 7 peer dependency.
+Keep the strict compiler settings and verify typecheck, build and database tests after this
+change. Reassess compiler and ESLint versions together when upgrading Expo's tooling.
+Reference: https://typescript-eslint.io/users/dependency-versions/ (checked 21 October 2026).
