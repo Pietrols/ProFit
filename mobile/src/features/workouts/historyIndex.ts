@@ -101,3 +101,19 @@ export async function rebuildHistoryIndex(db: Database, user: string) {
   });
   return refreshHistoryIndex(db, user);
 }
+
+// Check the dirty queue and read comparisons inside one transaction, without a sync/write gap.
+export async function withFreshHistory<T>(
+  db: Database,
+  user: string,
+  read: (tx: Sql) => Promise<T>,
+): Promise<T> {
+  for (;;) {
+    const step = await db.transaction(async (tx) => {
+      const batch = await refreshBatch(tx, user);
+      if (batch.sessions) return { ready: false as const };
+      return { ready: true as const, value: await read(tx) };
+    });
+    if (step.ready) return step.value;
+  }
+}

@@ -3,6 +3,8 @@ import type { Database, SqlValue } from '../../../lib/db/database';
 import { testDatabase } from '../../../lib/db/__tests__/nodeDriver';
 import { saveDay, savePlan } from '../../plans/plans';
 import { rebuildHistoryIndex, refreshHistoryIndex } from '../historyIndex';
+import { readWorkoutDetail } from '../workoutDetail';
+import { prefillFromSets } from '../logic';
 import {
   deleteSession,
   deleteSet,
@@ -138,4 +140,34 @@ it('retains the invalidation and prior projection when rebuilding fails, then re
   expect(JSON.parse((await rows(db))[0]!.log_json)).toMatchObject({
     values: { reps: 10, weight: 50 },
   });
+});
+
+it('repairs invalidations before exposing a detail comparison, including corrections and deletions', async () => {
+  const { db, id } = await fixture();
+  await finishSession(db, user, sessionId, 'completed', at(5));
+  const prior = (await getSession(db, user, sessionId))!;
+  const currentId = '00000000-0000-4000-8000-000000000004';
+  await startSession(
+    db,
+    user,
+    {
+      planId: prior.planId,
+      dayId: prior.dayId,
+      localDate: '2026-10-09',
+      snapshot: prior.snapshot,
+    },
+    at(10),
+    currentId,
+  );
+  const weight = async () => {
+    const current = (await readWorkoutDetail(db, user, currentId))!;
+    const exercise = current.session.snapshot.exercises[0]!;
+    return prefillFromSets(exercise, exercise, current.previousSets).weight;
+  };
+  expect(await weight()).toBe(45);
+  await saveSet(db, user, { ...set(), values: { reps: 8, weight: 50 } }, at(12));
+  expect(await weight()).toBe(50);
+  await deleteSet(db, user, id, at(13));
+  expect(await weight()).toBeUndefined();
+  expect(await readWorkoutDetail(db, other, currentId)).toBeNull();
 });
