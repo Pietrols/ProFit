@@ -1,6 +1,7 @@
 import type { Database } from '../../lib/db/database';
 import { withFreshHistory } from './historyIndex';
 import { readExerciseHistory } from './historyQueries';
+import { historyExerciseIds } from './historyRequests';
 import { getSession, readSessionSets } from './workouts';
 
 export function readWorkoutDetail(db: Database, user: string, id: string) {
@@ -11,7 +12,7 @@ export function readWorkoutDetail(db: Database, user: string, id: string) {
       const session = await getSession(tx, user, id);
       return {
         context: session,
-        exercises: [...new Set(session?.snapshot.exercises.map((e) => e.exerciseId) ?? [])],
+        exercises: session ? historyExerciseIds(session) : [],
       };
     },
     async (tx, session) => {

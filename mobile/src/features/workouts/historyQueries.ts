@@ -1,5 +1,5 @@
 import type { Sql, SqlValue } from '../../lib/db/database';
-import { completedSets, type ExerciseSet } from './logic';
+import { completedSets, personalRecords, type ExerciseSet } from './logic';
 import { prefillHistoryRequests } from './historyRequests';
 import type { SetLog, WorkoutSession } from './types';
 
@@ -40,12 +40,23 @@ export async function readExerciseHistory(
       ),
     );
   }
-  const candidates = completedSets(session, logs).map((log) => [
-    session.snapshot.exercises[log.exercisePosition]!.exerciseId,
-    Date.parse(log.loggedAt),
-    log.id,
-    log.values.weight ?? null,
-  ]);
+  const candidates = completedSets(session, logs)
+    .filter(
+      (log) =>
+        personalRecords(
+          {
+            exerciseId: session.snapshot.exercises[log.exercisePosition]!.exerciseId,
+            log,
+          },
+          [],
+        ).length > 0,
+    )
+    .map((log) => [
+      session.snapshot.exercises[log.exercisePosition]!.exerciseId,
+      Date.parse(log.loggedAt),
+      log.id,
+      log.values.weight ?? null,
+    ]);
   // Candidate-dependent lookups preserve exact same-instant ordering and reps at each load.
   for (let start = 0; start < candidates.length; start += 50) {
     const batch = candidates.slice(start, start + 50);

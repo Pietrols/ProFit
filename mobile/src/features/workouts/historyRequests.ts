@@ -1,6 +1,16 @@
 import type { WorkoutSession } from './types';
 
 export type PrefillHistoryField = 'weight' | 'reps' | 'time' | 'distance';
+export function historyExerciseIds(session: WorkoutSession): string[] {
+  return [
+    ...new Set([
+      ...prefillHistoryRequests(session).map((request) => request.exerciseId),
+      ...session.snapshot.exercises
+        .filter((e) => e.logFields.includes('time'))
+        .map((e) => e.exerciseId),
+    ]),
+  ];
+}
 export function prefillHistoryRequests(session: WorkoutSession) {
   const requests = new Map<string, { exerciseId: string; field: PrefillHistoryField }>();
   for (const exercise of session.snapshot.exercises) {

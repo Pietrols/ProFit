@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { prefillHistoryRequests } from '../historyRequests';
+import { historyExerciseIds, prefillHistoryRequests } from '../historyRequests';
 import { session, sessionId } from './fixtures';
 
 it('requests only historical fields that targets cannot supply and deduplicates repeated exercises', () => {
@@ -22,4 +22,17 @@ it('requests only historical fields that targets cannot supply and deduplicates 
     e.targetDistanceMetres = 10;
   });
   expect(prefillHistoryRequests(current).map((r) => r.field)).toEqual(['weight', 'reps']);
+});
+
+it('avoids history preparation for notes and target-only fields but retains timed record comparisons', () => {
+  const current = { ...session(), id: sessionId, updatedAt: session().startedAt };
+  const exercise = current.snapshot.exercises[0]!;
+  exercise.logFields = ['notes', 'done', 'rest', 'reps'];
+  expect(historyExerciseIds(current)).toEqual([]);
+  exercise.targetReps = null;
+  expect(historyExerciseIds(current)).toEqual([exercise.exerciseId]);
+  exercise.logFields = ['time'];
+  exercise.targetTimeSeconds = 30;
+  expect(prefillHistoryRequests(current)).toEqual([]);
+  expect(historyExerciseIds(current)).toEqual([exercise.exerciseId]);
 });

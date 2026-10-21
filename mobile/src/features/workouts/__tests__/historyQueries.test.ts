@@ -1,4 +1,4 @@
-import { expect, it } from 'vitest';
+import { expect, it, vi } from 'vitest';
 import type { Database } from '../../../lib/db/database';
 import { testDatabase } from '../../../lib/db/__tests__/nodeDriver';
 import { projectWorkoutHistory } from '../historyProjection';
@@ -81,6 +81,16 @@ async function equivalent(
   );
   return prepared;
 }
+
+it('performs no history query for a valid notes-only result', async () => {
+  const db = await testDatabase();
+  const current = workout(99, 10, null);
+  current.snapshot.exercises[0]!.logFields = ['notes', 'done'];
+  const actual = [log(current, 0, 11, { notes: 'Completed comfortably', done: true })];
+  const read = vi.spyOn(db, 'all');
+  expect(await readExerciseHistory(db, user, current, actual)).toEqual([]);
+  expect(read).not.toHaveBeenCalled();
+});
 
 it('matches full history for latest sparse/zero fields and exact records, excluding future completions and other exercises/accounts', async () => {
   const db = await testDatabase();
