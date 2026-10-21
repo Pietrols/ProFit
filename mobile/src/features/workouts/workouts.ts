@@ -134,7 +134,7 @@ export async function finishSession(
     if (session.status !== 'active') throw new Error('This session has already ended.');
     const endedAt = now.toISOString();
     check(validateSession({ ...sessionInput(session), status, endedAt }));
-    const logs = await listSets(tx, userId, id);
+    const logs = await readSessionSets(tx, userId, session);
     if (logs.some((set) => Date.parse(set.loggedAt) > now.getTime()))
       throw new Error('The end time must follow your logged sets.');
     await tx.run(
@@ -186,6 +186,19 @@ export async function saveSet(
 export async function listSets(db: Sql, userId: string, sessionId: string): Promise<SetLog[]> {
   const session = await getSession(db, userId, sessionId);
   if (!session) return [];
+  return readSessionSets(db, userId, session);
+}
+export async function readWorkout(db: Sql, userId: string, sessionId: string) {
+  const session = await getSession(db, userId, sessionId);
+  if (!session) return null;
+  return { session, logs: await readSessionSets(db, userId, session) };
+}
+async function readSessionSets(
+  db: Sql,
+  userId: string,
+  session: WorkoutSession,
+): Promise<SetLog[]> {
+  const sessionId = session.id;
   const rows = await db.all<
     Omit<SetLog, 'logFields' | 'values'> & { logFields: string; values: string }
   >(

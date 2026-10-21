@@ -5,6 +5,7 @@ import { nodeDriver } from '../../../lib/db/__tests__/nodeDriver';
 import { timeSqlV1 } from '../../../lib/db/timeSql';
 import { readWorkoutOverview, readWorkoutPage } from '../workoutReads';
 import { setLogId } from '../identity';
+import { readWorkout } from '../workouts';
 import { at, other, snapshot, user } from './fixtures';
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n + 100).padStart(12, '0')}`;
@@ -64,6 +65,21 @@ async function fixture(count: number, sets = 0, legacy = false) {
 }
 
 describe('bounded workout reads', () => {
+  it('reads only the requested owned session and its sets, without a second parent query', async () => {
+    for (const count of [50, 2000]) {
+      const { db, reads } = await fixture(count, 20);
+      const workout = await readWorkout(db, user, id(count - 1));
+      expect(workout?.logs).toHaveLength(20);
+      expect(reads).toHaveLength(2);
+      expect(reads.map((q) => q.rows)).toEqual([1, 20]);
+      expect(await readWorkout(db, other, id(count - 1))).toBeNull();
+      await db.run('UPDATE workout_sessions SET deleted_at = ? WHERE id = ?', [
+        at(3000).toISOString(),
+        id(count - 1),
+      ]);
+      expect(await readWorkout(db, user, id(count - 1))).toBeNull();
+    }
+  });
   it('keeps query count and returned rows bounded with 40,000 saved sets', async () => {
     for (const count of [0, 50, 500, 2000]) {
       const { db, reads } = await fixture(count, 20);
