@@ -1,6 +1,6 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useAuth } from '../auth/AuthProvider';
+import { useAuth, useAuthStore } from '../auth/AuthProvider';
 import { useSyncContext, useSyncStatus } from '../sync/SyncProvider';
 import type { Plan, PlanDay, PlanExercise } from '../plans/types';
 import { localDay } from '../../lib/dates';
@@ -10,17 +10,17 @@ import type { SetInput } from './types';
 export function useWorkouts() {
   const { db, engine } = useSyncContext();
   const auth = useAuth();
+  const authStore = useAuthStore();
   const { syncing } = useSyncStatus();
   const userId = auth.status === 'signedIn' ? auth.userId : null;
   const [result, setResult] = useState<{ user: string; history: WorkoutHistory[] } | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [revision, setRevision] = useState(0);
   const request = useRef(0);
-  const owner = useRef(userId);
-  owner.current = userId;
   const retry = useCallback(() => setRevision((v) => v + 1), []);
   const read = useCallback(async () => {
-    if (!userId) return;
+    const owner = authStore.getSnapshot();
+    if (!userId || owner.status !== 'signedIn' || owner.userId !== userId) return;
     const version = ++request.current;
     const sessions = await store.listSessions(db, userId);
     const history = await Promise.all(
@@ -29,11 +29,12 @@ export function useWorkouts() {
         logs: await store.listSets(db, userId, session.id),
       })),
     );
-    if (owner.current === userId && version === request.current) {
+    const current = authStore.getSnapshot();
+    if (current.status === 'signedIn' && current.userId === userId && version === request.current) {
       setResult({ user: userId, history });
       setError(null);
     }
-  }, [db, userId]);
+  }, [authStore, db, userId]);
   useFocusEffect(retry);
   useEffect(() => {
     let current = true;

@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { AppState } from 'react-native';
 import { useAuthStore } from '../auth/AuthProvider';
 import { useSyncContext, useSyncStatus } from '../sync/SyncProvider';
@@ -21,8 +29,9 @@ export function WorkoutAlerts({ children }: { children: ReactNode }) {
   const { syncing } = useSyncStatus();
   const alerts = useMemo(() => createRestAlerts(restPort), []);
   const [error, setError] = useState<string | null>(null);
-  const report = (e: unknown) =>
+  const report = useCallback((e: unknown) => {
     setError(e instanceof Error ? e.message : 'Could not update background rest alerts.');
+  }, []);
   useEffect(() => {
     const read = async (user: string, session: string) => {
       const saved = await getSession(db, user, session);
@@ -57,7 +66,7 @@ export function WorkoutAlerts({ children }: { children: ReactNode }) {
       unsubscribe();
       subscription.remove();
     };
-  }, [alerts, auth, db, syncing]);
+  }, [alerts, auth, db, report, syncing]);
   return (
     <Context.Provider
       value={{

@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMe } from '@/features/auth/AuthProvider';
 import { SyncBanner } from '@/features/sync/SyncBanner';
 import {
@@ -86,10 +86,18 @@ function Workout({
   const { me } = useMe();
   const units = me?.profile.unitSystem ?? 'metric';
   const { alerts, error: alertError, report, enable } = useWorkoutAlerts();
-  const [now, setNow] = useState(Date.now());
+  const [now, setNow] = useState(() => Date.now());
   const [notes, setNotes] = useState(session.notes);
   const timerVersion = useRef(0);
-  const [timer, setTimer] = useState<TimerState | null>(null);
+  const [savedTimer, setTimer] = useState<TimerState | null>(null);
+  const timer = useMemo(
+    () =>
+      timerAfterLogs(
+        savedTimer,
+        logs.map((log) => log.loggedAt),
+      ),
+    [savedTimer, logs],
+  );
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -106,12 +114,7 @@ function Workout({
     loadWorkoutTimer(kvStore, user, session.id).then(
       (value) => {
         if (live && version === timerVersion.current) {
-          setTimer(
-            timerAfterLogs(
-              value,
-              logs.map((log) => log.loggedAt),
-            ),
-          );
+          setTimer(value);
           setReady(true);
         }
       },
@@ -130,7 +133,7 @@ function Workout({
   const awakeError = useWorkoutAwake(active);
   useEffect(() => {
     if (ready || !active) void alerts.update(user, session.id, active ? timer : null).catch(report);
-  }, [alerts, user, session.id, active, ready, timer]);
+  }, [alerts, user, session.id, active, ready, timer, report]);
   const exercise = next ? session.snapshot.exercises[next.exercisePosition]! : null;
   const initial = exercise
     ? prefill(
