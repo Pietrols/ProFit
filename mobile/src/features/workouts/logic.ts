@@ -232,11 +232,10 @@ export function sessionVolume(
     0,
   );
 }
-export function sessionSummary(
+export function sessionResults(
   session: Stored<WorkoutSession>,
   logs: readonly Stored<SetLog>[],
   history: readonly WorkoutHistory[],
-  now: string,
 ) {
   const completed = completedSets(session, logs).sort(chronological);
   const earlier = historySets(
@@ -259,17 +258,24 @@ export function sessionSummary(
       );
       earlier.push(candidate);
     }
+  return {
+    ...workoutProgress(session, logs),
+    volumeKg: sessionVolume(session, logs),
+    records,
+  };
+}
+export function sessionSummary(
+  session: Stored<WorkoutSession>,
+  logs: readonly Stored<SetLog>[],
+  history: readonly WorkoutHistory[],
+  now: string,
+) {
   const end = session.endedAt ?? now;
   const elapsedSeconds =
     liveSession(session) && validTime(end)
       ? Math.max(0, (Date.parse(end) - Date.parse(session.startedAt)) / 1000)
       : 0;
-  return {
-    ...workoutProgress(session, logs),
-    elapsedSeconds,
-    volumeKg: sessionVolume(session, logs),
-    records,
-  };
+  return { ...sessionResults(session, logs, history), elapsedSeconds };
 }
 export function lastCompletion(
   planId: string,

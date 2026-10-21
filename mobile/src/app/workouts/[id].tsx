@@ -4,25 +4,19 @@ import { useMe } from '@/features/auth/AuthProvider';
 import { SyncBanner } from '@/features/sync/SyncBanner';
 import {
   prefill,
-  sessionSummary,
+  sessionResults,
   sessionTargets,
   type WorkoutHistory,
 } from '@/features/workouts/logic';
 import { SetForm } from '@/features/workouts/SetForm';
 import { TimerControls } from '@/features/workouts/TimerControls';
+import { SessionClock } from '@/features/workouts/SessionClock';
 import {
   loadWorkoutTimer,
   saveWorkoutTimer,
   timerAfterLogs,
 } from '@/features/workouts/timerStorage';
-import {
-  formatTimer,
-  pauseTimer,
-  resumeTimer,
-  sessionClock,
-  startTimer,
-  type TimerState,
-} from '@/features/workouts/timers';
+import { pauseTimer, resumeTimer, startTimer, type TimerState } from '@/features/workouts/timers';
 import { useWorkouts } from '@/features/workouts/useWorkouts';
 import { useWorkoutAwake } from '@/features/workouts/useWorkoutAwake';
 import { useWorkoutAlerts } from '@/features/workouts/WorkoutAlerts';
@@ -86,7 +80,6 @@ function Workout({
   const { me } = useMe();
   const units = me?.profile.unitSystem ?? 'metric';
   const { alerts, error: alertError, report, enable } = useWorkoutAlerts();
-  const [now, setNow] = useState(() => Date.now());
   const [notes, setNotes] = useState(session.notes);
   const timerVersion = useRef(0);
   const [savedTimer, setTimer] = useState<TimerState | null>(null);
@@ -104,10 +97,6 @@ function Workout({
   const lock = useRef(false);
   const [confirm, setConfirm] = useState<'completed' | 'abandoned' | null>(null);
   const [lastSet, setLastSet] = useState<string | null>(null);
-  useEffect(() => {
-    const handle = setInterval(() => setNow(Date.now()), 250);
-    return () => clearInterval(handle);
-  }, []);
   useEffect(() => {
     let live = true;
     const version = ++timerVersion.current;
@@ -127,7 +116,10 @@ function Workout({
       live = false;
     };
   }, [user, session.id]);
-  const summary = sessionSummary(session, logs, workouts.data ?? [], new Date(now).toISOString());
+  const summary = useMemo(
+    () => sessionResults(session, logs, workouts.data ?? []),
+    [session, logs, workouts.data],
+  );
   const active = session.status === 'active';
   const next = summary.next;
   const awakeError = useWorkoutAwake(active);
@@ -135,14 +127,18 @@ function Workout({
     if (ready || !active) void alerts.update(user, session.id, active ? timer : null).catch(report);
   }, [alerts, user, session.id, active, ready, timer, report]);
   const exercise = next ? session.snapshot.exercises[next.exercisePosition]! : null;
-  const initial = exercise
-    ? prefill(
-        exercise,
-        sessionTargets(exercise, session.snapshot.difficulty, session.easierToday),
-        workouts.data ?? [],
-        session.startedAt,
-      )
-    : {};
+  const initial = useMemo(
+    () =>
+      exercise
+        ? prefill(
+            exercise,
+            sessionTargets(exercise, session.snapshot.difficulty, session.easierToday),
+            workouts.data ?? [],
+            session.startedAt,
+          )
+        : {},
+    [exercise, session.snapshot.difficulty, session.easierToday, session.startedAt, workouts.data],
+  );
   async function saveTimer(value: TimerState | null) {
     ++timerVersion.current;
     await alerts.update(user, session.id, null).catch(report);
@@ -208,15 +204,7 @@ function Workout({
       <SyncBanner />
       <Card>
         <AppText variant="label">{active ? 'In progress' : session.status}</AppText>
-        <AppText variant="display">
-          {formatTimer(
-            sessionClock(
-              Date.parse(session.startedAt),
-              session.endedAt ? Date.parse(session.endedAt) : null,
-              now,
-            ),
-          )}
-        </AppText>
+        <SessionClock startedAt={session.startedAt} endedAt={session.endedAt} />
         <AppText>
           {summary.completed} / {summary.total} sets logged
         </AppText>
@@ -245,7 +233,6 @@ function Workout({
           <Card>
             <TimerControls
               timer={timer}
-              now={now}
               busy={busy || !ready}
               start={(config) => fire(() => saveTimer(startTimer(config, Date.now(), randomId())))}
               pause={() => fire(() => saveTimer(timer ? pauseTimer(timer, Date.now()) : null))}

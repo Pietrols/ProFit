@@ -4,9 +4,9 @@ import { Button } from '@/ui/Button';
 import { TextField } from '@/ui/TextField';
 import { formatTimer, timerView, validateTimer, type TimerConfig, type TimerState } from './timers';
 import { timerConfig } from './workoutForm';
+import { useWorkoutClock } from './useWorkoutClock';
 export function TimerControls({
   timer,
-  now,
   busy,
   start,
   pause,
@@ -14,7 +14,6 @@ export function TimerControls({
   clear,
 }: {
   timer: TimerState | null;
-  now: number;
   busy: boolean;
   start: (config: TimerConfig) => void;
   pause: () => void;
@@ -28,27 +27,10 @@ export function TimerControls({
   const [rounds, setRounds] = useState('8');
   const config = timerConfig(mode, seconds, rest, rounds);
   const error = validateTimer(config);
-  const view = timer ? timerView(timer, now) : null;
   return (
     <>
       <AppText variant="title">{timer?.config.mode ?? 'Timer'}</AppText>
-      <AppText variant="display">
-        {view ? formatTimer(view.remainingMs ?? view.elapsedMs, view.remainingMs !== null) : '0:00'}
-      </AppText>
-      {view ? (
-        <AppText>
-          {view.segment}
-          {view.round !== null ? ` · Round ${view.round}` : ''}
-        </AppText>
-      ) : null}
-      {timer && !view?.done ? (
-        <Button
-          label={timer.runningSince === null ? 'Resume timer' : 'Pause timer'}
-          variant="secondary"
-          disabled={busy || timer.config.mode === 'session'}
-          onPress={timer.runningSince === null ? resume : pause}
-        />
-      ) : null}
+      <TimerReadout timer={timer} busy={busy} pause={pause} resume={resume} />
       {timer ? (
         <Button label="Clear timer" variant="secondary" disabled={busy} onPress={clear} />
       ) : null}
@@ -102,6 +84,42 @@ export function TimerControls({
             }}
           />
         </>
+      ) : null}
+    </>
+  );
+}
+
+function TimerReadout({
+  timer,
+  busy,
+  pause,
+  resume,
+}: {
+  timer: TimerState | null;
+  busy: boolean;
+  pause: () => void;
+  resume: () => void;
+}) {
+  const now = useWorkoutClock(timer !== null && timer.runningSince !== null);
+  const view = timer ? timerView(timer, now) : null;
+  return (
+    <>
+      <AppText variant="display">
+        {view ? formatTimer(view.remainingMs ?? view.elapsedMs, view.remainingMs !== null) : '0:00'}
+      </AppText>
+      {view ? (
+        <AppText>
+          {view.segment}
+          {view.round !== null ? ` · Round ${view.round}` : ''}
+        </AppText>
+      ) : null}
+      {timer && !view?.done ? (
+        <Button
+          label={timer.runningSince === null ? 'Resume timer' : 'Pause timer'}
+          variant="secondary"
+          disabled={busy || timer.config.mode === 'session'}
+          onPress={timer.runningSince === null ? resume : pause}
+        />
       ) : null}
     </>
   );
