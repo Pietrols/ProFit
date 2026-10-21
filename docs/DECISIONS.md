@@ -364,3 +364,28 @@ does not restart a timer or repeat a PR celebration. Deleting a linked source cl
 startup recovery also discards it if its source is no longer an eligible result. Manual/legacy
 unlinked timers are kept by deletion, with an explicit clear action available. The complete
 native recovery/cancellation matrix remains in 5.8.11 and the physical 5.7 gate.
+
+## D42. Negotiate sync compatibility before structural workout records
+Step 5.8.5 begins with a transport compatibility slice. The authenticated capabilities endpoint
+advertises supported protocol numbers, the minimum protocol and explicit feature names. A new
+client checks it on every sync run, before media upload, push or pull. A missing endpoint,
+unsupported protocol or missing required feature stops the run without clearing dirty rows or
+advancing the cursor. An offline capability request remains an ordinary offline result.
+
+Protocol 2 adds an explicit protocol number to push envelopes and pull queries. It still accepts
+legacy record shapes. Initially the server accepts protocols 1 and 2, minimum 1, and advertises no
+structural-workout feature: existing clients can continue syncing while this preparation ships.
+No new item, slot or result format is enabled by this transport change alone.
+
+Before enabling structural writes, commit the exact additive record contract and fixtures,
+implement both stores/readers and their cache invalidation, then raise the server minimum to 2
+and advertise the structural feature in the same compatibility slice. Reject a below-minimum
+request with HTTP 426 before processing any record or producing a pull page, never as per-record
+rejections. New clients require that feature before writing its records to the server. This
+prevents an old client from skipping unknown collections and advancing its shared cursor.
+
+Deployment is server first, then the app. At cutover, old installed apps keep working locally but
+must upgrade to resume sync. Upgrading preserves their pending legacy edits; do not delete local
+storage, change canonical identities or reset sync cursors as a shortcut. An old server's missing
+capability endpoint similarly blocks the new client's sync and keeps every pending edit. D17's
+ordinary invalid-record rejection policy and D21's latest-edit merge policy are unchanged.
