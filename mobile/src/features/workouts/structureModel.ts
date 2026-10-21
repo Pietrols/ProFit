@@ -1,13 +1,15 @@
 import {
+  setInput,
   validTime,
   validUuid,
   validateLoggedValues,
   validatePerformanceTargets,
   validateSnapshotExercise,
+  validateSet,
 } from './model';
 import { plannedItemId, sessionSlotId } from './structureIdentity';
 import type { SessionItem, StableSetLog } from './structureTypes';
-import type { WorkoutSession } from './types';
+import type { SetLog, WorkoutSession } from './types';
 
 type ObjectValue = Record<string, unknown>;
 const object = (value: unknown): value is ObjectValue =>
@@ -137,6 +139,31 @@ export function validateStableSetContext(
     result.id !== sessionSlotId(item, result.setIndex)
   )
     return 'This set does not match its session exercise and slot.';
+  return validatePerformanceTime(result, session);
+}
+
+export function validateLegacySetContext(
+  result: SetLog,
+  item: SessionItem,
+  session: WorkoutSession,
+): string | null {
+  const error =
+    validateSet(setInput(result), session.snapshot) ?? validateSessionItem(item, session);
+  if (error) return error;
+  if (
+    item.origin !== 'planned' ||
+    result.sessionId !== session.id ||
+    result.exercisePosition !== item.originalPosition ||
+    result.id !== sessionSlotId(item, result.setIndex)
+  )
+    return 'This legacy set does not match its original exercise and slot.';
+  return validatePerformanceTime(result, session);
+}
+
+function validatePerformanceTime(
+  result: Pick<SetLog, 'loggedAt'>,
+  session: WorkoutSession,
+): string | null {
   if (
     Date.parse(result.loggedAt) < Date.parse(session.startedAt) ||
     (session.endedAt !== null && Date.parse(result.loggedAt) > Date.parse(session.endedAt))
