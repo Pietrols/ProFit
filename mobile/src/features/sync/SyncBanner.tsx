@@ -29,9 +29,16 @@ export function SyncBanner() {
         borderWidth: 1,
         borderColor: colors.caution,
         backgroundColor: colors.surface,
-      }}>
-      <Ionicons name={offline ? 'cloud-offline-outline' : 'alert-circle-outline'} size={20} color={colors.caution} />
-      <AppText variant="caption" style={{ flex: 1 }}>{message}</AppText>
+      }}
+    >
+      <Ionicons
+        name={offline ? 'cloud-offline-outline' : 'alert-circle-outline'}
+        size={20}
+        color={colors.caution}
+      />
+      <AppText variant="caption" style={{ flex: 1 }}>
+        {message}
+      </AppText>
     </View>
   );
 }

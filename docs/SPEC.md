@@ -84,6 +84,20 @@ Exact tokens live in `docs/DESIGN.md` and `mobile/src/theme/tokens.ts`.
 - The rest countdown keeps running and alerts when the app is in the background.
 - The screen stays awake during a session.
 - Notes per set and per session. Personal records are flagged as they happen.
+- Correct, delete and undo logged sets while preserving their identity and original performance
+  time. Recalculate affected totals and records.
+- Adapt this workout: select another exercise, defer, skip/restore, add/remove/replace/reorder
+  exercises and change remaining sets. Preserve the original routine and every performed result.
+- Prioritize the current set, relevant timer and save action; show next work and an overview.
+  Provide unit-aware weight/repetition steppers alongside editable inputs.
+- Reopen workout history offline, compare exercise results and review original planned work,
+  session adjustments and actual results. Broader progress charts remain in section 4.7.
+- Record a planned rest day directly from Home with safe undo.
+- Offer optional plate loading based on the available bar, collars and plate inventory, and
+  explicit per-side logging with clear load/volume conventions. Never reinterpret legacy logs.
+
+These review corrections were authorized on 20 October 2026 (D38). Their implementation order
+and acceptance checks are in BUILD_PLAN and `phases/PHASE_5_CORRECTIONS.md`.
 
 ### 4.5 Progression and streaks
 - Progression rules per exercise (for example: add weight when every set hits its reps, move up a

@@ -287,3 +287,126 @@ show that native alerts are unavailable.
 If a set committed after a saved timer began, recovery discards that old timer. Failed refresh
 after a committed workout write is reported separately, so it does not skip the saved set's
 timer transition. Phone verification remains required before Phase 5 is complete.
+
+## D38. Phase 5 correction scope and tooling approval
+Peter authorized the review corrections on 20 October 2026: set edit/delete/undo, flexible
+session selection, skip/restore, add/remove/replace/reorder, history and exercise comparison,
+bounded history reads, isolated timer rendering, steppers, one-tap rest days, plate loading,
+per-side results and planned-versus-actual summaries. The detailed acceptance contract is
+`phases/PHASE_5_CORRECTIONS.md`; BUILD_PLAN orders 5.8.1 through 5.8.12 before the final 5.7
+real-phone gate. This approval is scope, not a claim that these features are implemented.
+
+ESLint, Prettier and their required development parsers/configuration, including Expo and
+TypeScript integration, are approved. Do not ask again for those tools. Unrelated runtime
+dependencies still require approval. Enforce readable code and small, tested, pushed commits;
+keep mechanical formatting separate from behavior and do not rewrite merged history.
+
+Keep the original routine immutable and store session adjustments separately from performed
+results. Finalize stable identities and backward-compatible contracts before structural edits.
+Preserve legacy histories, unsynced edits and tombstones. These corrections supersede the
+original Phase 5 exclusions for replacement and history. Automatic progression and broader
+progress charts remain in their later phases. Physical notification testing remains mandatory.
+
+## D39. Reproducible lint and format tooling
+The approved development tooling uses ESLint 9.39.5 with Expo's SDK 57 configuration 57.0.2,
+TypeScript ESLint 8.72.0 and Prettier 3.9.10. Backend also declares @eslint/js 9.39.5 and
+globals 17.13.0. Lockfiles record the full resolved trees; no runtime dependency was added.
+
+TypeScript ESLint supports TypeScript >=4.8.4 and <6.1.0, so the backend compiler is aligned
+to mobile's TypeScript 6.0.3 instead of forcing an unsupported TypeScript 7 peer dependency.
+Keep the strict compiler settings and verify typecheck, build and database tests after this
+change. Reassess compiler and ESLint versions together when upgrading Expo's tooling.
+Reference: https://typescript-eslint.io/users/dependency-versions/ (checked 21 October 2026).
+
+## D40. Bounded workout reads and exact historical comparisons
+Home reads active session summaries and at most one latest completion for its plan, never set
+logs. Resume controls receive that same read. History uses 25-row keyset pages ordered by start
+instant descending and id ascending. SQLite expression indexes preserve Date.parse millisecond
+semantics, including offsets and fractional seconds; they do not rewrite dirty canonical rows.
+The versioned SQL expression is frozen because shipped migration indexes depend on it.
+
+Live display state belongs in clock/readout components. Session results and prefills depend on
+data revisions, not wall-clock ticks. Focused reads publish only for their current account and
+request version; sync completion refreshes once. These parts are implemented and tested.
+
+The remaining exercise-history read will use a rebuildable local projection of valid completed
+results, with numeric performance/completion instants and indexed exercise/metric columns.
+Canonical sessions and sets remain authoritative and retain their ids, timestamps and sync
+metadata. SQLite triggers transactionally mark changed sessions dirty after local or sync writes;
+projection reads repair those invalidations before returning comparisons. The projection is not
+a synced collection, and losing it must not lose a workout. Initial rebuilds and warm reads need
+separate query/row-count evidence. Do not claim phone timings from the Node fixture.
+
+Fetch exact latest values and metric bests for the requested exercises, cutoff and candidate
+loads, rather than clipping to the latest N workouts. Historical bests must respect completion
+cutoffs and loggedAt/id ordering, including equal instants. Return only the representatives
+needed for current-session calculations. Keep legacy pure-function entry points as equivalence
+oracles while introducing the bounded input path. This contract was approved before the cache
+code. Its implementation and verification are recorded in PHASE_5_CORRECTIONS.md.
+
+## D41. Set corrections, undo and rest ownership
+Step 5.8.4 uses transactional commands over existing set rows. A correction preserves id,
+session, exercise position, slot, chosen fields and loggedAt; only values and edit metadata
+change. A revision fingerprint includes the full saved result and deletion state, so even a
+different result with an equal timestamp is stale. Edit times are strictly later than the
+previous edit (at least one millisecond), without changing D21's server clock cap or merge rule.
+
+Delete returns an undo receipt containing the prior values and the exact deletion revision.
+Undo restores that identity only while that deletion still matches. Conflicts show the current
+result and the attempted values; replacing/restoring a newer version requires an explicit UI
+action and another fresh revision check. Failed local writes retain drafts. A successful write
+followed by failed refresh remains saved and blocks another mutation until a fresh read.
+These checks prevent stale local commands; simultaneous offline phones still follow D21's
+latest-edit merge policy. Do not claim a server-wide compare-and-swap protocol.
+
+New automatic rest timers carry an optional local sourceSetId, never a synced field. Editing
+does not restart a timer or repeat a PR celebration. Deleting a linked source clears that rest;
+startup recovery also discards it if its source is no longer an eligible result. Manual/legacy
+unlinked timers are kept by deletion, with an explicit clear action available. The complete
+native recovery/cancellation matrix remains in 5.8.11 and the physical 5.7 gate.
+
+## D42. Negotiate sync compatibility before structural workout records
+Step 5.8.5 begins with a transport compatibility slice. The authenticated capabilities endpoint
+advertises supported protocol numbers, the minimum protocol and explicit feature names. A new
+client checks it on every sync run, before media upload, push or pull. A missing endpoint,
+unsupported protocol or missing required feature stops the run without clearing dirty rows or
+advancing the cursor. An offline capability request remains an ordinary offline result.
+
+Protocol 2 adds an explicit protocol number to push envelopes and pull queries. It still accepts
+legacy record shapes. Initially the server accepts protocols 1 and 2, minimum 1, and advertises no
+structural-workout feature: existing clients can continue syncing while this preparation ships.
+No new item, slot or result format is enabled by this transport change alone.
+
+Before enabling structural writes, commit the exact additive record contract and fixtures,
+implement both stores/readers and their cache invalidation, then raise the server minimum to 2
+and advertise the structural feature in the same compatibility slice. Reject a below-minimum
+request with HTTP 426 before processing any record or producing a pull page, never as per-record
+rejections. New clients require that feature before writing its records to the server. This
+prevents an old client from skipping unknown collections and advancing its shared cursor.
+
+Deployment is server first, then the app. At cutover, old installed apps keep working locally but
+must upgrade to resume sync. Upgrading preserves their pending legacy edits; do not delete local
+storage, change canonical identities or reset sync cursors as a shortcut. An old server's missing
+capability endpoint similarly blocks the new client's sync and keeps every pending edit. D17's
+ordinary invalid-record rejection policy and D21's latest-edit merge policy are unchanged.
+
+## D43. Stable items and deterministic slots
+The exact additive contract is in `docs/phases/WORKOUT_STRUCTURE_CONTRACT.md`. A synced item is
+one exercise occurrence, independently ordered and linked to the unchanged original routine.
+Slots are immutable item/index pairs with deterministic ids, so a separate synced slot table is
+unnecessary for this phase's exercise-order and set-count operations. Planned slot ids preserve
+the legacy namespace; added/replacement slots use their random item id as namespace.
+
+Extend set_logs with a strict legacy/stable variant rather than assigning fake display positions
+to added exercises. Capture effective targets only on new performance; do not manufacture them
+for history. The first stable variant is bilateral. Per-side wire semantics and their client
+compatibility gate are finalized in 5.8.10. Commit schema fixtures before migrations, preserve
+pending legacy rows/tombstones, and complete indexed read compatibility before enabling writes.
+
+Storage is staged while this feature remains disabled. SQLite migration 8 permits a null
+original position and restores its indexes/invalidation triggers after copying legacy columns.
+PostgreSQL migration 0005 adds only the item table and nullable metadata columns. Drop its
+exercise_position NOT NULL constraint when switching result serialization to the union, before
+the D42 cutover. Until that complete slice, no structural collection/feature is advertised or
+written through app controls. Do not mistake the additive storage checkpoint for completed
+reader/sync compatibility.

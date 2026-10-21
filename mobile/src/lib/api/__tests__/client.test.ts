@@ -6,12 +6,21 @@ import { ApiError, NetworkError } from '../errors';
 const NOW = Date.parse('2026-10-07T10:00:00Z');
 const inMinutes = (m: number) => new Date(NOW + m * 60_000).toISOString();
 
-const freshSession: Session = { accessToken: 'access-1', accessTokenExpiresAt: inMinutes(15), refreshToken: 'refresh-1' };
-const nextSession: Session = { accessToken: 'access-2', accessTokenExpiresAt: inMinutes(30), refreshToken: 'refresh-2' };
+const freshSession: Session = {
+  accessToken: 'access-1',
+  accessTokenExpiresAt: inMinutes(15),
+  refreshToken: 'refresh-1',
+};
+const nextSession: Session = {
+  accessToken: 'access-2',
+  accessTokenExpiresAt: inMinutes(30),
+  refreshToken: 'refresh-2',
+};
 
 const json = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
-const apiError = (status: number, code: string, message = code) => json(status, { error: { code, message } });
+const apiError = (status: number, code: string, message = code) =>
+  json(status, { error: { code, message } });
 
 type Call = { url: string; method: string; auth: string | null; body: unknown };
 
@@ -32,7 +41,10 @@ function fakeFetch(handler: (call: Call) => Response | Promise<Response>) {
   return { fn: fn as unknown as typeof fetch, calls };
 }
 
-function setup(handler: (call: Call) => Response | Promise<Response>, start: Session | null = freshSession) {
+function setup(
+  handler: (call: Call) => Response | Promise<Response>,
+  start: Session | null = freshSession,
+) {
   let session = start;
   const saved: Session[] = [];
   const expired = vi.fn();
@@ -55,7 +67,9 @@ describe('createApiClient', () => {
   it('sends the access token and parses the reply', async () => {
     const { client, calls } = setup(() => json(200, { ok: true }));
     await expect(client.get('/me')).resolves.toEqual({ ok: true });
-    expect(calls).toEqual([{ url: 'http://api.test/me', method: 'GET', auth: 'Bearer access-1', body: undefined }]);
+    expect(calls).toEqual([
+      { url: 'http://api.test/me', method: 'GET', auth: 'Bearer access-1', body: undefined },
+    ]);
   });
 
   it('sends no token on public calls', async () => {
@@ -66,7 +80,11 @@ describe('createApiClient', () => {
 
   it('refreshes before the request when the access token is about to expire', async () => {
     const nearlyExpired = { ...freshSession, accessTokenExpiresAt: inMinutes(0.5) };
-    const { client, calls, saved } = setup((call) => (call.url.endsWith('/auth/refresh') ? json(200, { session: nextSession }) : json(200, {})), nearlyExpired);
+    const { client, calls, saved } = setup(
+      (call) =>
+        call.url.endsWith('/auth/refresh') ? json(200, { session: nextSession }) : json(200, {}),
+      nearlyExpired,
+    );
     await client.get('/me');
     expect(calls.map((c) => c.url)).toEqual(['http://api.test/auth/refresh', 'http://api.test/me']);
     expect(calls[0]!.body).toEqual({ refreshToken: 'refresh-1' });
@@ -93,14 +111,21 @@ describe('createApiClient', () => {
 
   it('shares one refresh between requests that need it at the same time', async () => {
     const nearlyExpired = { ...freshSession, accessTokenExpiresAt: inMinutes(0) };
-    const { client, calls } = setup((call) => (call.url.endsWith('/auth/refresh') ? json(200, { session: nextSession }) : json(200, {})), nearlyExpired);
+    const { client, calls } = setup(
+      (call) =>
+        call.url.endsWith('/auth/refresh') ? json(200, { session: nextSession }) : json(200, {}),
+      nearlyExpired,
+    );
     await Promise.all([client.get('/me'), client.get('/me'), client.get('/me')]);
     expect(calls.filter((c) => c.url.endsWith('/auth/refresh'))).toHaveLength(1);
   });
 
   it('reports an ended sign-in when the refresh token is refused', async () => {
     const nearlyExpired = { ...freshSession, accessTokenExpiresAt: inMinutes(0) };
-    const { client, expired, saved } = setup(() => apiError(401, 'SESSION_EXPIRED', 'Your session has ended.'), nearlyExpired);
+    const { client, expired, saved } = setup(
+      () => apiError(401, 'SESSION_EXPIRED', 'Your session has ended.'),
+      nearlyExpired,
+    );
     await expect(client.get('/me')).rejects.toMatchObject({ code: 'SESSION_EXPIRED' });
     expect(expired).toHaveBeenCalledOnce();
     expect(saved).toEqual([]);
@@ -117,10 +142,16 @@ describe('createApiClient', () => {
   });
 
   it('turns API error bodies into ApiError with their code and message', async () => {
-    const { client } = setup(() => apiError(400, 'VALIDATION_FAILED', 'birthYear: must be 2013 or earlier'));
+    const { client } = setup(() =>
+      apiError(400, 'VALIDATION_FAILED', 'birthYear: must be 2013 or earlier'),
+    );
     const error = await client.patch('/me', { birthYear: 2020 }).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(ApiError);
-    expect(error).toMatchObject({ status: 400, code: 'VALIDATION_FAILED', message: 'birthYear: must be 2013 or earlier' });
+    expect(error).toMatchObject({
+      status: 400,
+      code: 'VALIDATION_FAILED',
+      message: 'birthYear: must be 2013 or earlier',
+    });
   });
 
   it('copes with error replies that are not JSON', async () => {
@@ -136,12 +167,21 @@ describe('createApiClient', () => {
 
   it('returns nothing for 204 replies', async () => {
     const { client } = setup(() => new Response(null, { status: 204 }));
-    await expect(client.post('/auth/sign-out', { refreshToken: 'refresh-1' }, { auth: false })).resolves.toBeUndefined();
+    await expect(
+      client.post('/auth/sign-out', { refreshToken: 'refresh-1' }, { auth: false }),
+    ).resolves.toBeUndefined();
   });
 
   it('gives a clear error when no server address is set', async () => {
-    const client = createApiClient({ baseUrl: '', getSession: () => null, saveSession: async () => {}, onSessionExpired: () => {} });
-    await expect(client.post('/auth/dev', {}, { auth: false })).rejects.toThrow(/EXPO_PUBLIC_API_URL/);
+    const client = createApiClient({
+      baseUrl: '',
+      getSession: () => null,
+      saveSession: async () => {},
+      onSessionExpired: () => {},
+    });
+    await expect(client.post('/auth/dev', {}, { auth: false })).rejects.toThrow(
+      /EXPO_PUBLIC_API_URL/,
+    );
   });
 });
 
@@ -154,10 +194,15 @@ describe('auth headers for native transfers', () => {
   });
 
   it('refreshes first when the token is about to run out, or when asked to', async () => {
-    const { client, saved } = setup(() => json(200, { session: nextSession }), { ...freshSession, accessTokenExpiresAt: inMinutes(0.5) });
+    const { client, saved } = setup(() => json(200, { session: nextSession }), {
+      ...freshSession,
+      accessTokenExpiresAt: inMinutes(0.5),
+    });
     await expect(client.authHeaders()).resolves.toEqual({ Authorization: 'Bearer access-2' });
     const second = setup(() => json(200, { session: nextSession }));
-    await expect(second.client.authHeaders({ refresh: true })).resolves.toEqual({ Authorization: 'Bearer access-2' });
+    await expect(second.client.authHeaders({ refresh: true })).resolves.toEqual({
+      Authorization: 'Bearer access-2',
+    });
     expect(saved).toEqual([nextSession]);
   });
 

@@ -48,13 +48,21 @@ export const MUSCLE_LABELS: Record<Muscle, string> = {
 };
 
 export const TRACKING_LABELS: Record<Tracking, { label: string; description: string }> = {
-  weight_reps: { label: 'Weight and reps', description: 'For lifts with a barbell, dumbbells, cables or machines.' },
+  weight_reps: {
+    label: 'Weight and reps',
+    description: 'For lifts with a barbell, dumbbells, cables or machines.',
+  },
   reps: { label: 'Reps', description: 'For bodyweight moves. Added weight can still be logged.' },
   time: { label: 'Time', description: 'For holds and stretches, like a plank.' },
   distance_time: { label: 'Distance and time', description: 'For runs, rides and rowing.' },
 };
 
-export const LEVEL_LABELS: Record<Level, string> = { beginner: 'Beginner', intermediate: 'Intermediate', expert: 'Advanced' };
+export const LEVEL_LABELS: Record<Level, string> = {
+  beginner: 'Beginner',
+  intermediate: 'Intermediate',
+  expert: 'Advanced',
+};
 
 // "Quads, Glutes" for a list of muscles.
-export const musclesText = (muscles: Muscle[]) => muscles.map((m) => MUSCLE_LABELS[m] ?? m).join(', ');
+export const musclesText = (muscles: Muscle[]) =>
+  muscles.map((m) => MUSCLE_LABELS[m] ?? m).join(', ');

@@ -1,4 +1,8 @@
 import type { Migration } from './database';
+import { timeSqlV1 } from './timeSql';
+import { WORKOUT_HISTORY_V6 } from './workoutHistoryV6';
+import { WORKOUT_HISTORY_V7 } from './workoutHistoryV7';
+import { WORKOUT_STRUCTURE_V8 } from './workoutStructureV8';
 
 // The phone's schema, one step per version. Never edit a step that has shipped; add a new one.
 //
@@ -78,7 +82,9 @@ export const migrations: Migration[] = [
       CREATE INDEX media_user_uploaded ON media (user_id, uploaded);
     `,
   },
-  { version: 3, sql: `
+  {
+    version: 3,
+    sql: `
 CREATE TABLE plans (id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL, name TEXT NOT NULL, shape TEXT NOT NULL, difficulty TEXT NOT NULL, active INTEGER NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, dirty INTEGER NOT NULL DEFAULT 0);
 CREATE INDEX plans_user_dirty ON plans (user_id, dirty);
 CREATE TABLE plan_days (id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL, plan_id TEXT NOT NULL, position INTEGER NOT NULL, weekday INTEGER, name TEXT NOT NULL, rest_day INTEGER NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, dirty INTEGER NOT NULL DEFAULT 0);
@@ -87,8 +93,11 @@ CREATE TABLE plan_exercises (id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL
 CREATE INDEX plan_exercises_user_dirty ON plan_exercises (user_id, dirty);
 CREATE TABLE daily_habit (id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL, exercise_ids TEXT NOT NULL, updated_at TEXT NOT NULL, deleted_at TEXT, dirty INTEGER NOT NULL DEFAULT 0);
 CREATE INDEX daily_habit_user_dirty ON daily_habit (user_id, dirty);
-` },
-  { version: 4, sql: `
+`,
+  },
+  {
+    version: 4,
+    sql: `
 CREATE TABLE workout_sessions (
   id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL, plan_id TEXT NOT NULL, day_id TEXT NOT NULL,
   local_date TEXT NOT NULL, started_at TEXT NOT NULL, ended_at TEXT, status TEXT NOT NULL,
@@ -105,5 +114,17 @@ CREATE TABLE set_logs (
 );
 CREATE INDEX set_logs_user_dirty ON set_logs (user_id, dirty);
 CREATE INDEX set_logs_user_session ON set_logs (user_id, session_id);
-` },
+`,
+  },
+  {
+    version: 5,
+    sql: `
+CREATE INDEX workout_sessions_page ON workout_sessions (user_id, ${timeSqlV1('started_at')} DESC, id) WHERE deleted_at IS NULL;
+CREATE INDEX workout_sessions_active ON workout_sessions (user_id, status, ${timeSqlV1('started_at')} DESC, id) WHERE deleted_at IS NULL;
+CREATE INDEX workout_sessions_completion ON workout_sessions (user_id, plan_id, status, ${timeSqlV1('ended_at')} DESC, id) WHERE deleted_at IS NULL;
+`,
+  },
+  { version: 6, sql: WORKOUT_HISTORY_V6 },
+  { version: 7, sql: WORKOUT_HISTORY_V7 },
+  { version: 8, sql: WORKOUT_STRUCTURE_V8 },
 ];

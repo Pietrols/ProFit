@@ -43,7 +43,8 @@ export function createMediaSync({ db, api, files, now = () => new Date() }: Opti
       }
     };
     const first = await send(false);
-    if (first.status !== 401 || errorFromBody(401, first.body).code !== 'TOKEN_EXPIRED') return first;
+    if (first.status !== 401 || errorFromBody(401, first.body).code !== 'TOKEN_EXPIRED')
+      return first;
     return send(true);
   }
 
@@ -56,14 +57,10 @@ export function createMediaSync({ db, api, files, now = () => new Date() }: Opti
       if (!files) throw new Error('Photos are not available here.');
       const id = randomId();
       const path = await files.keep(sourceUri, id);
-      await db.run('INSERT INTO media (id, user_id, local_path, content_type, uploaded, created_at) VALUES (?, ?, ?, ?, ?, ?)', [
-        id,
-        userId,
-        path,
-        CONTENT_TYPE,
-        WAITING,
-        now().toISOString(),
-      ]);
+      await db.run(
+        'INSERT INTO media (id, user_id, local_path, content_type, uploaded, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+        [id, userId, path, CONTENT_TYPE, WAITING, now().toISOString()],
+      );
       return id;
     },
 
@@ -72,7 +69,10 @@ export function createMediaSync({ db, api, files, now = () => new Date() }: Opti
     async uploadPending(userId: string): Promise<string[]> {
       if (!files) return [];
       const problems: string[] = [];
-      const rows = await db.all<Row>('SELECT id, local_path, uploaded FROM media WHERE user_id = ? AND uploaded = ?', [userId, WAITING]);
+      const rows = await db.all<Row>(
+        'SELECT id, local_path, uploaded FROM media WHERE user_id = ? AND uploaded = ?',
+        [userId, WAITING],
+      );
       for (const row of rows) {
         if (!row.local_path || !files.exists(row.local_path)) {
           await db.run('UPDATE media SET uploaded = ? WHERE id = ?', [REFUSED, row.id]);
@@ -98,7 +98,10 @@ export function createMediaSync({ db, api, files, now = () => new Date() }: Opti
     // Null when it cannot be had right now (offline, not found, or no photos on this device).
     async photoUri(userId: string, photoId: string): Promise<string | null> {
       if (!files) return null;
-      const row = await db.first<Row>('SELECT id, local_path, uploaded FROM media WHERE id = ? AND user_id = ?', [photoId, userId]);
+      const row = await db.first<Row>(
+        'SELECT id, local_path, uploaded FROM media WHERE id = ? AND user_id = ?',
+        [photoId, userId],
+      );
       if (row?.local_path && files.exists(row.local_path)) return files.uri(row.local_path);
       // Kept on this phone but the file is gone, and the server never got it: nothing to fetch.
       if (row && row.uploaded !== ON_SERVER) return null;
@@ -111,7 +114,11 @@ export function createMediaSync({ db, api, files, now = () => new Date() }: Opti
       if (!pending) {
         pending = (async () => {
           try {
-            const path = await files.download(api.url(`/media/${photoId}`), photoId, await api.authHeaders());
+            const path = await files.download(
+              api.url(`/media/${photoId}`),
+              photoId,
+              await api.authHeaders(),
+            );
             await db.run(
               `INSERT INTO media (id, user_id, local_path, content_type, uploaded, created_at) VALUES (?, ?, ?, ?, ?, ?)
                ON CONFLICT(id) DO UPDATE SET local_path = excluded.local_path WHERE media.user_id = excluded.user_id`,

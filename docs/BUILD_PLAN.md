@@ -105,7 +105,39 @@ Done when: complete a logged session in airplane mode; the rest alert fires with
   with PRs. Keep the screen awake (`expo-keep-awake`, ask Peter first if not already installed).
 - [x] 5.6 Background rest alert: a scheduled local notification at rest end, cancelled if the set
   is logged first (`expo-notifications`, ask Peter first). Document what Peter must test on a phone.
-- [ ] 5.7 Done-when check, phase summary, PR, stop.
+### Phase 5 corrections (feat/workout-corrections)
+
+Peter requested this work on 20 October 2026 after reviewing the merged Phase 5 implementation.
+Read `docs/phases/PHASE_5_CORRECTIONS.md` before coding. Execute these steps in the listed order
+before the final 5.7 phone gate. This is an authorized Phase 5 correction, not Phase 6.
+ESLint, Prettier and their required development configuration are approved.
+
+- [x] 5.8.1 Audit the source and commit the correction design, acceptance matrix and execution order.
+- [x] 5.8.2 Install/configure approved lint and formatting tools, make small formatting-only commits,
+  and require both checks in backend/mobile CI.
+- [x] 5.8.3 Bound workout/history queries, remove duplicate reads, isolate timer rendering and
+  verify exact relevant exercise-history calculations without all-history work per tick/save.
+- [x] 5.8.4 Add logged-set edit, delete and undo with stable identity, original performance time,
+  conflict handling and recalculated totals/records.
+- [ ] 5.8.5 Add stable session-item/slot contracts and backward-compatible migrations/sync,
+  preserving legacy histories, dirty edits and tombstones before structural session changes.
+- [ ] 5.8.6 Add select, do-later, skip/restore, add/remove/replace, reorder and set-count changes.
+  Keep the original routine and performed results intact.
+- [ ] 5.8.7 Put the current set and relevant timer first, show next/overview, add unit-safe steppers,
+  and preserve drafts across selection, reads and restarts.
+- [ ] 5.8.8 Add paginated workout history, detail/correction, per-exercise comparison and
+  planned-versus-actual finish summaries.
+- [ ] 5.8.9 Add idempotent one-tap rest-day completion and safe undo on Home.
+- [ ] 5.8.10 Add inventory-aware plate loading and explicit per-side logging with tested
+  load/volume/record conventions; never reinterpret legacy bilateral data.
+- [ ] 5.8.11 Verify timer sleep/pause behavior, permission/status UI, correction-related alert
+  cancellation and Android exact-alarm behavior.
+- [ ] 5.8.12 Complete integrated regression scenarios, populated-history performance evidence,
+  visual/readability checks and the correction summary.
+
+- [ ] 5.7 Final corrected-build phone check, phase summary, PR and review. Requires the original
+  airplane-mode/background-alert check plus the corrections acceptance matrix. Do not mark
+  physical tests passed from CI or start Phase 6 while this gate is open.
 
 ## Phase 6: Progression, streaks, reminders (`feat/progression`)
 

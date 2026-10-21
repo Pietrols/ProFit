@@ -27,7 +27,11 @@ const custom: Exercise = {
 describe('the bundled library', () => {
   it('has the built-in exercises with tracking types and every common staple', () => {
     expect(library.length).toBeGreaterThan(850);
-    expect(builtInExercise('Barbell_Squat')).toMatchObject({ name: 'Barbell Squat', tracking: 'weight_reps', common: true });
+    expect(builtInExercise('Barbell_Squat')).toMatchObject({
+      name: 'Barbell Squat',
+      tracking: 'weight_reps',
+      common: true,
+    });
     expect(builtInExercise('Plank')?.tracking).toBe('time');
     expect(builtInExercise('Pullups')).toMatchObject({ name: 'Pull-Up', tracking: 'reps' });
     expect(builtInExercise('ProFit_Burpee')?.origin).toBe('profit');
@@ -47,7 +51,9 @@ describe('searchExercises', () => {
   });
 
   it('expands gym shorthand', () => {
-    expect(searchExercises(library, 'db row').some((x) => x.id === 'One-Arm_Dumbbell_Row')).toBe(true);
+    expect(searchExercises(library, 'db row').some((x) => x.id === 'One-Arm_Dumbbell_Row')).toBe(
+      true,
+    );
     expect(searchExercises(library, 'rdl')[0]?.id).toBe('Romanian_Deadlift');
   });
 
@@ -60,9 +66,15 @@ describe('searchExercises', () => {
   it('applies filters, including favourites', () => {
     const chestMachines = searchExercises(library, '', { muscle: 'chest', equipment: 'machine' });
     expect(chestMachines.length).toBeGreaterThan(0);
-    expect(chestMachines.every((x) => x.primary.includes('chest') && x.equipment === 'machine')).toBe(true);
-    expect(searchExercises(library, '', { favouritesOnly: true }, new Set(['Plank'])).map((x) => x.id)).toEqual(['Plank']);
-    expect(searchExercises(library, '', { category: 'cardio' }).every((x) => x.category === 'cardio')).toBe(true);
+    expect(
+      chestMachines.every((x) => x.primary.includes('chest') && x.equipment === 'machine'),
+    ).toBe(true);
+    expect(
+      searchExercises(library, '', { favouritesOnly: true }, new Set(['Plank'])).map((x) => x.id),
+    ).toEqual(['Plank']);
+    expect(
+      searchExercises(library, '', { category: 'cardio' }).every((x) => x.category === 'cardio'),
+    ).toBe(true);
   });
 
   it('lists the user’s own and common exercises first when there is no query', () => {

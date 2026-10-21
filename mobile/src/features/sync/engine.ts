@@ -2,6 +2,7 @@ import type { ApiClient } from '../../lib/api/client';
 import { isNetworkError, messageFor } from '../../lib/api/errors';
 import type { Database, Sql } from '../../lib/db/database';
 import { fromWire, toWire, type Collection, type WireRecord } from './collections';
+import { negotiateSync, SYNC_PROTOCOL } from './protocol';
 
 // Moves dirty rows to the server and the server's newer rows to the phone. The protocol is in
 // docs/phases/PHASE_2.md. No React Native imports: tests drive it with Node's SQLite.
@@ -19,7 +20,11 @@ export type SyncStatus = {
   problem: string | null; // something the user should know, other than being offline
 };
 
-type PushResponse = { applied: string[]; ignored: string[]; rejected: { collection: string; id: string | null; reason: string }[] };
+type PushResponse = {
+  applied: string[];
+  ignored: string[];
+  rejected: { collection: string; id: string | null; reason: string }[];
+};
 type PullResponse = { changes: Record<string, WireRecord[]>; cursor: number; hasMore: boolean };
 
 type Options = {
@@ -32,8 +37,20 @@ type Options = {
   now?: () => Date;
 };
 
-export function createSyncEngine({ db, api, collections, beforePush, now = () => new Date() }: Options) {
-  let status: SyncStatus = { syncing: false, pending: 0, offline: false, lastSyncedAt: null, problem: null };
+export function createSyncEngine({
+  db,
+  api,
+  collections,
+  beforePush,
+  now = () => new Date(),
+}: Options) {
+  let status: SyncStatus = {
+    syncing: false,
+    pending: 0,
+    offline: false,
+    lastSyncedAt: null,
+    problem: null,
+  };
   let currentUser: string | null = null;
   const listeners = new Set<() => void>();
 
@@ -45,7 +62,10 @@ export function createSyncEngine({ db, api, collections, beforePush, now = () =>
   async function countPending(userId: string): Promise<number> {
     let total = 0;
     for (const c of collections) {
-      const row = await db.first<{ n: number }>(`SELECT COUNT(*) AS n FROM ${c.name} WHERE user_id = ? AND dirty = 1`, [userId]);
+      const row = await db.first<{ n: number }>(
+        `SELECT COUNT(*) AS n FROM ${c.name} WHERE user_id = ? AND dirty = 1`,
+        [userId],
+      );
       total += row?.n ?? 0;
     }
     return total;
@@ -57,13 +77,19 @@ export function createSyncEngine({ db, api, collections, beforePush, now = () =>
       const changes: Record<string, WireRecord[]> = {};
       let sent = 0;
       for (const c of collections) {
-        const rows = await db.all<Record<string, unknown>>(`SELECT * FROM ${c.name} WHERE user_id = ? AND dirty = 1 LIMIT ${BATCH}`, [userId]);
+        const rows = await db.all<Record<string, unknown>>(
+          `SELECT * FROM ${c.name} WHERE user_id = ? AND dirty = 1 LIMIT ${BATCH}`,
+          [userId],
+        );
         if (rows.length) changes[c.name] = rows.map((row) => toWire(c, row));
         sent += rows.length;
       }
       if (!sent) return problems;
 
-      const response = await api.post<PushResponse>('/sync/push', { changes });
+      const response = await api.post<PushResponse>('/sync/push', {
+        protocol: SYNC_PROTOCOL,
+        changes,
+      });
       const rejected = new Set(response.rejected.map((r) => `${r.collection}/${r.id}`));
       for (const r of response.rejected) problems.push(r.reason);
 
@@ -72,11 +98,17 @@ export function createSyncEngine({ db, api, collections, beforePush, now = () =>
           for (const record of records) {
             if (rejected.has(`${name}/${record.id}`)) {
               // The server will never accept this version; stop resending it (see D17).
-              await tx.run(`UPDATE ${name} SET dirty = 0 WHERE id = ? AND user_id = ?`, [record.id, userId]);
+              await tx.run(`UPDATE ${name} SET dirty = 0 WHERE id = ? AND user_id = ?`, [
+                record.id,
+                userId,
+              ]);
             } else {
               // Applied, or ignored because the server already has a newer copy (it arrives in the
               // pull). Either way this edit is done, unless the row was edited again meanwhile.
-              await tx.run(`UPDATE ${name} SET dirty = 0 WHERE id = ? AND user_id = ? AND updated_at = ?`, [record.id, userId, record.updatedAt]);
+              await tx.run(
+                `UPDATE ${name} SET dirty = 0 WHERE id = ? AND user_id = ? AND updated_at = ?`,
+                [record.id, userId, record.updatedAt],
+              );
             }
           }
         }
@@ -86,7 +118,10 @@ export function createSyncEngine({ db, api, collections, beforePush, now = () =>
   }
 
   async function applyRemote(tx: Sql, collection: Collection, userId: string, record: WireRecord) {
-    const local = await tx.first<{ updated_at: string; dirty: number }>(`SELECT updated_at, dirty FROM ${collection.name} WHERE id = ?`, [record.id]);
+    const local = await tx.first<{ updated_at: string; dirty: number }>(
+      `SELECT updated_at, dirty FROM ${collection.name} WHERE id = ?`,
+      [record.id],
+    );
     // A local edit newer than the server's copy wins; it goes up on the next push.
     if (local && local.dirty === 1 && local.updated_at > record.updatedAt) return;
     const { columns, values } = fromWire(collection, record);
@@ -100,9 +135,14 @@ export function createSyncEngine({ db, api, collections, beforePush, now = () =>
 
   async function pullAll(userId: string) {
     for (let round = 0; round < MAX_ROUNDS; round += 1) {
-      const state = await db.first<{ cursor: number }>('SELECT cursor FROM sync_state WHERE user_id = ?', [userId]);
+      const state = await db.first<{ cursor: number }>(
+        'SELECT cursor FROM sync_state WHERE user_id = ?',
+        [userId],
+      );
       const since = state?.cursor ?? 0;
-      const page = await api.get<PullResponse>(`/sync/pull?since=${since}&limit=${BATCH}`);
+      const page = await api.get<PullResponse>(
+        `/sync/pull?protocol=${SYNC_PROTOCOL}&since=${since}&limit=${BATCH}`,
+      );
       await db.transaction(async (tx) => {
         for (const c of collections) {
           for (const record of page.changes[c.name] ?? []) await applyRemote(tx, c, userId, record);
@@ -143,22 +183,30 @@ export function createSyncEngine({ db, api, collections, beforePush, now = () =>
     if (!userId) return;
     setStatus({ syncing: true });
     try {
+      await negotiateSync(api);
+      if (currentUser !== userId) return;
       const problems = beforePush ? await beforePush(userId) : [];
       problems.push(...(await pushAll(userId)));
       await pullAll(userId);
       if (currentUser !== userId) return;
-      const state = await db.first<{ last_synced_at: string | null }>('SELECT last_synced_at FROM sync_state WHERE user_id = ?', [userId]);
+      const state = await db.first<{ last_synced_at: string | null }>(
+        'SELECT last_synced_at FROM sync_state WHERE user_id = ?',
+        [userId],
+      );
       setStatus({
         offline: false,
         lastSyncedAt: state?.last_synced_at ?? null,
-        problem: problems.length ? `Some entries were not saved to the server: ${problems[0]}` : null,
+        problem: problems.length
+          ? `Some entries were not saved to the server: ${problems[0]}`
+          : null,
       });
     } catch (error) {
       if (currentUser !== userId) return;
       if (isNetworkError(error)) setStatus({ offline: true });
       else setStatus({ problem: messageFor(error) });
     } finally {
-      if (currentUser === userId) setStatus({ syncing: false, pending: await countPending(userId) });
+      if (currentUser === userId)
+        setStatus({ syncing: false, pending: await countPending(userId) });
     }
   }
 
@@ -172,9 +220,23 @@ export function createSyncEngine({ db, api, collections, beforePush, now = () =>
     // Which signed-in user's rows to sync; null when signed out.
     async setUser(userId: string | null) {
       currentUser = userId;
-      if (!userId) return setStatus({ syncing: false, pending: 0, offline: false, lastSyncedAt: null, problem: null });
-      const state = await db.first<{ last_synced_at: string | null }>('SELECT last_synced_at FROM sync_state WHERE user_id = ?', [userId]);
-      setStatus({ pending: await countPending(userId), lastSyncedAt: state?.last_synced_at ?? null, problem: null });
+      if (!userId)
+        return setStatus({
+          syncing: false,
+          pending: 0,
+          offline: false,
+          lastSyncedAt: null,
+          problem: null,
+        });
+      const state = await db.first<{ last_synced_at: string | null }>(
+        'SELECT last_synced_at FROM sync_state WHERE user_id = ?',
+        [userId],
+      );
+      setStatus({
+        pending: await countPending(userId),
+        lastSyncedAt: state?.last_synced_at ?? null,
+        problem: null,
+      });
     },
 
     // Runs a sync now, or joins the one already running. Never throws: the status says how it went.

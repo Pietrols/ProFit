@@ -14,7 +14,9 @@ export function TextField({ label, hint, error, ...rest }: Props) {
   const { colors, radius, space, type } = useAppTheme();
   return (
     <View style={{ gap: space.xs }}>
-      <AppText variant="label" color="text2">{label}</AppText>
+      <AppText variant="label" color="text2">
+        {label}
+      </AppText>
       <TextInput
         accessibilityLabel={label}
         placeholderTextColor={colors.text2}
@@ -35,9 +37,13 @@ export function TextField({ label, hint, error, ...rest }: Props) {
         ]}
       />
       {error ? (
-        <AppText variant="caption" color="caution" accessibilityLiveRegion="polite">{error}</AppText>
+        <AppText variant="caption" color="caution" accessibilityLiveRegion="polite">
+          {error}
+        </AppText>
       ) : hint ? (
-        <AppText variant="caption" color="text2">{hint}</AppText>
+        <AppText variant="caption" color="text2">
+          {hint}
+        </AppText>
       ) : null}
     </View>
   );

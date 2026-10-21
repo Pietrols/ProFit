@@ -6,7 +6,12 @@ import { fitWithin, PHOTO_QUALITY } from './photoSize';
 // shown square), and returns a shrunk JPEG copy. Null when they cancel.
 // The system picker needs no gallery permission on Android or iOS.
 export async function pickPhoto(): Promise<string | null> {
-  const result = await launchImageLibraryAsync({ mediaTypes: ['images'], allowsEditing: true, aspect: [1, 1], quality: 1 });
+  const result = await launchImageLibraryAsync({
+    mediaTypes: ['images'],
+    allowsEditing: true,
+    aspect: [1, 1],
+    quality: 1,
+  });
   const asset = result.canceled ? null : result.assets[0];
   if (!asset) return null;
 

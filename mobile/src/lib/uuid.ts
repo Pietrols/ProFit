@@ -52,7 +52,8 @@ export function sha1(message: Uint8Array): Uint8Array {
 
   for (let offset = 0; offset < paddedLength; offset += 64) {
     for (let i = 0; i < 16; i += 1) w[i] = view.getUint32(offset + i * 4);
-    for (let i = 16; i < 80; i += 1) w[i] = rotl(w[i - 3]! ^ w[i - 8]! ^ w[i - 14]! ^ w[i - 16]!, 1);
+    for (let i = 16; i < 80; i += 1)
+      w[i] = rotl(w[i - 3]! ^ w[i - 8]! ^ w[i - 14]! ^ w[i - 16]!, 1);
     let a = h0;
     let b = h1;
     let c = h2;
@@ -60,7 +61,13 @@ export function sha1(message: Uint8Array): Uint8Array {
     let e = h4;
     for (let i = 0; i < 80; i += 1) {
       const [f, k] =
-        i < 20 ? [(b & c) | (~b & d), 0x5a827999] : i < 40 ? [b ^ c ^ d, 0x6ed9eba1] : i < 60 ? [(b & c) | (b & d) | (c & d), 0x8f1bbcdc] : [b ^ c ^ d, 0xca62c1d6];
+        i < 20
+          ? [(b & c) | (~b & d), 0x5a827999]
+          : i < 40
+            ? [b ^ c ^ d, 0x6ed9eba1]
+            : i < 60
+              ? [(b & c) | (b & d) | (c & d), 0x8f1bbcdc]
+              : [b ^ c ^ d, 0xca62c1d6];
       const temp = (rotl(a, 5) + f + e + k + w[i]!) >>> 0;
       e = d;
       d = c;

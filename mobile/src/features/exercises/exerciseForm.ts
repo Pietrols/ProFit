@@ -21,7 +21,17 @@ export type FormState = {
   photoId: string | null;
 };
 
-const LOADED: ReadonlySet<Equipment> = new Set(['barbell', 'dumbbell', 'kettlebells', 'cable', 'machine', 'e-z curl bar', 'medicine ball', 'bands', 'other']);
+const LOADED: ReadonlySet<Equipment> = new Set([
+  'barbell',
+  'dumbbell',
+  'kettlebells',
+  'cable',
+  'machine',
+  'e-z curl bar',
+  'medicine ball',
+  'bands',
+  'other',
+]);
 
 // A sensible "what each set records" for a type and equipment, the same idea the built-in
 // library uses.
@@ -62,10 +72,16 @@ export function formFor(x: Exercise): FormState {
 
 // Applies a change. Choosing tracking marks it as chosen; changing type or equipment updates the
 // suggestion only while the user has not chosen.
-export function changeForm(state: FormState, change: Partial<Omit<FormState, 'trackingChosen'>>): FormState {
+export function changeForm(
+  state: FormState,
+  change: Partial<Omit<FormState, 'trackingChosen'>>,
+): FormState {
   const next = { ...state, ...change };
   if (change.tracking !== undefined) next.trackingChosen = true;
-  else if (!next.trackingChosen && (change.category !== undefined || change.equipment !== undefined)) {
+  else if (
+    !next.trackingChosen &&
+    (change.category !== undefined || change.equipment !== undefined)
+  ) {
     next.tracking = suggestTracking(next.category, next.equipment);
   }
   return next;
@@ -73,13 +89,21 @@ export function changeForm(state: FormState, change: Partial<Omit<FormState, 'tr
 
 // Turns a muscle on or off in one list. A muscle sits in one list only, so picking it as a main
 // muscle takes it out of the others. Returns the state unchanged when the list is full.
-export function toggleMuscle(state: FormState, list: 'primary' | 'secondary', muscle: Muscle): FormState {
+export function toggleMuscle(
+  state: FormState,
+  list: 'primary' | 'secondary',
+  muscle: Muscle,
+): FormState {
   const current = state[list];
   if (current.includes(muscle)) return { ...state, [list]: current.filter((m) => m !== muscle) };
   const max = list === 'primary' ? MAX_PRIMARY : MAX_SECONDARY;
   if (current.length >= max) return state;
   const other = list === 'primary' ? 'secondary' : 'primary';
-  return { ...state, [list]: [...current, muscle], [other]: state[other].filter((m) => m !== muscle) };
+  return {
+    ...state,
+    [list]: [...current, muscle],
+    [other]: state[other].filter((m) => m !== muscle),
+  };
 }
 
 export function toInput(state: FormState): CustomExerciseInput {

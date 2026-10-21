@@ -1,7 +1,13 @@
 import { Barlow_400Regular, Barlow_500Medium, Barlow_600SemiBold } from '@expo-google-fonts/barlow';
 import { BebasNeue_400Regular } from '@expo-google-fonts/bebas-neue';
 import { useFonts } from 'expo-font';
-import { DarkTheme, DefaultTheme, Stack, ThemeProvider as NavigationThemeProvider, type Theme } from 'expo-router';
+import {
+  DarkTheme,
+  DefaultTheme,
+  Stack,
+  ThemeProvider as NavigationThemeProvider,
+  type Theme,
+} from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect, useMemo } from 'react';
@@ -28,7 +34,9 @@ export default function RootLayout() {
     <ThemeProvider>
       <AuthProvider>
         <SyncProvider>
-          <WorkoutAlerts><ThemedNavigation /></WorkoutAlerts>
+          <WorkoutAlerts>
+            <ThemedNavigation />
+          </WorkoutAlerts>
         </SyncProvider>
       </AuthProvider>
     </ThemeProvider>

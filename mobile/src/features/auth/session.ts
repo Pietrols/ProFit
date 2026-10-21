@@ -15,7 +15,11 @@ export type StoredAuth = { session: Session; user: User };
 // runs out on the way to the server.
 export const REFRESH_MARGIN_MS = 60_000;
 
-export function needsRefresh(session: Session, nowMs: number, marginMs = REFRESH_MARGIN_MS): boolean {
+export function needsRefresh(
+  session: Session,
+  nowMs: number,
+  marginMs = REFRESH_MARGIN_MS,
+): boolean {
   const expiresAt = Date.parse(session.accessTokenExpiresAt);
   if (Number.isNaN(expiresAt)) return true;
   return expiresAt - nowMs <= marginMs;
@@ -34,10 +38,20 @@ export function parseStoredAuth(raw: string | null): StoredAuth | null {
     return null;
   }
   const { session, user } = (value ?? {}) as Partial<StoredAuth>;
-  if (!session || !isString(session.accessToken) || !isString(session.refreshToken) || !isString(session.accessTokenExpiresAt)) {
+  if (
+    !session ||
+    !isString(session.accessToken) ||
+    !isString(session.refreshToken) ||
+    !isString(session.accessTokenExpiresAt)
+  ) {
     return null;
   }
-  if (!user || !isString(user.id) || typeof user.email !== 'string' || typeof user.displayName !== 'string') {
+  if (
+    !user ||
+    !isString(user.id) ||
+    typeof user.email !== 'string' ||
+    typeof user.displayName !== 'string'
+  ) {
     return null;
   }
   return {
@@ -46,6 +60,11 @@ export function parseStoredAuth(raw: string | null): StoredAuth | null {
       accessTokenExpiresAt: session.accessTokenExpiresAt,
       refreshToken: session.refreshToken,
     },
-    user: { id: user.id, email: user.email, displayName: user.displayName, avatarUrl: isString(user.avatarUrl) ? user.avatarUrl : null },
+    user: {
+      id: user.id,
+      email: user.email,
+      displayName: user.displayName,
+      avatarUrl: isString(user.avatarUrl) ? user.avatarUrl : null,
+    },
   };
 }

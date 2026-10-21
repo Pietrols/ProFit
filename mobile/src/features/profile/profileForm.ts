@@ -23,7 +23,9 @@ export type ProfileForm = {
   limitations: string;
 };
 
-export type FormErrors = Partial<Record<'displayName' | 'birthYear' | 'height' | 'limitations', string>>;
+export type FormErrors = Partial<
+  Record<'displayName' | 'birthYear' | 'height' | 'limitations', string>
+>;
 
 export function cmToFeetInches(cm: number): { feet: number; inches: number } {
   const totalInches = Math.round(cm / CM_PER_INCH);
@@ -52,7 +54,8 @@ export function formFromMe({ user, profile }: Me): ProfileForm {
   };
 }
 
-const wholeNumber = (text: string): number | null => (/^\d+$/.test(text.trim()) ? Number(text.trim()) : null);
+const wholeNumber = (text: string): number | null =>
+  /^\d+$/.test(text.trim()) ? Number(text.trim()) : null;
 
 // Height in cm from whichever fields the unit system shows. undefined means "invalid".
 function readHeight(form: ProfileForm): number | null | undefined {
@@ -69,7 +72,11 @@ function readHeight(form: ProfileForm): number | null | undefined {
 }
 
 // Checks the form and returns only the fields that changed, ready for updateProfile.
-export function validateProfileForm(form: ProfileForm, current: Me, now: Date): { patch: ProfilePatch; errors: FormErrors } {
+export function validateProfileForm(
+  form: ProfileForm,
+  current: Me,
+  now: Date,
+): { patch: ProfilePatch; errors: FormErrors } {
   const errors: FormErrors = {};
   const patch: ProfilePatch = {};
   const { profile, user } = current;
@@ -90,8 +97,14 @@ export function validateProfileForm(form: ProfileForm, current: Me, now: Date): 
   if (!errors.birthYear && birthYear !== profile.birthYear) patch.birthYear = birthYear;
 
   const height = readHeight(form);
-  if (height === undefined || (height !== null && (height < HEIGHT_CM.min || height > HEIGHT_CM.max))) {
-    errors.height = form.unitSystem === 'metric' ? 'Enter a height between 80 and 250 cm.' : 'Enter feet and inches (0 to 11), between 2 ft 8 in and 8 ft 2 in.';
+  if (
+    height === undefined ||
+    (height !== null && (height < HEIGHT_CM.min || height > HEIGHT_CM.max))
+  ) {
+    errors.height =
+      form.unitSystem === 'metric'
+        ? 'Enter a height between 80 and 250 cm.'
+        : 'Enter feet and inches (0 to 11), between 2 ft 8 in and 8 ft 2 in.';
   } else if (!sameHeight(height, profile.heightCm)) {
     patch.heightCm = height;
   }

@@ -61,7 +61,9 @@ function toExercise(row: Row): Exercise {
 }
 
 // Checks the form before saving, with the same limits as the API.
-export function validateCustomExercise(input: CustomExerciseInput): Partial<Record<'name' | 'primary' | 'secondary' | 'instructions', string>> {
+export function validateCustomExercise(
+  input: CustomExerciseInput,
+): Partial<Record<'name' | 'primary' | 'secondary' | 'instructions', string>> {
   const errors: Partial<Record<'name' | 'primary' | 'secondary' | 'instructions', string>> = {};
   const name = input.name.trim();
   if (!name) errors.name = 'Give the exercise a name.';
@@ -69,12 +71,19 @@ export function validateCustomExercise(input: CustomExerciseInput): Partial<Reco
   if (input.primary.length === 0) errors.primary = 'Pick the main muscle it works.';
   else if (input.primary.length > 4) errors.primary = 'Pick up to 4 main muscles.';
   if (input.secondary.length > 6) errors.secondary = 'Pick up to 6 other muscles.';
-  if (input.instructions.trim().length > 2000) errors.instructions = 'Keep the steps to 2000 characters.';
+  if (input.instructions.trim().length > 2000)
+    errors.instructions = 'Keep the steps to 2000 characters.';
   return errors;
 }
 
 // Creates the exercise, or updates it when an id is given. Returns its id.
-export async function saveCustomExercise(db: Sql, userId: string, input: CustomExerciseInput, now: Date, id: string = randomId()): Promise<string> {
+export async function saveCustomExercise(
+  db: Sql,
+  userId: string,
+  input: CustomExerciseInput,
+  now: Date,
+  id: string = randomId(),
+): Promise<string> {
   const secondary = input.secondary.filter((m) => !input.primary.includes(m));
   await db.run(
     `INSERT INTO custom_exercises (id, user_id, name, category, equipment, primary_muscles, secondary_muscles, tracking, instructions, photo_id, updated_at, deleted_at, dirty)
@@ -100,19 +109,38 @@ export async function saveCustomExercise(db: Sql, userId: string, input: CustomE
   return id;
 }
 
-export async function deleteCustomExercise(db: Sql, userId: string, id: string, now: Date): Promise<void> {
+export async function deleteCustomExercise(
+  db: Sql,
+  userId: string,
+  id: string,
+  now: Date,
+): Promise<void> {
   const at = now.toISOString();
-  await db.run('UPDATE custom_exercises SET deleted_at = ?, updated_at = ?, dirty = 1 WHERE id = ? AND user_id = ?', [at, at, id, userId]);
+  await db.run(
+    'UPDATE custom_exercises SET deleted_at = ?, updated_at = ?, dirty = 1 WHERE id = ? AND user_id = ?',
+    [at, at, id, userId],
+  );
 }
 
-const COLUMNS = 'id, name, category, equipment, primary_muscles, secondary_muscles, tracking, instructions, photo_id';
+const COLUMNS =
+  'id, name, category, equipment, primary_muscles, secondary_muscles, tracking, instructions, photo_id';
 
 export async function listCustomExercises(db: Sql, userId: string): Promise<Exercise[]> {
-  const rows = await db.all<Row>(`SELECT ${COLUMNS} FROM custom_exercises WHERE user_id = ? AND deleted_at IS NULL ORDER BY name`, [userId]);
+  const rows = await db.all<Row>(
+    `SELECT ${COLUMNS} FROM custom_exercises WHERE user_id = ? AND deleted_at IS NULL ORDER BY name`,
+    [userId],
+  );
   return rows.map(toExercise);
 }
 
-export async function getCustomExercise(db: Sql, userId: string, id: string): Promise<Exercise | null> {
-  const row = await db.first<Row>(`SELECT ${COLUMNS} FROM custom_exercises WHERE id = ? AND user_id = ? AND deleted_at IS NULL`, [id, userId]);
+export async function getCustomExercise(
+  db: Sql,
+  userId: string,
+  id: string,
+): Promise<Exercise | null> {
+  const row = await db.first<Row>(
+    `SELECT ${COLUMNS} FROM custom_exercises WHERE id = ? AND user_id = ? AND deleted_at IS NULL`,
+    [id, userId],
+  );
   return row ? toExercise(row) : null;
 }

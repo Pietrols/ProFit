@@ -36,7 +36,9 @@ export function parsePatch(raw: string | null): ProfilePatch {
   if (!raw) return {};
   try {
     const value: unknown = JSON.parse(raw);
-    return value && typeof value === 'object' && !Array.isArray(value) ? (value as ProfilePatch) : {};
+    return value && typeof value === 'object' && !Array.isArray(value)
+      ? (value as ProfilePatch)
+      : {};
   } catch {
     return {};
   }

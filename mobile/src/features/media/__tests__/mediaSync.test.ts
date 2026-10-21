@@ -65,12 +65,22 @@ function fakeFiles(server: ReturnType<typeof fakeMediaServer>) {
   return { disk, files };
 }
 
-async function phone(sync: ReturnType<typeof fakeSyncServer>, media: ReturnType<typeof fakeMediaServer>, api?: ApiClient) {
+async function phone(
+  sync: ReturnType<typeof fakeSyncServer>,
+  media: ReturnType<typeof fakeMediaServer>,
+  api?: ApiClient,
+) {
   const db = await testDatabase();
   const { disk, files } = fakeFiles(media);
   const client = api ?? sync.clientFor(PETER);
   const photos = createMediaSync({ db, api: client, files, now });
-  const engine = createSyncEngine({ db, api: client, collections: syncedCollections, beforePush: photos.uploadPending, now });
+  const engine = createSyncEngine({
+    db,
+    api: client,
+    collections: syncedCollections,
+    beforePush: photos.uploadPending,
+    now,
+  });
   await engine.setUser(PETER);
   return { db, disk, photos, engine };
 }
@@ -86,13 +96,30 @@ describe('photo sync', () => {
     const b = await phone(sync, media);
 
     const photoId = await a.photos.addPhoto(PETER, 'content://gallery/1');
-    await saveCustomExercise(a.db, PETER, { name: 'Sandbag Carry', category: 'strength', equipment: null, primary: ['forearms'], secondary: [], instructions: '', tracking: 'distance_time', photoId }, now());
+    await saveCustomExercise(
+      a.db,
+      PETER,
+      {
+        name: 'Sandbag Carry',
+        category: 'strength',
+        equipment: null,
+        primary: ['forearms'],
+        secondary: [],
+        instructions: '',
+        tracking: 'distance_time',
+        photoId,
+      },
+      now(),
+    );
     await a.engine.sync();
     expect(await uploadState(a.db, photoId)).toBe(ON_SERVER);
     expect(media.stored.get(photoId)).toBe('photo from content://gallery/1');
 
     await b.engine.sync();
-    const [first, second] = await Promise.all([b.photos.photoUri(PETER, photoId), b.photos.photoUri(PETER, photoId)]);
+    const [first, second] = await Promise.all([
+      b.photos.photoUri(PETER, photoId),
+      b.photos.photoUri(PETER, photoId),
+    ]);
     expect(first).toBe(`file:///app/media/${photoId}.jpg`);
     expect(second).toBe(first);
     expect(await b.photos.photoUri(PETER, photoId)).toBe(first);
@@ -106,7 +133,21 @@ describe('photo sync', () => {
 
     sync.state.online = false;
     const photoId = await a.photos.addPhoto(PETER, 'content://gallery/2');
-    await saveCustomExercise(a.db, PETER, { name: 'Tyre Flip', category: 'strength', equipment: null, primary: ['glutes'], secondary: [], instructions: '', tracking: 'reps', photoId }, now());
+    await saveCustomExercise(
+      a.db,
+      PETER,
+      {
+        name: 'Tyre Flip',
+        category: 'strength',
+        equipment: null,
+        primary: ['glutes'],
+        secondary: [],
+        instructions: '',
+        tracking: 'reps',
+        photoId,
+      },
+      now(),
+    );
     await a.engine.sync();
     expect(a.engine.getStatus()).toMatchObject({ offline: true });
     expect(await uploadState(a.db, photoId)).toBe(WAITING);
@@ -125,7 +166,12 @@ describe('photo sync', () => {
     const a = await phone(sync, media);
 
     const photoId = await a.photos.addPhoto(PETER, 'content://gallery/huge');
-    media.answers.push({ status: 413, body: JSON.stringify({ error: { code: 'TOO_LARGE', message: 'The image is larger than 5 MB.' } }) });
+    media.answers.push({
+      status: 413,
+      body: JSON.stringify({
+        error: { code: 'TOO_LARGE', message: 'The image is larger than 5 MB.' },
+      }),
+    });
     await a.engine.sync();
     expect(await uploadState(a.db, photoId)).toBe(REFUSED);
     expect(a.engine.getStatus().problem).toContain('The image is larger than 5 MB.');
@@ -155,7 +201,9 @@ describe('photo sync', () => {
 
     const photoId = await a.photos.addPhoto(PETER, 'content://gallery/4');
     a.disk.clear();
-    expect(await a.photos.uploadPending(PETER)).toEqual(['A photo was removed from this phone before it was saved to the server.']);
+    expect(await a.photos.uploadPending(PETER)).toEqual([
+      'A photo was removed from this phone before it was saved to the server.',
+    ]);
     expect(await uploadState(a.db, photoId)).toBe(REFUSED);
     expect(await a.photos.photoUri(PETER, photoId)).toBeNull();
   });
@@ -181,14 +229,19 @@ describe('photo sync', () => {
     const media = fakeMediaServer(sync.state);
     const api = {
       url: (path: string) => `http://api.test${path}`,
-      authHeaders: async (o?: { refresh?: boolean }) => ({ Authorization: o?.refresh ? 'Bearer new' : 'Bearer old' }),
+      authHeaders: async (o?: { refresh?: boolean }) => ({
+        Authorization: o?.refresh ? 'Bearer new' : 'Bearer old',
+      }),
     } as unknown as ApiClient;
     const db = await testDatabase();
     const { files } = fakeFiles(media);
     const photos = createMediaSync({ db, api, files, now });
 
     const photoId = await photos.addPhoto(PETER, 'content://gallery/5');
-    media.answers.push({ status: 401, body: JSON.stringify({ error: { code: 'TOKEN_EXPIRED', message: 'Expired.' } }) });
+    media.answers.push({
+      status: 401,
+      body: JSON.stringify({ error: { code: 'TOKEN_EXPIRED', message: 'Expired.' } }),
+    });
     expect(await photos.uploadPending(PETER)).toEqual([]);
     expect(media.seenAuth).toEqual(['Bearer old', 'Bearer new']);
     expect(await uploadState(db, photoId)).toBe(ON_SERVER);
@@ -196,10 +249,17 @@ describe('photo sync', () => {
 
   it('does nothing with photos where the device cannot keep files', async () => {
     const db = await testDatabase();
-    const photos = createMediaSync({ db, api: fakeSyncServer().clientFor(PETER), files: null, now });
+    const photos = createMediaSync({
+      db,
+      api: fakeSyncServer().clientFor(PETER),
+      files: null,
+      now,
+    });
     expect(photos.available).toBe(false);
     expect(await photos.uploadPending(PETER)).toEqual([]);
     expect(await photos.photoUri(PETER, 'x')).toBeNull();
-    await expect(photos.addPhoto(PETER, 'content://x')).rejects.toThrow('Photos are not available here.');
+    await expect(photos.addPhoto(PETER, 'content://x')).rejects.toThrow(
+      'Photos are not available here.',
+    );
   });
 });

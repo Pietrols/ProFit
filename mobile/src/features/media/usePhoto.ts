@@ -4,11 +4,17 @@ import { useSyncContext } from '../sync/SyncProvider';
 
 // The address of a user photo for an <Image>, fetched from the server the first time this phone
 // needs it. 'none' while there is no photo or it cannot be had right now, so screens show a placeholder.
-export function usePhoto(photoId: string | null): { status: 'loading' } | { status: 'none' } | { status: 'ready'; uri: string } {
+export function usePhoto(
+  photoId: string | null,
+): { status: 'loading' } | { status: 'none' } | { status: 'ready'; uri: string } {
   const { photos } = useSyncContext();
   const auth = useAuth();
   const userId = auth.status === 'signedIn' ? auth.userId : null;
-  const [state, setState] = useState<{ id: string | null; uri: string | null; done: boolean }>({ id: null, uri: null, done: false });
+  const [state, setState] = useState<{ id: string | null; uri: string | null; done: boolean }>({
+    id: null,
+    uri: null,
+    done: false,
+  });
 
   useEffect(() => {
     if (!photoId || !userId) return;

@@ -8,7 +8,13 @@ import { uuidv5 } from '../../lib/uuid';
 // on other phones, so it never changes.
 const WEIGHT_NAMESPACE = '6f1c2a60-9a52-4c8e-9a0b-3b6f4f2d7c11';
 
-export type WeightEntry = { id: string; date: string; weightKg: number; note: string | null; updatedAt: string };
+export type WeightEntry = {
+  id: string;
+  date: string;
+  weightKg: number;
+  note: string | null;
+  updatedAt: string;
+};
 
 // One weigh-in per user per day: every phone derives the same id for the same day, so two phones
 // that both log 7 October end up with one entry (the later edit wins) instead of two.
@@ -16,7 +22,12 @@ export function weightEntryId(userId: string, date: string): string {
   return uuidv5(`${userId}/${date}`, WEIGHT_NAMESPACE);
 }
 
-export async function saveWeight(db: Sql, userId: string, entry: { date: string; weightKg: number; note?: string | null }, now: Date): Promise<string> {
+export async function saveWeight(
+  db: Sql,
+  userId: string,
+  entry: { date: string; weightKg: number; note?: string | null },
+  now: Date,
+): Promise<string> {
   const id = weightEntryId(userId, entry.date);
   const note = entry.note?.trim() ? entry.note.trim().slice(0, 200) : null;
   await db.run(
@@ -29,18 +40,27 @@ export async function saveWeight(db: Sql, userId: string, entry: { date: string;
   return id;
 }
 
-export async function deleteWeight(db: Sql, userId: string, date: string, now: Date): Promise<void> {
+export async function deleteWeight(
+  db: Sql,
+  userId: string,
+  date: string,
+  now: Date,
+): Promise<void> {
   const at = now.toISOString();
-  await db.run('UPDATE weight_entries SET deleted_at = ?, updated_at = ?, dirty = 1 WHERE id = ? AND user_id = ?', [
-    at,
-    at,
-    weightEntryId(userId, date),
-    userId,
-  ]);
+  await db.run(
+    'UPDATE weight_entries SET deleted_at = ?, updated_at = ?, dirty = 1 WHERE id = ? AND user_id = ?',
+    [at, at, weightEntryId(userId, date), userId],
+  );
 }
 
 type Row = { id: string; date: string; weight_kg: number; note: string | null; updated_at: string };
-const toEntry = (r: Row): WeightEntry => ({ id: r.id, date: r.date, weightKg: r.weight_kg, note: r.note, updatedAt: r.updated_at });
+const toEntry = (r: Row): WeightEntry => ({
+  id: r.id,
+  date: r.date,
+  weightKg: r.weight_kg,
+  note: r.note,
+  updatedAt: r.updated_at,
+});
 
 // Newest day first, deleted entries left out.
 export async function listWeights(db: Sql, userId: string, limit = 30): Promise<WeightEntry[]> {
@@ -52,8 +72,9 @@ export async function listWeights(db: Sql, userId: string, limit = 30): Promise<
 }
 
 export async function weightOn(db: Sql, userId: string, date: string): Promise<WeightEntry | null> {
-  const row = await db.first<Row>('SELECT id, date, weight_kg, note, updated_at FROM weight_entries WHERE id = ? AND deleted_at IS NULL', [
-    weightEntryId(userId, date),
-  ]);
+  const row = await db.first<Row>(
+    'SELECT id, date, weight_kg, note, updated_at FROM weight_entries WHERE id = ? AND deleted_at IS NULL',
+    [weightEntryId(userId, date)],
+  );
   return row ? toEntry(row) : null;
 }

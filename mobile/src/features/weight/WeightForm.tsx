@@ -23,7 +23,15 @@ type Props = {
 
 // Log or change the weigh-in for one of the last seven days. Picking a day that already has an
 // entry loads it, so the same form edits and deletes.
-export function WeightForm({ today, initialDay, entries, unitSystem, onSave, onDelete, onClose }: Props) {
+export function WeightForm({
+  today,
+  initialDay,
+  entries,
+  unitSystem,
+  onSave,
+  onDelete,
+  onClose,
+}: Props) {
   const { space } = useAppTheme();
   const entryFor = (day: string) => entries.find((e) => e.date === day) ?? null;
   const [day, setDay] = useState(initialDay);
@@ -69,7 +77,13 @@ export function WeightForm({ today, initialDay, entries, unitSystem, onSave, onD
   return (
     <Card>
       <AppText variant="title">{existing ? 'Change weigh-in' : 'Log weight'}</AppText>
-      <ChipGroup label="Day" clearable={false} options={days.map((d) => ({ value: d, label: formatDay(d, today) }))} value={day} onChange={pickDay} />
+      <ChipGroup
+        label="Day"
+        clearable={false}
+        options={days.map((d) => ({ value: d, label: formatDay(d, today) }))}
+        value={day}
+        onChange={pickDay}
+      />
       <TextField
         label={`Weight (${unitLabel(unitSystem)})`}
         value={value}
@@ -85,11 +99,24 @@ export function WeightForm({ today, initialDay, entries, unitSystem, onSave, onD
         returnKeyType="done"
         onSubmitEditing={save}
       />
-      <TextField label="Note (optional)" value={note} onChangeText={setNote} maxLength={200} placeholder="For example: after breakfast" />
+      <TextField
+        label="Note (optional)"
+        value={note}
+        onChangeText={setNote}
+        maxLength={200}
+        placeholder="For example: after breakfast"
+      />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.md, marginTop: space.xs }}>
         <Button label={busy ? 'Saving…' : 'Save'} onPress={save} disabled={busy} />
         <Button label="Cancel" variant="secondary" onPress={onClose} disabled={busy} />
-        {existing ? <Button label="Delete" variant="secondary" onPress={() => run(() => onDelete(day))} disabled={busy} /> : null}
+        {existing ? (
+          <Button
+            label="Delete"
+            variant="secondary"
+            onPress={() => run(() => onDelete(day))}
+            disabled={busy}
+          />
+        ) : null}
       </View>
     </Card>
   );

@@ -6,7 +6,11 @@ export const PHOTO_QUALITY = 0.8;
 
 // The resize that brings the longest side down to max, keeping the shape. Null when the image is
 // already small enough.
-export function fitWithin(width: number, height: number, max = MAX_PHOTO_SIDE): { width: number } | { height: number } | null {
+export function fitWithin(
+  width: number,
+  height: number,
+  max = MAX_PHOTO_SIDE,
+): { width: number } | { height: number } | null {
   if (width <= max && height <= max) return null;
   return width >= height ? { width: max } : { height: max };
 }

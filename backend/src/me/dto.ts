@@ -2,7 +2,12 @@ import type { Profile, User } from '../db/schema.js';
 
 // What the API sends about a user. Internal columns (Google account id, timestamps) stay private.
 export function userDto(user: User) {
-  return { id: user.id, email: user.email, displayName: user.displayName, avatarUrl: user.avatarUrl };
+  return {
+    id: user.id,
+    email: user.email,
+    displayName: user.displayName,
+    avatarUrl: user.avatarUrl,
+  };
 }
 
 export function profileDto(profile: Profile) {

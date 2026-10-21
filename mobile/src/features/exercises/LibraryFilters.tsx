@@ -11,7 +11,8 @@ import { CATEGORIES, EQUIPMENT, MUSCLES } from './types';
 type Props = { filters: Filters; onChange: (filters: Filters) => void };
 type Panel = 'muscle' | 'equipment' | 'category';
 
-const options = <T extends string>(values: readonly T[], labels: Record<T, string>) => values.map((value) => ({ value, label: labels[value] }));
+const options = <T extends string>(values: readonly T[], labels: Record<T, string>) =>
+  values.map((value) => ({ value, label: labels[value] }));
 
 // A row of filter buttons. Favourites toggles; the others open a set of choices underneath.
 export function LibraryFilters({ filters, onChange }: Props) {
@@ -21,26 +22,74 @@ export function LibraryFilters({ filters, onChange }: Props) {
 
   return (
     <View style={{ gap: space.md }}>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: space.sm }}>
-        <FilterButton label="Favourites" active={!!filters.favouritesOnly} onPress={() => onChange({ ...filters, favouritesOnly: !filters.favouritesOnly })} />
-        <FilterButton label={filters.muscle ? MUSCLE_LABELS[filters.muscle] : 'Muscle'} active={!!filters.muscle} expanded={open === 'muscle'} onPress={() => toggle('muscle')} />
-        <FilterButton label={filters.equipment ? EQUIPMENT_LABELS[filters.equipment] : 'Equipment'} active={!!filters.equipment} expanded={open === 'equipment'} onPress={() => toggle('equipment')} />
-        <FilterButton label={filters.category ? CATEGORY_LABELS[filters.category] : 'Type'} active={!!filters.category} expanded={open === 'category'} onPress={() => toggle('category')} />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={{ gap: space.sm }}
+      >
+        <FilterButton
+          label="Favourites"
+          active={!!filters.favouritesOnly}
+          onPress={() => onChange({ ...filters, favouritesOnly: !filters.favouritesOnly })}
+        />
+        <FilterButton
+          label={filters.muscle ? MUSCLE_LABELS[filters.muscle] : 'Muscle'}
+          active={!!filters.muscle}
+          expanded={open === 'muscle'}
+          onPress={() => toggle('muscle')}
+        />
+        <FilterButton
+          label={filters.equipment ? EQUIPMENT_LABELS[filters.equipment] : 'Equipment'}
+          active={!!filters.equipment}
+          expanded={open === 'equipment'}
+          onPress={() => toggle('equipment')}
+        />
+        <FilterButton
+          label={filters.category ? CATEGORY_LABELS[filters.category] : 'Type'}
+          active={!!filters.category}
+          expanded={open === 'category'}
+          onPress={() => toggle('category')}
+        />
       </ScrollView>
       {open === 'muscle' ? (
-        <ChipGroup label="Muscle" options={options(MUSCLES, MUSCLE_LABELS)} value={filters.muscle ?? null} onChange={(muscle) => (onChange({ ...filters, muscle }), setOpen(null))} />
+        <ChipGroup
+          label="Muscle"
+          options={options(MUSCLES, MUSCLE_LABELS)}
+          value={filters.muscle ?? null}
+          onChange={(muscle) => (onChange({ ...filters, muscle }), setOpen(null))}
+        />
       ) : null}
       {open === 'equipment' ? (
-        <ChipGroup label="Equipment" options={options(EQUIPMENT, EQUIPMENT_LABELS)} value={filters.equipment ?? null} onChange={(equipment) => (onChange({ ...filters, equipment }), setOpen(null))} />
+        <ChipGroup
+          label="Equipment"
+          options={options(EQUIPMENT, EQUIPMENT_LABELS)}
+          value={filters.equipment ?? null}
+          onChange={(equipment) => (onChange({ ...filters, equipment }), setOpen(null))}
+        />
       ) : null}
       {open === 'category' ? (
-        <ChipGroup label="Type" options={options(CATEGORIES, CATEGORY_LABELS)} value={filters.category ?? null} onChange={(category) => (onChange({ ...filters, category }), setOpen(null))} />
+        <ChipGroup
+          label="Type"
+          options={options(CATEGORIES, CATEGORY_LABELS)}
+          value={filters.category ?? null}
+          onChange={(category) => (onChange({ ...filters, category }), setOpen(null))}
+        />
       ) : null}
     </View>
   );
 }
 
-function FilterButton({ label, active, expanded, onPress }: { label: string; active: boolean; expanded?: boolean; onPress: () => void }) {
+function FilterButton({
+  label,
+  active,
+  expanded,
+  onPress,
+}: {
+  label: string;
+  active: boolean;
+  expanded?: boolean;
+  onPress: () => void;
+}) {
   const { colors, radius, space } = useAppTheme();
   return (
     <Pressable
@@ -55,8 +104,11 @@ function FilterButton({ label, active, expanded, onPress }: { label: string; act
         borderWidth: 1,
         borderColor: active || expanded ? colors.accent : colors.line,
         backgroundColor: active ? colors.accent : pressed ? colors.surface2 : colors.surface,
-      })}>
-      <AppText variant="bodyStrong" style={{ color: active ? colors.onAccent : colors.text }}>{label}</AppText>
+      })}
+    >
+      <AppText variant="bodyStrong" style={{ color: active ? colors.onAccent : colors.text }}>
+        {label}
+      </AppText>
     </Pressable>
   );
 }

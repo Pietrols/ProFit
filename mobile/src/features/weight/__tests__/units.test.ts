@@ -23,6 +23,8 @@ describe('weight units', () => {
     expect(parseWeight('', 'metric')).toEqual({ error: 'Enter your weight in kg.' });
     expect(parseWeight('abc', 'imperial')).toEqual({ error: 'Enter your weight in lb.' });
     expect(parseWeight('15', 'metric')).toEqual({ error: 'Enter a weight between 20 and 400 kg.' });
-    expect(parseWeight('900', 'imperial')).toEqual({ error: 'Enter a weight between 45 and 881 lb.' });
+    expect(parseWeight('900', 'imperial')).toEqual({
+      error: 'Enter a weight between 45 and 881 lb.',
+    });
   });
 });

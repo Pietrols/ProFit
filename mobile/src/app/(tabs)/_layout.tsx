@@ -31,8 +31,14 @@ export default function TabLayout() {
           paddingTop: 6,
           paddingBottom: 6 + insets.bottom,
         },
-        tabBarLabelStyle: { fontFamily: fontFamilies.bodySemiBold, fontSize: 12, lineHeight: 16, flexShrink: 0 },
-      }}>
+        tabBarLabelStyle: {
+          fontFamily: fontFamilies.bodySemiBold,
+          fontSize: 12,
+          lineHeight: 16,
+          flexShrink: 0,
+        },
+      }}
+    >
       {TABS.map((tab) => (
         <Tabs.Screen
           key={tab.name}

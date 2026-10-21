@@ -1,34 +1,72 @@
 import type { PgTable } from 'drizzle-orm/pg-core';
 import { z } from 'zod';
-import { customExercises, dailyHabit, exerciseFavourites, planDays, planExercises, plans, setLogs, weightEntries, workoutSessions } from '../db/schema.js';
+import {
+  customExercises,
+  dailyHabit,
+  exerciseFavourites,
+  planDays,
+  planExercises,
+  plans,
+  setLogs,
+  weightEntries,
+  workoutSessions,
+} from '../db/schema.js';
+import { calendarDate, exerciseId, exerciseTargetFields, name, syncFields } from './wireFields.js';
+import {
+  setLogRecord,
+  setValues,
+  workoutSessionRecord,
+  workoutSnapshot,
+} from './workoutSchemas.js';
+export { setLogRecord, workoutSessionRecord, workoutSnapshot } from './workoutSchemas.js';
+export { LOG_FIELDS } from './wireFields.js';
 
 // The tables phones sync, and how each record looks on the wire. Adding a synced feature later means
 // adding one entry here: a table with the sync columns, a Zod schema, and the two mappings.
 // Mirrored on the phone in mobile/src/features/sync/collections.ts.
 
-const isoTime = z.iso.datetime({ offset: true });
-
-// A calendar date as the phone saw it (YYYY-MM-DD), checked to be a real day.
-const calendarDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a date like 2026-10-07')
-  .refine((value) => {
-    const d = new Date(`${value}T00:00:00Z`);
-    return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(value);
-  }, 'is not a real date');
-
-const syncFields = {
-  id: z.uuid(),
-  updatedAt: isoTime,
-  deletedAt: isoTime.nullable(),
-};
-
 // The exercise vocabulary. Matches mobile/src/features/exercises/types.ts.
-export const CATEGORIES = ['strength', 'powerlifting', 'olympic weightlifting', 'strongman', 'plyometrics', 'cardio', 'stretching'] as const;
-export const EQUIPMENT = ['body only', 'barbell', 'dumbbell', 'kettlebells', 'cable', 'machine', 'bands', 'e-z curl bar', 'medicine ball', 'exercise ball', 'foam roll', 'other'] as const;
+export const CATEGORIES = [
+  'strength',
+  'powerlifting',
+  'olympic weightlifting',
+  'strongman',
+  'plyometrics',
+  'cardio',
+  'stretching',
+] as const;
+export const EQUIPMENT = [
+  'body only',
+  'barbell',
+  'dumbbell',
+  'kettlebells',
+  'cable',
+  'machine',
+  'bands',
+  'e-z curl bar',
+  'medicine ball',
+  'exercise ball',
+  'foam roll',
+  'other',
+] as const;
 export const MUSCLES = [
-  'chest', 'shoulders', 'triceps', 'biceps', 'forearms', 'lats', 'middle back', 'lower back', 'traps', 'neck',
-  'abdominals', 'quadriceps', 'hamstrings', 'glutes', 'calves', 'adductors', 'abductors',
+  'chest',
+  'shoulders',
+  'triceps',
+  'biceps',
+  'forearms',
+  'lats',
+  'middle back',
+  'lower back',
+  'traps',
+  'neck',
+  'abdominals',
+  'quadriceps',
+  'hamstrings',
+  'glutes',
+  'calves',
+  'adductors',
+  'abductors',
 ] as const;
 export const TRACKING = ['weight_reps', 'reps', 'time', 'distance_time'] as const;
 
@@ -57,54 +95,33 @@ export const favouriteRecord = z.strictObject({
   exerciseId: z.string().regex(/^[A-Za-z0-9_-]{1,100}$/, 'must be an exercise id'),
 });
 
-export const LOG_FIELDS = ['reps', 'weight', 'time', 'distance', 'rest', 'RPE', 'notes', 'done'] as const;
-const exerciseId = z.string().regex(/^[A-Za-z0-9_-]{1,100}$/, 'must be an exercise id');
 const position = z.number().int().min(0).max(10000);
-const name = z.string().trim().min(1).max(80);
 export const planRecord = z.strictObject({
-  ...syncFields, name, shape: z.enum(['cycle', 'weekly']), difficulty: z.enum(['gentle', 'standard', 'hard']), active: z.boolean(),
+  ...syncFields,
+  name,
+  shape: z.enum(['cycle', 'weekly']),
+  difficulty: z.enum(['gentle', 'standard', 'hard']),
+  active: z.boolean(),
 });
 export const planDayRecord = z.strictObject({
-  ...syncFields, planId: z.uuid(), position, weekday: z.number().int().min(1).max(7).nullable(), name, restDay: z.boolean(),
+  ...syncFields,
+  planId: z.uuid(),
+  position,
+  weekday: z.number().int().min(1).max(7).nullable(),
+  name,
+  restDay: z.boolean(),
 });
 export const planExerciseRecord = z.strictObject({
-  ...syncFields, dayId: z.uuid(), exerciseId, position, sets: z.number().int().min(1).max(100),
-  targetReps: z.number().int().min(1).max(1000).nullable(),
-  targetTimeSeconds: z.number().int().min(1).max(86400).nullable(),
-  targetDistanceMetres: z.number().min(1).max(1000000).nullable(),
-  restSeconds: z.number().int().min(0).max(3600),
-  logFields: z.array(z.enum(LOG_FIELDS)).min(1).max(8).refine((v) => new Set(v).size === v.length, 'log fields must be unique'),
+  ...syncFields,
+  dayId: z.uuid(),
+  exerciseId,
+  position,
+  ...exerciseTargetFields,
 });
-export const habitRecord = z.strictObject({ ...syncFields, exerciseIds: z.array(exerciseId).max(100) });
-
-// Mirrored in mobile/src/features/workouts/model.ts.
-export const workoutSnapshot = z.strictObject({
-  planName: name, dayName: name, difficulty: z.enum(['gentle', 'standard', 'hard']), restDay: z.boolean(),
-  exercises: z.array(z.strictObject({
-    exerciseId, name, sets: planExerciseRecord.shape.sets,
-    targetReps: planExerciseRecord.shape.targetReps,
-    targetTimeSeconds: planExerciseRecord.shape.targetTimeSeconds,
-    targetDistanceMetres: planExerciseRecord.shape.targetDistanceMetres,
-    restSeconds: planExerciseRecord.shape.restSeconds, logFields: planExerciseRecord.shape.logFields,
-  })).max(100),
-}).refine((s) => s.restDay ? s.exercises.length === 0 : s.exercises.length > 0, 'choose a training exercise or a rest day');
-export const workoutSessionRecord = z.strictObject({
-  ...syncFields, planId: z.uuid(), dayId: z.uuid(), localDate: calendarDate,
-  startedAt: isoTime, endedAt: isoTime.nullable(), status: z.enum(['active', 'completed', 'abandoned']),
-  notes: z.string().max(2000), easierToday: z.boolean(), snapshot: workoutSnapshot,
-}).refine((s) => s.status === 'active' ? s.endedAt === null : s.endedAt !== null && Date.parse(s.endedAt) >= Date.parse(s.startedAt), 'end time must match status and follow start');
-const setValues = z.strictObject({
-  reps: z.number().int().min(0).max(1000).optional(), weight: z.number().min(0).max(2000).optional(),
-  time: z.number().min(0).max(86400).optional(), distance: z.number().min(0).max(1000000).optional(),
-  rest: z.number().min(0).max(3600).optional(), RPE: z.number().min(0).max(10).optional(),
-  notes: z.string().max(2000).optional(), done: z.boolean().optional(),
+export const habitRecord = z.strictObject({
+  ...syncFields,
+  exerciseIds: z.array(exerciseId).max(100),
 });
-export const setLogRecord = z.strictObject({
-  ...syncFields, sessionId: z.uuid(), exercisePosition: z.number().int().min(0).max(99),
-  setIndex: z.number().int().min(0).max(99), loggedAt: isoTime,
-  logFields: planExerciseRecord.shape.logFields, values: setValues,
-}).refine((s) => Object.keys(s.values).every((key) => s.logFields.includes(key as typeof LOG_FIELDS[number])), 'values must use selected fields')
-  .refine((s) => Object.values(s.values).some((v) => typeof v === 'number' || v === true || typeof v === 'string' && v.trim().length > 0), 'enter a result or mark done');
 
 export type WeightRecord = z.infer<typeof weightRecord>;
 export type CustomExerciseRecord = z.infer<typeof customExerciseRecord>;
@@ -133,48 +150,134 @@ function define<R, Row extends SyncRow>(spec: CollectionSpec<R, Row>) {
 
 export const collections = {
   workout_sessions: define({
-    table: workoutSessions, schema: workoutSessionRecord,
-    toRow: (r) => ({ planId: r.planId, dayId: r.dayId, localDate: r.localDate,
-      startedAt: new Date(r.startedAt), endedAt: r.endedAt ? new Date(r.endedAt) : null,
-      status: r.status, notes: r.notes, easierToday: r.easierToday, snapshot: r.snapshot }),
-    toWire: (row: typeof workoutSessions.$inferSelect) => ({ ...syncWire(row),
-      planId: row.planId, dayId: row.dayId, localDate: row.localDate, startedAt: row.startedAt.toISOString(),
-      endedAt: row.endedAt?.toISOString() ?? null, status: row.status as z.infer<typeof workoutSessionRecord>['status'],
-      notes: row.notes, easierToday: row.easierToday, snapshot: row.snapshot as z.infer<typeof workoutSnapshot> }),
+    table: workoutSessions,
+    schema: workoutSessionRecord,
+    toRow: (r) => ({
+      planId: r.planId,
+      dayId: r.dayId,
+      localDate: r.localDate,
+      startedAt: new Date(r.startedAt),
+      endedAt: r.endedAt ? new Date(r.endedAt) : null,
+      status: r.status,
+      notes: r.notes,
+      easierToday: r.easierToday,
+      snapshot: r.snapshot,
+    }),
+    toWire: (row: typeof workoutSessions.$inferSelect) => ({
+      ...syncWire(row),
+      planId: row.planId,
+      dayId: row.dayId,
+      localDate: row.localDate,
+      startedAt: row.startedAt.toISOString(),
+      endedAt: row.endedAt?.toISOString() ?? null,
+      status: row.status as z.infer<typeof workoutSessionRecord>['status'],
+      notes: row.notes,
+      easierToday: row.easierToday,
+      snapshot: row.snapshot as z.infer<typeof workoutSnapshot>,
+    }),
   }),
   set_logs: define({
-    table: setLogs, schema: setLogRecord,
-    toRow: (r) => ({ sessionId: r.sessionId, exercisePosition: r.exercisePosition, setIndex: r.setIndex,
-      loggedAt: new Date(r.loggedAt), logFields: r.logFields, values: r.values }),
-    toWire: (row: typeof setLogs.$inferSelect) => ({ ...syncWire(row), sessionId: row.sessionId,
-      exercisePosition: row.exercisePosition, setIndex: row.setIndex, loggedAt: row.loggedAt.toISOString(),
-      logFields: row.logFields as z.infer<typeof setLogRecord>['logFields'], values: row.values as z.infer<typeof setValues> }),
+    table: setLogs,
+    schema: setLogRecord,
+    toRow: (r) => ({
+      sessionId: r.sessionId,
+      exercisePosition: r.exercisePosition,
+      setIndex: r.setIndex,
+      loggedAt: new Date(r.loggedAt),
+      logFields: r.logFields,
+      values: r.values,
+    }),
+    toWire: (row: typeof setLogs.$inferSelect) => ({
+      ...syncWire(row),
+      sessionId: row.sessionId,
+      exercisePosition: row.exercisePosition,
+      setIndex: row.setIndex,
+      loggedAt: row.loggedAt.toISOString(),
+      logFields: row.logFields as z.infer<typeof setLogRecord>['logFields'],
+      values: row.values as z.infer<typeof setValues>,
+    }),
   }),
   plans: define({
-    table: plans, schema: planRecord,
+    table: plans,
+    schema: planRecord,
     toRow: (r) => ({ name: r.name, shape: r.shape, difficulty: r.difficulty, active: r.active }),
-    toWire: (row: typeof plans.$inferSelect) => ({ ...syncWire(row), name: row.name as z.infer<typeof planRecord>['name'], shape: row.shape as z.infer<typeof planRecord>['shape'], difficulty: row.difficulty as z.infer<typeof planRecord>['difficulty'], active: row.active as z.infer<typeof planRecord>['active'] }),
+    toWire: (row: typeof plans.$inferSelect) => ({
+      ...syncWire(row),
+      name: row.name as z.infer<typeof planRecord>['name'],
+      shape: row.shape as z.infer<typeof planRecord>['shape'],
+      difficulty: row.difficulty as z.infer<typeof planRecord>['difficulty'],
+      active: row.active as z.infer<typeof planRecord>['active'],
+    }),
   }),
   plan_days: define({
-    table: planDays, schema: planDayRecord,
-    toRow: (r) => ({ planId: r.planId, position: r.position, weekday: r.weekday, name: r.name, restDay: r.restDay }),
-    toWire: (row: typeof planDays.$inferSelect) => ({ ...syncWire(row), planId: row.planId as z.infer<typeof planDayRecord>['planId'], position: row.position as z.infer<typeof planDayRecord>['position'], weekday: row.weekday as z.infer<typeof planDayRecord>['weekday'], name: row.name as z.infer<typeof planDayRecord>['name'], restDay: row.restDay as z.infer<typeof planDayRecord>['restDay'] }),
+    table: planDays,
+    schema: planDayRecord,
+    toRow: (r) => ({
+      planId: r.planId,
+      position: r.position,
+      weekday: r.weekday,
+      name: r.name,
+      restDay: r.restDay,
+    }),
+    toWire: (row: typeof planDays.$inferSelect) => ({
+      ...syncWire(row),
+      planId: row.planId as z.infer<typeof planDayRecord>['planId'],
+      position: row.position as z.infer<typeof planDayRecord>['position'],
+      weekday: row.weekday as z.infer<typeof planDayRecord>['weekday'],
+      name: row.name as z.infer<typeof planDayRecord>['name'],
+      restDay: row.restDay as z.infer<typeof planDayRecord>['restDay'],
+    }),
   }),
   plan_exercises: define({
-    table: planExercises, schema: planExerciseRecord,
-    toRow: (r) => ({ dayId: r.dayId, exerciseId: r.exerciseId, position: r.position, sets: r.sets, targetReps: r.targetReps, targetTimeSeconds: r.targetTimeSeconds, targetDistanceMetres: r.targetDistanceMetres, restSeconds: r.restSeconds, logFields: r.logFields }),
-    toWire: (row: typeof planExercises.$inferSelect) => ({ ...syncWire(row), dayId: row.dayId as z.infer<typeof planExerciseRecord>['dayId'], exerciseId: row.exerciseId as z.infer<typeof planExerciseRecord>['exerciseId'], position: row.position as z.infer<typeof planExerciseRecord>['position'], sets: row.sets as z.infer<typeof planExerciseRecord>['sets'], targetReps: row.targetReps as z.infer<typeof planExerciseRecord>['targetReps'], targetTimeSeconds: row.targetTimeSeconds as z.infer<typeof planExerciseRecord>['targetTimeSeconds'], targetDistanceMetres: row.targetDistanceMetres as z.infer<typeof planExerciseRecord>['targetDistanceMetres'], restSeconds: row.restSeconds as z.infer<typeof planExerciseRecord>['restSeconds'], logFields: row.logFields as z.infer<typeof planExerciseRecord>['logFields'] }),
+    table: planExercises,
+    schema: planExerciseRecord,
+    toRow: (r) => ({
+      dayId: r.dayId,
+      exerciseId: r.exerciseId,
+      position: r.position,
+      sets: r.sets,
+      targetReps: r.targetReps,
+      targetTimeSeconds: r.targetTimeSeconds,
+      targetDistanceMetres: r.targetDistanceMetres,
+      restSeconds: r.restSeconds,
+      logFields: r.logFields,
+    }),
+    toWire: (row: typeof planExercises.$inferSelect) => ({
+      ...syncWire(row),
+      dayId: row.dayId as z.infer<typeof planExerciseRecord>['dayId'],
+      exerciseId: row.exerciseId as z.infer<typeof planExerciseRecord>['exerciseId'],
+      position: row.position as z.infer<typeof planExerciseRecord>['position'],
+      sets: row.sets as z.infer<typeof planExerciseRecord>['sets'],
+      targetReps: row.targetReps as z.infer<typeof planExerciseRecord>['targetReps'],
+      targetTimeSeconds: row.targetTimeSeconds as z.infer<
+        typeof planExerciseRecord
+      >['targetTimeSeconds'],
+      targetDistanceMetres: row.targetDistanceMetres as z.infer<
+        typeof planExerciseRecord
+      >['targetDistanceMetres'],
+      restSeconds: row.restSeconds as z.infer<typeof planExerciseRecord>['restSeconds'],
+      logFields: row.logFields as z.infer<typeof planExerciseRecord>['logFields'],
+    }),
   }),
   daily_habit: define({
-    table: dailyHabit, schema: habitRecord,
+    table: dailyHabit,
+    schema: habitRecord,
     toRow: (r) => ({ exerciseIds: r.exerciseIds }),
-    toWire: (row: typeof dailyHabit.$inferSelect) => ({ ...syncWire(row), exerciseIds: row.exerciseIds as z.infer<typeof habitRecord>['exerciseIds'] }),
+    toWire: (row: typeof dailyHabit.$inferSelect) => ({
+      ...syncWire(row),
+      exerciseIds: row.exerciseIds as z.infer<typeof habitRecord>['exerciseIds'],
+    }),
   }),
   weight_entries: define({
     table: weightEntries,
     schema: weightRecord,
     toRow: (r) => ({ date: r.date, weightKg: r.weightKg, note: r.note || null }),
-    toWire: (row: typeof weightEntries.$inferSelect) => ({ ...syncWire(row), date: row.date, weightKg: row.weightKg, note: row.note }),
+    toWire: (row: typeof weightEntries.$inferSelect) => ({
+      ...syncWire(row),
+      date: row.date,
+      weightKg: row.weightKg,
+      note: row.note,
+    }),
   }),
   custom_exercises: define({
     table: customExercises,
@@ -205,7 +308,10 @@ export const collections = {
     table: exerciseFavourites,
     schema: favouriteRecord,
     toRow: (r) => ({ exerciseId: r.exerciseId }),
-    toWire: (row: typeof exerciseFavourites.$inferSelect) => ({ ...syncWire(row), exerciseId: row.exerciseId }),
+    toWire: (row: typeof exerciseFavourites.$inferSelect) => ({
+      ...syncWire(row),
+      exerciseId: row.exerciseId,
+    }),
   }),
 };
 

@@ -3,7 +3,12 @@ import { router } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, View } from 'react-native';
 import { useAuthStore, useMe } from '@/features/auth/AuthProvider';
-import { EXPERIENCE_OPTIONS, GOAL_OPTIONS, PLACE_OPTIONS, labelFor } from '@/features/profile/labels';
+import {
+  EXPERIENCE_OPTIONS,
+  GOAL_OPTIONS,
+  PLACE_OPTIONS,
+  labelFor,
+} from '@/features/profile/labels';
 import type { ThemePreference } from '@/theme/preference';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { fontFamilies, touchTarget } from '@/theme/tokens';
@@ -26,10 +31,18 @@ export default function YouScreen() {
       <AccountCard />
 
       <Card>
-        <AppText variant="label" color="text2">Appearance</AppText>
+        <AppText variant="label" color="text2">
+          Appearance
+        </AppText>
         <View
           accessibilityRole="radiogroup"
-          style={{ flexDirection: 'row', backgroundColor: colors.surface2, borderRadius: radius.pill, padding: space.xs }}>
+          style={{
+            flexDirection: 'row',
+            backgroundColor: colors.surface2,
+            borderRadius: radius.pill,
+            padding: space.xs,
+          }}
+        >
           {THEME_OPTIONS.map((option) => {
             const selected = option.value === preference;
             return (
@@ -45,8 +58,12 @@ export default function YouScreen() {
                   justifyContent: 'center',
                   borderRadius: radius.pill,
                   backgroundColor: selected ? colors.accent : 'transparent',
-                }}>
-                <AppText variant="bodyStrong" style={{ color: selected ? colors.onAccent : colors.text }}>
+                }}
+              >
+                <AppText
+                  variant="bodyStrong"
+                  style={{ color: selected ? colors.onAccent : colors.text }}
+                >
                   {option.label}
                 </AppText>
               </Pressable>
@@ -66,21 +83,33 @@ function AccountCard() {
   if (!me) {
     return (
       <Card>
-        <AppText variant="label" color="text2">Account</AppText>
-        <AppText color="text2">Your profile has not reached this phone yet. It will appear once you are online.</AppText>
+        <AppText variant="label" color="text2">
+          Account
+        </AppText>
+        <AppText color="text2">
+          Your profile has not reached this phone yet. It will appear once you are online.
+        </AppText>
       </Card>
     );
   }
   const { user, profile } = me;
-  const summary = [labelFor(GOAL_OPTIONS, profile.goal), labelFor(EXPERIENCE_OPTIONS, profile.experience), labelFor(PLACE_OPTIONS, profile.trainingPlace)].filter(Boolean);
+  const summary = [
+    labelFor(GOAL_OPTIONS, profile.goal),
+    labelFor(EXPERIENCE_OPTIONS, profile.experience),
+    labelFor(PLACE_OPTIONS, profile.trainingPlace),
+  ].filter(Boolean);
 
   return (
     <Card>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.md }}>
         <Avatar name={user.displayName} url={user.avatarUrl} />
         <View style={{ flex: 1, gap: 2 }}>
-          <AppText variant="title" numberOfLines={1}>{user.displayName}</AppText>
-          <AppText variant="caption" color="text2" numberOfLines={1}>{user.email}</AppText>
+          <AppText variant="title" numberOfLines={1}>
+            {user.displayName}
+          </AppText>
+          <AppText variant="caption" color="text2" numberOfLines={1}>
+            {user.email}
+          </AppText>
         </View>
       </View>
       {summary.length ? (
@@ -91,11 +120,22 @@ function AccountCard() {
       {hasPendingChanges ? (
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
           <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: colors.caution }} />
-          <AppText variant="caption" color="text2">Saved on this phone. Syncs when you are online.</AppText>
+          <AppText variant="caption" color="text2">
+            Saved on this phone. Syncs when you are online.
+          </AppText>
         </View>
       ) : null}
-      {syncError ? <AppText variant="caption" color="caution">{syncError}</AppText> : null}
-      <Button label="Edit profile" variant="secondary" onPress={() => router.push('/profile')} style={{ alignSelf: 'flex-start', marginTop: space.xs }} />
+      {syncError ? (
+        <AppText variant="caption" color="caution">
+          {syncError}
+        </AppText>
+      ) : null}
+      <Button
+        label="Edit profile"
+        variant="secondary"
+        onPress={() => router.push('/profile')}
+        style={{ alignSelf: 'flex-start', marginTop: space.xs }}
+      />
     </Card>
   );
 }
@@ -104,11 +144,33 @@ function Avatar({ name, url }: { name: string; url: string | null }) {
   const { colors } = useAppTheme();
   const size = 56;
   if (url) {
-    return <Image source={{ uri: url }} style={{ width: size, height: size, borderRadius: size / 2 }} accessibilityLabel={`${name}'s photo`} />;
+    return (
+      <Image
+        source={{ uri: url }}
+        style={{ width: size, height: size, borderRadius: size / 2 }}
+        accessibilityLabel={`${name}'s photo`}
+      />
+    );
   }
   return (
-    <View style={{ width: size, height: size, borderRadius: size / 2, backgroundColor: colors.accent2, alignItems: 'center', justifyContent: 'center' }}>
-      <AppText style={{ fontFamily: fontFamilies.display, fontSize: 28, lineHeight: 30, color: colors.onAccent2 }}>
+    <View
+      style={{
+        width: size,
+        height: size,
+        borderRadius: size / 2,
+        backgroundColor: colors.accent2,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <AppText
+        style={{
+          fontFamily: fontFamilies.display,
+          fontSize: 28,
+          lineHeight: 30,
+          color: colors.onAccent2,
+        }}
+      >
         {name.trim().charAt(0).toUpperCase() || '?'}
       </AppText>
     </View>
@@ -133,7 +195,9 @@ function SignOutCard() {
 
   return (
     <Card>
-      <AppText variant="label" color="text2">Account</AppText>
+      <AppText variant="label" color="text2">
+        Account
+      </AppText>
       {confirming ? (
         <>
           <AppText variant="bodyStrong">Sign out of ProFit on this phone?</AppText>
@@ -144,11 +208,21 @@ function SignOutCard() {
           </AppText>
           <View style={{ flexDirection: 'row', gap: space.md }}>
             <Button label={busy ? 'Signing out…' : 'Sign out'} onPress={signOut} disabled={busy} />
-            <Button label="Cancel" variant="secondary" onPress={() => setConfirming(false)} disabled={busy} />
+            <Button
+              label="Cancel"
+              variant="secondary"
+              onPress={() => setConfirming(false)}
+              disabled={busy}
+            />
           </View>
         </>
       ) : (
-        <Button label="Sign out" variant="secondary" onPress={() => setConfirming(true)} style={{ alignSelf: 'flex-start' }} />
+        <Button
+          label="Sign out"
+          variant="secondary"
+          onPress={() => setConfirming(true)}
+          style={{ alignSelf: 'flex-start' }}
+        />
       )}
     </Card>
   );

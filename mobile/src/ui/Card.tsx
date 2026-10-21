@@ -16,7 +16,8 @@ export function Card({ children, style }: { children: ReactNode; style?: ViewSty
           gap: space.sm,
         },
         style,
-      ]}>
+      ]}
+    >
       {children}
     </View>
   );

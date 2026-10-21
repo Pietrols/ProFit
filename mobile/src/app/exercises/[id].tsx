@@ -3,7 +3,13 @@ import { useState } from 'react';
 import { View } from 'react-native';
 import { ExerciseImage } from '@/features/exercises/ExerciseImage';
 import { FavouriteButton } from '@/features/exercises/FavouriteButton';
-import { CATEGORY_LABELS, EQUIPMENT_LABELS, LEVEL_LABELS, musclesText, TRACKING_LABELS } from '@/features/exercises/labels';
+import {
+  CATEGORY_LABELS,
+  EQUIPMENT_LABELS,
+  LEVEL_LABELS,
+  musclesText,
+  TRACKING_LABELS,
+} from '@/features/exercises/labels';
 import { useExerciseLibrary } from '@/features/exercises/useExerciseLibrary';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { AppText } from '@/ui/AppText';
@@ -16,14 +22,21 @@ export default function ExerciseDetailScreen() {
   const { space } = useAppTheme();
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { exercises, favourites, error, find, toggleFavourite, deleteCustom, retry } = useExerciseLibrary();
+  const { exercises, favourites, error, find, toggleFavourite, deleteCustom, retry } =
+    useExerciseLibrary();
   const [confirming, setConfirming] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   if (error) {
     return (
       <Screen>
-        <EmptyState icon="warning-outline" title="Could not load this exercise" message={error} actionLabel="Try again" onAction={retry} />
+        <EmptyState
+          icon="warning-outline"
+          title="Could not load this exercise"
+          message={error}
+          actionLabel="Try again"
+          onAction={retry}
+        />
       </Screen>
     );
   }
@@ -34,7 +47,13 @@ export default function ExerciseDetailScreen() {
     return (
       <Screen>
         <Stack.Screen options={{ title: 'Exercise' }} />
-        <EmptyState icon="help-circle-outline" title="Exercise not found" message="It may have been deleted on another phone." actionLabel="Back to the library" onAction={() => router.back()} />
+        <EmptyState
+          icon="help-circle-outline"
+          title="Exercise not found"
+          message="It may have been deleted on another phone."
+          actionLabel="Back to the library"
+          onAction={() => router.back()}
+        />
       </Screen>
     );
   }
@@ -65,25 +84,37 @@ export default function ExerciseDetailScreen() {
         <ExerciseImage exercise={x} size={220} />
       </View>
       <View style={{ flexDirection: 'row', alignItems: 'center', gap: space.sm }}>
-        <AppText variant="title" accessibilityRole="header" style={{ flex: 1 }}>{x.name}</AppText>
-        <FavouriteButton on={favourites.has(x.id)} name={x.name} onPress={() => void toggleFavourite(x.id)} />
+        <AppText variant="title" accessibilityRole="header" style={{ flex: 1 }}>
+          {x.name}
+        </AppText>
+        <FavouriteButton
+          on={favourites.has(x.id)}
+          name={x.name}
+          onPress={() => void toggleFavourite(x.id)}
+        />
       </View>
 
       <Card>
         {facts.map(([label, value]) => (
           <View key={label} style={{ flexDirection: 'row', gap: space.md }}>
-            <AppText variant="label" color="text2" style={{ width: 130, paddingTop: 3 }}>{label}</AppText>
+            <AppText variant="label" color="text2" style={{ width: 130, paddingTop: 3 }}>
+              {label}
+            </AppText>
             <AppText style={{ flex: 1 }}>{value}</AppText>
           </View>
         ))}
       </Card>
 
       <Card>
-        <AppText variant="label" color="text2">How to do it</AppText>
+        <AppText variant="label" color="text2">
+          How to do it
+        </AppText>
         {x.instructions.length ? (
           x.instructions.map((step, i) => (
             <View key={i} style={{ flexDirection: 'row', gap: space.sm }}>
-              <AppText variant="bodyStrong" color="text2" style={{ width: 22 }}>{i + 1}.</AppText>
+              <AppText variant="bodyStrong" color="text2" style={{ width: 22 }}>
+                {i + 1}.
+              </AppText>
               <AppText style={{ flex: 1 }}>{step}</AppText>
             </View>
           ))
@@ -94,7 +125,11 @@ export default function ExerciseDetailScreen() {
 
       {custom ? (
         <View style={{ gap: space.sm }}>
-          <Button label="Edit" variant="secondary" onPress={() => router.push({ pathname: '/exercises/form', params: { id: x.id } })} />
+          <Button
+            label="Edit"
+            variant="secondary"
+            onPress={() => router.push({ pathname: '/exercises/form', params: { id: x.id } })}
+          />
           {confirming ? (
             <Card>
               <AppText>Delete {x.name}? It is removed from all your phones.</AppText>

@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import { useColorScheme } from 'react-native';
 import { kvStore } from '@/lib/storage/local';
 import { PREFERENCE_KEY, parsePreference, resolveMode, type ThemePreference } from './preference';
@@ -38,7 +46,15 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const resolved = preference ?? parsePreference(null);
   const mode = resolveMode(resolved, system);
   const value = useMemo<ThemeValue>(
-    () => ({ mode, colors: palettes[mode], type: typeScale, radius, space, preference: resolved, setPreference }),
+    () => ({
+      mode,
+      colors: palettes[mode],
+      type: typeScale,
+      radius,
+      space,
+      preference: resolved,
+      setPreference,
+    }),
     [mode, resolved, setPreference],
   );
 

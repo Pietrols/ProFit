@@ -2,8 +2,22 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Image, View } from 'react-native';
 import { validateCustomExercise } from '@/features/exercises/customExercises';
-import { changeForm, emptyForm, formFor, MAX_PRIMARY, MAX_SECONDARY, toggleMuscle, toInput, type FormState } from '@/features/exercises/exerciseForm';
-import { CATEGORY_LABELS, EQUIPMENT_LABELS, MUSCLE_LABELS, TRACKING_LABELS } from '@/features/exercises/labels';
+import {
+  changeForm,
+  emptyForm,
+  formFor,
+  MAX_PRIMARY,
+  MAX_SECONDARY,
+  toggleMuscle,
+  toInput,
+  type FormState,
+} from '@/features/exercises/exerciseForm';
+import {
+  CATEGORY_LABELS,
+  EQUIPMENT_LABELS,
+  MUSCLE_LABELS,
+  TRACKING_LABELS,
+} from '@/features/exercises/labels';
 import { CATEGORIES, EQUIPMENT, MUSCLES, TRACKING } from '@/features/exercises/types';
 import { useExerciseLibrary } from '@/features/exercises/useExerciseLibrary';
 import { pickPhoto } from '@/features/media/pickPhoto';
@@ -20,7 +34,8 @@ import { OptionCard } from '@/ui/OptionCard';
 import { Screen } from '@/ui/Screen';
 import { TextField } from '@/ui/TextField';
 
-const options = <T extends string>(values: readonly T[], labels: Record<T, string>) => values.map((value) => ({ value, label: labels[value] }));
+const options = <T extends string>(values: readonly T[], labels: Record<T, string>) =>
+  values.map((value) => ({ value, label: labels[value] }));
 
 export default function ExerciseFormScreen() {
   const { id, name } = useLocalSearchParams<{ id?: string; name?: string }>();
@@ -29,7 +44,13 @@ export default function ExerciseFormScreen() {
   if (library.error) {
     return (
       <Screen>
-        <EmptyState icon="warning-outline" title="Could not load the library" message={library.error} actionLabel="Try again" onAction={library.retry} />
+        <EmptyState
+          icon="warning-outline"
+          title="Could not load the library"
+          message={library.error}
+          actionLabel="Try again"
+          onAction={library.retry}
+        />
       </Screen>
     );
   }
@@ -39,14 +60,29 @@ export default function ExerciseFormScreen() {
   if (id && (!existing || existing.origin !== 'custom')) {
     return (
       <Screen>
-        <EmptyState icon="help-circle-outline" title="Exercise not found" message="It may have been deleted on another phone." />
+        <EmptyState
+          icon="help-circle-outline"
+          title="Exercise not found"
+          message="It may have been deleted on another phone."
+        />
       </Screen>
     );
   }
-  return <FormBody key={id ?? 'new'} initial={existing ? formFor(existing) : emptyForm(name ?? '')} id={existing?.id} save={library.saveCustom} />;
+  return (
+    <FormBody
+      key={id ?? 'new'}
+      initial={existing ? formFor(existing) : emptyForm(name ?? '')}
+      id={existing?.id}
+      save={library.saveCustom}
+    />
+  );
 }
 
-type BodyProps = { initial: FormState; id?: string; save: ReturnType<typeof useExerciseLibrary>['saveCustom'] };
+type BodyProps = {
+  initial: FormState;
+  id?: string;
+  save: ReturnType<typeof useExerciseLibrary>['saveCustom'];
+};
 
 function FormBody({ initial, id, save }: BodyProps) {
   const { space } = useAppTheme();
@@ -61,7 +97,8 @@ function FormBody({ initial, id, save }: BodyProps) {
 
   // Errors show after the first save attempt, then clear as each field is fixed.
   const errors = submitted ? validateCustomExercise(toInput(form)) : {};
-  const update = (change: Parameters<typeof changeForm>[1]) => setForm((f) => changeForm(f, change));
+  const update = (change: Parameters<typeof changeForm>[1]) =>
+    setForm((f) => changeForm(f, change));
 
   const choosePhoto = async () => {
     if (auth.status !== 'signedIn') return;
@@ -91,38 +128,119 @@ function FormBody({ initial, id, save }: BodyProps) {
   return (
     <Screen>
       <Stack.Screen options={{ title: id ? 'Edit exercise' : 'New exercise' }} />
-      <TextField label="Name" value={form.name} onChangeText={(text) => update({ name: text })} placeholder="Sandbag carry" maxLength={80} error={errors.name} autoFocus={!id && !form.name} />
+      <TextField
+        label="Name"
+        value={form.name}
+        onChangeText={(text) => update({ name: text })}
+        placeholder="Sandbag carry"
+        maxLength={80}
+        error={errors.name}
+        autoFocus={!id && !form.name}
+      />
 
       <View style={{ gap: space.xs }}>
-        <AppText variant="label" color="text2">Photo</AppText>
-        {photo.status === 'ready' ? <Image source={{ uri: photo.uri }} style={{ width: 120, height: 120, borderRadius: 8 }} accessibilityLabel="Exercise photo" /> : null}
+        <AppText variant="label" color="text2">
+          Photo
+        </AppText>
+        {photo.status === 'ready' ? (
+          <Image
+            source={{ uri: photo.uri }}
+            style={{ width: 120, height: 120, borderRadius: 8 }}
+            accessibilityLabel="Exercise photo"
+          />
+        ) : null}
         {photos.available ? (
           <View style={{ flexDirection: 'row', gap: space.sm }}>
-            <Button label={form.photoId ? 'Change photo' : 'Add a photo'} variant="secondary" onPress={() => void choosePhoto()} />
-            {form.photoId ? <Button label="Remove" variant="secondary" onPress={() => update({ photoId: null })} /> : null}
+            <Button
+              label={form.photoId ? 'Change photo' : 'Add a photo'}
+              variant="secondary"
+              onPress={() => void choosePhoto()}
+            />
+            {form.photoId ? (
+              <Button
+                label="Remove"
+                variant="secondary"
+                onPress={() => update({ photoId: null })}
+              />
+            ) : null}
           </View>
         ) : (
-          <AppText variant="caption" color="text2">Photos can be added in the app on your phone.</AppText>
+          <AppText variant="caption" color="text2">
+            Photos can be added in the app on your phone.
+          </AppText>
         )}
       </View>
 
-      <ChipGroup label="Type" options={options(CATEGORIES, CATEGORY_LABELS)} value={form.category} clearable={false} onChange={(category) => category && update({ category })} />
-      <ChipGroup label="Equipment" options={options(EQUIPMENT, EQUIPMENT_LABELS)} value={form.equipment} onChange={(equipment) => update({ equipment })} hint="Leave empty if it needs nothing." />
-      <MultiChipGroup label="Main muscles" options={options(MUSCLES, MUSCLE_LABELS)} values={form.primary} onToggle={(m) => setForm((f) => toggleMuscle(f, 'primary', m))} hint={`Up to ${MAX_PRIMARY}.`} error={errors.primary} />
-      <MultiChipGroup label="Other muscles" options={options(MUSCLES, MUSCLE_LABELS)} values={form.secondary} onToggle={(m) => setForm((f) => toggleMuscle(f, 'secondary', m))} hint={`Optional, up to ${MAX_SECONDARY}.`} error={errors.secondary} />
+      <ChipGroup
+        label="Type"
+        options={options(CATEGORIES, CATEGORY_LABELS)}
+        value={form.category}
+        clearable={false}
+        onChange={(category) => category && update({ category })}
+      />
+      <ChipGroup
+        label="Equipment"
+        options={options(EQUIPMENT, EQUIPMENT_LABELS)}
+        value={form.equipment}
+        onChange={(equipment) => update({ equipment })}
+        hint="Leave empty if it needs nothing."
+      />
+      <MultiChipGroup
+        label="Main muscles"
+        options={options(MUSCLES, MUSCLE_LABELS)}
+        values={form.primary}
+        onToggle={(m) => setForm((f) => toggleMuscle(f, 'primary', m))}
+        hint={`Up to ${MAX_PRIMARY}.`}
+        error={errors.primary}
+      />
+      <MultiChipGroup
+        label="Other muscles"
+        options={options(MUSCLES, MUSCLE_LABELS)}
+        values={form.secondary}
+        onToggle={(m) => setForm((f) => toggleMuscle(f, 'secondary', m))}
+        hint={`Optional, up to ${MAX_SECONDARY}.`}
+        error={errors.secondary}
+      />
 
-      <View style={{ gap: space.sm }} accessibilityRole="radiogroup" accessibilityLabel="What each set records">
-        <AppText variant="label" color="text2">What each set records</AppText>
+      <View
+        style={{ gap: space.sm }}
+        accessibilityRole="radiogroup"
+        accessibilityLabel="What each set records"
+      >
+        <AppText variant="label" color="text2">
+          What each set records
+        </AppText>
         {TRACKING.map((t) => (
-          <OptionCard key={t} label={TRACKING_LABELS[t].label} description={TRACKING_LABELS[t].description} selected={form.tracking === t} onPress={() => update({ tracking: t })} />
+          <OptionCard
+            key={t}
+            label={TRACKING_LABELS[t].label}
+            description={TRACKING_LABELS[t].description}
+            selected={form.tracking === t}
+            onPress={() => update({ tracking: t })}
+          />
         ))}
       </View>
 
-      <TextField label="Steps" value={form.instructions} onChangeText={(text) => update({ instructions: text })} placeholder="One step per line" multiline maxLength={2000} error={errors.instructions} hint="Optional. One step per line." />
+      <TextField
+        label="Steps"
+        value={form.instructions}
+        onChangeText={(text) => update({ instructions: text })}
+        placeholder="One step per line"
+        multiline
+        maxLength={2000}
+        error={errors.instructions}
+        hint="Optional. One step per line."
+      />
 
-      {submitted && Object.keys(errors).length ? <AppText color="caution">Check the fields marked above.</AppText> : null}
+      {submitted && Object.keys(errors).length ? (
+        <AppText color="caution">Check the fields marked above.</AppText>
+      ) : null}
       {problem ? <AppText color="caution">{problem}</AppText> : null}
-      <Button label={saving ? 'Saving…' : 'Save exercise'} onPress={() => void submit()} disabled={saving} />
+      <Button
+        label={saving ? 'Saving…' : 'Save exercise'}
+        onPress={() => void submit()}
+        disabled={saving}
+      />
     </Screen>
   );
 }

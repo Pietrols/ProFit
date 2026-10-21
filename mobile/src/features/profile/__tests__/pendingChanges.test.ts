@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { applyPatch, isEmptyPatch, mergePatches, parsePatch, remainingAfterSend } from '../pendingChanges';
+import {
+  applyPatch,
+  isEmptyPatch,
+  mergePatches,
+  parsePatch,
+  remainingAfterSend,
+} from '../pendingChanges';
 import type { Me } from '../types';
 
 const me: Me = {
@@ -21,7 +27,9 @@ const me: Me = {
 
 describe('mergePatches', () => {
   it('keeps both edits and lets the newer value win', () => {
-    expect(mergePatches({ goal: 'bodybuilding', heightCm: 180 }, { goal: 'athlete', birthYear: 1996 })).toEqual({
+    expect(
+      mergePatches({ goal: 'bodybuilding', heightCm: 180 }, { goal: 'athlete', birthYear: 1996 }),
+    ).toEqual({
       goal: 'athlete',
       heightCm: 180,
       birthYear: 1996,
@@ -35,7 +43,11 @@ describe('mergePatches', () => {
 
 describe('applyPatch', () => {
   it('puts the display name on the user and the rest on the profile', () => {
-    const shown = applyPatch(me, { displayName: 'Pete', goal: 'powerlifting', onboardingStatus: 'completed' });
+    const shown = applyPatch(me, {
+      displayName: 'Pete',
+      goal: 'powerlifting',
+      onboardingStatus: 'completed',
+    });
     expect(shown.user.displayName).toBe('Pete');
     expect(shown.profile.goal).toBe('powerlifting');
     expect(shown.profile.onboardingStatus).toBe('completed');

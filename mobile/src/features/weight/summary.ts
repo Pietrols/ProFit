@@ -5,7 +5,11 @@ import type { WeightEntry } from './weightLog';
 
 // The line under the latest weigh-in, comparing it with the one before. Worded without judging the
 // direction, because losing is the goal for some people and gaining for others.
-export function changeSincePrevious(entries: WeightEntry[], system: UnitSystem, today: string): string | null {
+export function changeSincePrevious(
+  entries: WeightEntry[],
+  system: UnitSystem,
+  today: string,
+): string | null {
   const [latest, previous] = entries;
   if (!latest || !previous) return null;
   const diffKg = latest.weightKg - previous.weightKg;

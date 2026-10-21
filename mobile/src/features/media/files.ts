@@ -10,7 +10,12 @@ export type MediaFiles = {
   // change between app updates on iOS.
   uri(path: string): string;
   // Sends the file as the request body. Resolves with the answer, rejects when no answer came back.
-  upload(path: string, url: string, headers: Record<string, string>, contentType: string): Promise<{ status: number; body: string }>;
+  upload(
+    path: string,
+    url: string,
+    headers: Record<string, string>,
+    contentType: string,
+  ): Promise<{ status: number; body: string }>;
   // Saves the answer to the app's folder as <id>; rejects on no answer or a non-2xx status.
   download(url: string, id: string, headers: Record<string, string>): Promise<string>;
 };

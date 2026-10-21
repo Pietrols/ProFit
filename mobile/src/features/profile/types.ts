@@ -1,7 +1,14 @@
 // The account and profile shapes the API sends. They mirror backend/src/me/dto.ts and the enums
 // in backend/src/db/schema.ts; when one side changes, change the other in the same commit.
 
-export const GOALS = ['weight_loss', 'bodybuilding', 'calisthenics', 'athlete', 'powerlifting', 'general_fitness'] as const;
+export const GOALS = [
+  'weight_loss',
+  'bodybuilding',
+  'calisthenics',
+  'athlete',
+  'powerlifting',
+  'general_fitness',
+] as const;
 export const EXPERIENCE_LEVELS = ['beginner', 'intermediate', 'advanced'] as const;
 export const TRAINING_PLACES = ['home', 'gym', 'both'] as const;
 export const SEXES = ['female', 'male'] as const;

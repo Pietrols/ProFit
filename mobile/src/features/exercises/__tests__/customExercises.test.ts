@@ -3,7 +3,14 @@ import { testDatabase } from '../../../lib/db/__tests__/nodeDriver';
 import { syncedCollections } from '../../sync/collections';
 import { createSyncEngine } from '../../sync/engine';
 import { fakeSyncServer } from '../../sync/__tests__/fakeSyncServer';
-import { deleteCustomExercise, getCustomExercise, listCustomExercises, saveCustomExercise, validateCustomExercise, type CustomExerciseInput } from '../customExercises';
+import {
+  deleteCustomExercise,
+  getCustomExercise,
+  listCustomExercises,
+  saveCustomExercise,
+  validateCustomExercise,
+  type CustomExerciseInput,
+} from '../customExercises';
 import { favouriteId, listFavouriteIds, setFavourite } from '../favourites';
 
 const PETER = '0b9f3c2e-1d2a-4c5b-8e9f-0a1b2c3d4e5f';
@@ -41,10 +48,15 @@ describe('custom exercises', () => {
     const db = await testDatabase();
     const id = await saveCustomExercise(db, PETER, sandbag, at(0));
     await saveCustomExercise(db, PETER, { ...sandbag, name: 'Sandbag Bear Hug Carry' }, at(1), id);
-    expect((await listCustomExercises(db, PETER)).map((x) => x.name)).toEqual(['Sandbag Bear Hug Carry']);
+    expect((await listCustomExercises(db, PETER)).map((x) => x.name)).toEqual([
+      'Sandbag Bear Hug Carry',
+    ]);
     await deleteCustomExercise(db, PETER, id, at(2));
     expect(await listCustomExercises(db, PETER)).toEqual([]);
-    expect(await db.first('SELECT dirty, deleted_at FROM custom_exercises')).toEqual({ dirty: 1, deleted_at: at(2).toISOString() });
+    expect(await db.first('SELECT dirty, deleted_at FROM custom_exercises')).toEqual({
+      dirty: 1,
+      deleted_at: at(2).toISOString(),
+    });
   });
 
   it('checks the form with the API limits', () => {
@@ -59,8 +71,16 @@ describe('custom exercises', () => {
     const server = fakeSyncServer();
     const a = await testDatabase();
     const b = await testDatabase();
-    const engineA = createSyncEngine({ db: a, api: server.clientFor(PETER), collections: syncedCollections });
-    const engineB = createSyncEngine({ db: b, api: server.clientFor(PETER), collections: syncedCollections });
+    const engineA = createSyncEngine({
+      db: a,
+      api: server.clientFor(PETER),
+      collections: syncedCollections,
+    });
+    const engineB = createSyncEngine({
+      db: b,
+      api: server.clientFor(PETER),
+      collections: syncedCollections,
+    });
     await engineA.setUser(PETER);
     await engineB.setUser(PETER);
 
@@ -70,7 +90,11 @@ describe('custom exercises', () => {
     await engineA.sync();
     await engineB.sync();
 
-    expect(await getCustomExercise(b, PETER, id)).toMatchObject({ name: 'Sandbag Carry', primary: ['traps', 'forearms'], secondary: ['abdominals'] });
+    expect(await getCustomExercise(b, PETER, id)).toMatchObject({
+      name: 'Sandbag Carry',
+      primary: ['traps', 'forearms'],
+      secondary: ['abdominals'],
+    });
     expect(await listFavouriteIds(b, PETER)).toEqual(new Set([id, 'Barbell_Squat']));
   });
 });

@@ -15,7 +15,13 @@ export function profilePatchSchema(now: Date) {
       experience: z.enum(EXPERIENCE_LEVELS).nullable().optional(),
       trainingPlace: z.enum(TRAINING_PLACES).nullable().optional(),
       unitSystem: z.enum(UNIT_SYSTEMS).optional(),
-      birthYear: z.number().int().min(1900).max(latestBirthYear, `must be ${latestBirthYear} or earlier`).nullable().optional(),
+      birthYear: z
+        .number()
+        .int()
+        .min(1900)
+        .max(latestBirthYear, `must be ${latestBirthYear} or earlier`)
+        .nullable()
+        .optional(),
       sex: z.enum(SEXES).nullable().optional(),
       heightCm: z.number().min(80).max(250).nullable().optional(),
       daysPerWeek: z.number().int().min(1).max(7).nullable().optional(),

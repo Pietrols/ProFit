@@ -1,7 +1,13 @@
 import { createApiClient } from '../../lib/api/client';
 import { ApiError, isNetworkError } from '../../lib/api/errors';
 import { singleFlight } from '../../lib/singleFlight';
-import { applyPatch, isEmptyPatch, mergePatches, parsePatch, remainingAfterSend } from '../profile/pendingChanges';
+import {
+  applyPatch,
+  isEmptyPatch,
+  mergePatches,
+  parsePatch,
+  remainingAfterSend,
+} from '../profile/pendingChanges';
 import type { Me, ProfilePatch } from '../profile/types';
 import { parseStoredAuth, type Session, type StoredAuth } from './session';
 
@@ -181,7 +187,9 @@ export function createAuthStore(deps: Deps) {
     async signInWithGoogle(): Promise<boolean> {
       const idToken = await deps.google.getIdToken();
       if (!idToken) return false;
-      await completeSignIn(await api.post<SignInResponse>('/auth/google', { idToken }, { auth: false }));
+      await completeSignIn(
+        await api.post<SignInResponse>('/auth/google', { idToken }, { auth: false }),
+      );
       return true;
     },
 

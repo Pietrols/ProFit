@@ -1,4 +1,12 @@
-import { createContext, useContext, useEffect, useMemo, useState, useSyncExternalStore, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  useSyncExternalStore,
+  type ReactNode,
+} from 'react';
 import { AppState } from 'react-native';
 import { getAppDatabase } from '@/lib/db/appDatabase';
 import type { Database } from '@/lib/db/database';
@@ -26,12 +34,25 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const [failed, setFailed] = useState<string | null>(null);
 
   useEffect(() => {
-    getAppDatabase().then(setDb, (error: unknown) => setFailed(error instanceof Error ? error.message : String(error)));
+    getAppDatabase().then(setDb, (error: unknown) =>
+      setFailed(error instanceof Error ? error.message : String(error)),
+    );
   }, []);
 
-  const photos = useMemo(() => (db ? createMediaSync({ db, api: auth.api, files: mediaFiles }) : null), [db, auth]);
+  const photos = useMemo(
+    () => (db ? createMediaSync({ db, api: auth.api, files: mediaFiles }) : null),
+    [db, auth],
+  );
   const engine = useMemo(
-    () => (db && photos ? createSyncEngine({ db, api: auth.api, collections: syncedCollections, beforePush: photos.uploadPending }) : null),
+    () =>
+      db && photos
+        ? createSyncEngine({
+            db,
+            api: auth.api,
+            collections: syncedCollections,
+            beforePush: photos.uploadPending,
+          })
+        : null,
     [db, auth, photos],
   );
 

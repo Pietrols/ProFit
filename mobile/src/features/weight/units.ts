@@ -25,10 +25,14 @@ export function weightInputValue(kg: number, system: UnitSystem): string {
 // Reads what the user typed (a comma works as the decimal mark too) and returns kg, or a message.
 export function parseWeight(text: string, system: UnitSystem): { kg: number } | { error: string } {
   const value = Number(text.trim().replace(',', '.'));
-  if (!text.trim() || !Number.isFinite(value)) return { error: `Enter your weight in ${unitLabel(system)}.` };
+  if (!text.trim() || !Number.isFinite(value))
+    return { error: `Enter your weight in ${unitLabel(system)}.` };
   const kg = system === 'imperial' ? lbToKg(value) : value;
   if (kg < WEIGHT_KG.min || kg > WEIGHT_KG.max) {
-    const [min, max] = system === 'imperial' ? [Math.ceil(kgToLb(WEIGHT_KG.min)), Math.floor(kgToLb(WEIGHT_KG.max))] : [WEIGHT_KG.min, WEIGHT_KG.max];
+    const [min, max] =
+      system === 'imperial'
+        ? [Math.ceil(kgToLb(WEIGHT_KG.min)), Math.floor(kgToLb(WEIGHT_KG.max))]
+        : [WEIGHT_KG.min, WEIGHT_KG.max];
     return { error: `Enter a weight between ${min} and ${max} ${unitLabel(system)}.` };
   }
   // Two decimals in kg keeps a pound value round-tripping to the same tenth.

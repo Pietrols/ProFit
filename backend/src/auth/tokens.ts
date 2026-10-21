@@ -13,7 +13,11 @@ const keyFrom = (secret: string) => new TextEncoder().encode(secret);
 export type AccessToken = { token: string; expiresAt: Date };
 
 // A short-lived JWT naming the user. It is never stored on the server.
-export async function signAccessToken(userId: string, secret: string, now: Date = new Date()): Promise<AccessToken> {
+export async function signAccessToken(
+  userId: string,
+  secret: string,
+  now: Date = new Date(),
+): Promise<AccessToken> {
   const issuedAt = Math.floor(now.getTime() / 1000);
   const expiresAtSeconds = issuedAt + ACCESS_TOKEN_TTL_SECONDS;
   const token = await new SignJWT({})
@@ -28,7 +32,11 @@ export async function signAccessToken(userId: string, secret: string, now: Date 
 }
 
 // Returns the user id, or throws TOKEN_EXPIRED (the app should refresh) or UNAUTHENTICATED.
-export async function verifyAccessToken(token: string, secret: string, now: Date = new Date()): Promise<string> {
+export async function verifyAccessToken(
+  token: string,
+  secret: string,
+  now: Date = new Date(),
+): Promise<string> {
   try {
     const { payload } = await jwtVerify(token, keyFrom(secret), {
       issuer: ISSUER,
@@ -39,7 +47,8 @@ export async function verifyAccessToken(token: string, secret: string, now: Date
     if (!payload.sub) throw unauthorized('UNAUTHENTICATED', 'Sign in to continue.');
     return payload.sub;
   } catch (err) {
-    if (err instanceof joseErrors.JWTExpired) throw unauthorized('TOKEN_EXPIRED', 'Your session needs refreshing.');
+    if (err instanceof joseErrors.JWTExpired)
+      throw unauthorized('TOKEN_EXPIRED', 'Your session needs refreshing.');
     throw unauthorized('UNAUTHENTICATED', 'Sign in to continue.');
   }
 }

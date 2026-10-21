@@ -14,8 +14,18 @@ export function FavouriteButton({ on, name, onPress }: Props) {
       accessibilityState={{ selected: on }}
       onPress={onPress}
       hitSlop={4}
-      style={{ width: touchTarget, height: touchTarget, alignItems: 'center', justifyContent: 'center' }}>
-      <Ionicons name={on ? 'star' : 'star-outline'} size={22} color={on ? colors.accent : colors.text2} />
+      style={{
+        width: touchTarget,
+        height: touchTarget,
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Ionicons
+        name={on ? 'star' : 'star-outline'}
+        size={22}
+        color={on ? colors.accent : colors.text2}
+      />
     </Pressable>
   );
 }

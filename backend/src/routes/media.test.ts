@@ -17,18 +17,29 @@ const rejectGoogle: GoogleVerifier = async () => {
   throw unauthorized('GOOGLE_TOKEN_INVALID', 'not used here');
 };
 const config = loadConfig({ NODE_ENV: 'test', JWT_SECRET: 's'.repeat(40), AUTH_DEV_LOGIN: 'true' });
-const app = createApp(config, createLogger(config), { db: database.db, verifyGoogle: rejectGoogle, media: mediaStore(dir) });
+const app = createApp(config, createLogger(config), {
+  db: database.db,
+  verifyGoogle: rejectGoogle,
+  media: mediaStore(dir),
+});
 
 const ID = '9d1c7a8e-5b2f-4c3d-8e1f-2a3b4c5d6e7f';
 const JPEG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(200, 7)]);
-const PNG = Buffer.concat([Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]), Buffer.alloc(50, 1)]);
+const PNG = Buffer.concat([
+  Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]),
+  Buffer.alloc(50, 1),
+]);
 
 async function signIn(email: string) {
   const res = await request(app).post('/auth/dev').send({ email });
   return res.body.session.accessToken as string;
 }
 const upload = (token: string, body: Buffer, type = 'image/jpeg', id = ID) =>
-  request(app).put(`/media/${id}`).set('Authorization', `Bearer ${token}`).set('Content-Type', type).send(body);
+  request(app)
+    .put(`/media/${id}`)
+    .set('Authorization', `Bearer ${token}`)
+    .set('Content-Type', type)
+    .send(body);
 
 beforeEach(() => resetTables(database));
 afterAll(async () => {
@@ -61,7 +72,9 @@ describe('media', () => {
     const peter = await signIn('peter@example.com');
     const other = await signIn('mallory@example.com');
     await upload(peter, JPEG);
-    expect((await request(app).get(`/media/${ID}`).set('Authorization', `Bearer ${other}`)).status).toBe(404);
+    expect(
+      (await request(app).get(`/media/${ID}`).set('Authorization', `Bearer ${other}`)).status,
+    ).toBe(404);
     expect((await upload(other, JPEG)).status).toBe(404);
   });
 
@@ -80,7 +93,9 @@ describe('media', () => {
   });
 
   it('needs a signed-in user', async () => {
-    expect((await request(app).put(`/media/${ID}`).set('Content-Type', 'image/jpeg').send(JPEG)).status).toBe(401);
+    expect(
+      (await request(app).put(`/media/${ID}`).set('Content-Type', 'image/jpeg').send(JPEG)).status,
+    ).toBe(401);
     expect((await request(app).get(`/media/${ID}`)).status).toBe(401);
   });
 });

@@ -391,3 +391,14 @@ access, battery restrictions and actual results. No device run or APK installati
 
 Status: implementation ready for review; step 5.7 remains unticked until these real-phone
 results are recorded. Phase 6 has not started.
+
+## Review corrections, 20 October 2026
+
+The review identified missing gym workflows and performance/readability problems. D38 and
+`PHASE_5_CORRECTIONS.md` now define the authorized correction scope and acceptance checks.
+They supersede this phase's earlier exclusions for session replacement and history. Execute
+BUILD_PLAN steps 5.8.1 through 5.8.12 before the final 5.7 real-phone gate.
+
+Peter has approved ESLint, Prettier and required development configuration. Earlier lint
+approval notes above describe historical results, not an outstanding approval request.
+Neither this notice nor passing CI establishes phone behavior or completion of the corrections.

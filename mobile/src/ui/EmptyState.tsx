@@ -17,10 +17,21 @@ type Props = {
 export function EmptyState({ icon, title, message, actionLabel, onAction }: Props) {
   const { colors, space } = useAppTheme();
   return (
-    <View style={{ alignItems: 'center', gap: space.md, paddingVertical: space.xxxl, paddingHorizontal: space.lg }}>
+    <View
+      style={{
+        alignItems: 'center',
+        gap: space.md,
+        paddingVertical: space.xxxl,
+        paddingHorizontal: space.lg,
+      }}
+    >
       <Ionicons name={icon} size={40} color={colors.text2} />
-      <AppText variant="title" style={{ textAlign: 'center' }}>{title}</AppText>
-      <AppText color="text2" style={{ textAlign: 'center', maxWidth: 320 }}>{message}</AppText>
+      <AppText variant="title" style={{ textAlign: 'center' }}>
+        {title}
+      </AppText>
+      <AppText color="text2" style={{ textAlign: 'center', maxWidth: 320 }}>
+        {message}
+      </AppText>
       {actionLabel ? <Button label={actionLabel} onPress={onAction} disabled={!onAction} /> : null}
     </View>
   );

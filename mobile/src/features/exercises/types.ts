@@ -1,10 +1,46 @@
 // An exercise as the app uses it, whether built in or made by the user.
 
-export const CATEGORIES = ['strength', 'powerlifting', 'olympic weightlifting', 'strongman', 'plyometrics', 'cardio', 'stretching'] as const;
-export const EQUIPMENT = ['body only', 'barbell', 'dumbbell', 'kettlebells', 'cable', 'machine', 'bands', 'e-z curl bar', 'medicine ball', 'exercise ball', 'foam roll', 'other'] as const;
+export const CATEGORIES = [
+  'strength',
+  'powerlifting',
+  'olympic weightlifting',
+  'strongman',
+  'plyometrics',
+  'cardio',
+  'stretching',
+] as const;
+export const EQUIPMENT = [
+  'body only',
+  'barbell',
+  'dumbbell',
+  'kettlebells',
+  'cable',
+  'machine',
+  'bands',
+  'e-z curl bar',
+  'medicine ball',
+  'exercise ball',
+  'foam roll',
+  'other',
+] as const;
 export const MUSCLES = [
-  'chest', 'shoulders', 'triceps', 'biceps', 'forearms', 'lats', 'middle back', 'lower back', 'traps', 'neck',
-  'abdominals', 'quadriceps', 'hamstrings', 'glutes', 'calves', 'adductors', 'abductors',
+  'chest',
+  'shoulders',
+  'triceps',
+  'biceps',
+  'forearms',
+  'lats',
+  'middle back',
+  'lower back',
+  'traps',
+  'neck',
+  'abdominals',
+  'quadriceps',
+  'hamstrings',
+  'glutes',
+  'calves',
+  'adductors',
+  'abductors',
 ] as const;
 export const TRACKING = ['weight_reps', 'reps', 'time', 'distance_time'] as const;
 export const LEVELS = ['beginner', 'intermediate', 'expert'] as const;

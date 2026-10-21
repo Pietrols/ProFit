@@ -27,7 +27,11 @@ export function createGoogleVerifier({ clientIds, keys, now }: Options): GoogleV
   const getKey = keys ?? createRemoteJWKSet(GOOGLE_JWKS_URL);
   return async (idToken) => {
     if (clientIds.length === 0) {
-      throw new AppError(503, 'GOOGLE_NOT_CONFIGURED', 'Google sign-in is not set up on this server yet.');
+      throw new AppError(
+        503,
+        'GOOGLE_NOT_CONFIGURED',
+        'Google sign-in is not set up on this server yet.',
+      );
     }
     let payload;
     try {
@@ -38,11 +42,17 @@ export function createGoogleVerifier({ clientIds, keys, now }: Options): GoogleV
         currentDate: now?.(),
       }));
     } catch {
-      throw unauthorized('GOOGLE_TOKEN_INVALID', 'Google sign-in could not be confirmed. Try again.');
+      throw unauthorized(
+        'GOOGLE_TOKEN_INVALID',
+        'Google sign-in could not be confirmed. Try again.',
+      );
     }
     const email = typeof payload.email === 'string' ? payload.email : null;
     if (!payload.sub || !email || payload.email_verified !== true) {
-      throw unauthorized('GOOGLE_EMAIL_UNVERIFIED', 'This Google account has no verified email address.');
+      throw unauthorized(
+        'GOOGLE_EMAIL_UNVERIFIED',
+        'This Google account has no verified email address.',
+      );
     }
     return {
       sub: payload.sub,

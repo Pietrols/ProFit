@@ -23,7 +23,10 @@ export async function updateMe(db: Db, userId: string, patch: ProfilePatch, now:
       await tx.update(users).set({ displayName, updatedAt: now }).where(eq(users.id, userId));
     }
     if (Object.keys(profileFields).length > 0) {
-      await tx.update(profiles).set({ ...profileFields, updatedAt: now }).where(eq(profiles.userId, userId));
+      await tx
+        .update(profiles)
+        .set({ ...profileFields, updatedAt: now })
+        .where(eq(profiles.userId, userId));
     }
   });
   return getMe(db, userId);

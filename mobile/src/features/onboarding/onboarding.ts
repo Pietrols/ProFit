@@ -15,7 +15,10 @@ export type OnboardingAnswers = {
 
 // Only what the user actually answered. The name counts as an answer only when it was changed
 // from the one Google gave, because that one is already saved.
-function answeredFields(answers: OnboardingAnswers, currentName: string): Omit<ProfilePatch, 'onboardingStatus'> {
+function answeredFields(
+  answers: OnboardingAnswers,
+  currentName: string,
+): Omit<ProfilePatch, 'onboardingStatus'> {
   const patch: ProfilePatch = {};
   const name = answers.displayName?.trim();
   if (name && name !== currentName) patch.displayName = name.slice(0, 60);

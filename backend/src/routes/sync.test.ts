@@ -15,7 +15,11 @@ const rejectGoogle: GoogleVerifier = async () => {
 };
 
 const config = loadConfig({ NODE_ENV: 'test', JWT_SECRET: 's'.repeat(40), AUTH_DEV_LOGIN: 'true' });
-const app = createApp(config, createLogger(config), { db: database.db, verifyGoogle: rejectGoogle, now });
+const app = createApp(config, createLogger(config), {
+  db: database.db,
+  verifyGoogle: rejectGoogle,
+  now,
+});
 
 async function signIn(email: string): Promise<string> {
   const res = await request(app).post('/auth/dev').send({ email });
@@ -37,7 +41,10 @@ const weight = (overrides: Record<string, unknown> = {}) => ({
 });
 
 const pushAs = (token: string, records: unknown[]) =>
-  request(app).post('/sync/push').set('Authorization', `Bearer ${token}`).send({ changes: { weight_entries: records } });
+  request(app)
+    .post('/sync/push')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ changes: { weight_entries: records } });
 const pullAs = (token: string, since = 0, limit?: number) =>
   request(app)
     .get('/sync/pull')
@@ -81,7 +88,9 @@ describe('sync', () => {
     const token = await signIn('peter@example.com');
     await pushAs(token, [weight({ weightKg: 82, updatedAt: '2026-10-07T07:50:00.000Z' })]);
     await pushAs(token, [weight({ weightKg: 81, updatedAt: '2026-10-07T07:55:00.000Z' })]);
-    const stale = await pushAs(token, [weight({ weightKg: 99, updatedAt: '2026-10-07T07:40:00.000Z' })]);
+    const stale = await pushAs(token, [
+      weight({ weightKg: 99, updatedAt: '2026-10-07T07:40:00.000Z' }),
+    ]);
     expect(stale.body.ignored).toEqual([ID_A]);
     expect((await pullAs(token)).body.changes.weight_entries[0].weightKg).toBe(81);
   });
@@ -90,14 +99,23 @@ describe('sync', () => {
     const token = await signIn('peter@example.com');
     await pushAs(token, [weight()]);
     const first = await pullAs(token);
-    await pushAs(token, [weight({ updatedAt: '2026-10-07T07:59:30.000Z', deletedAt: '2026-10-07T07:59:30.000Z' })]);
+    await pushAs(token, [
+      weight({ updatedAt: '2026-10-07T07:59:30.000Z', deletedAt: '2026-10-07T07:59:30.000Z' }),
+    ]);
     const after = await pullAs(token, first.body.cursor);
-    expect(after.body.changes.weight_entries).toEqual([weight({ updatedAt: '2026-10-07T07:59:30.000Z', deletedAt: '2026-10-07T07:59:30.000Z' })]);
+    expect(after.body.changes.weight_entries).toEqual([
+      weight({ updatedAt: '2026-10-07T07:59:30.000Z', deletedAt: '2026-10-07T07:59:30.000Z' }),
+    ]);
   });
 
   it('reports invalid records without blocking the valid ones', async () => {
     const token = await signIn('peter@example.com');
-    const res = await pushAs(token, [weight({ id: ID_B, weightKg: 5 }), weight({ id: 'not-a-uuid' }), weight({ date: '2026-02-30' }), weight({ id: ID_A, date: '2026-10-06' })]);
+    const res = await pushAs(token, [
+      weight({ id: ID_B, weightKg: 5 }),
+      weight({ id: 'not-a-uuid' }),
+      weight({ date: '2026-02-30' }),
+      weight({ id: ID_A, date: '2026-10-06' }),
+    ]);
     expect(res.status).toBe(200);
     expect(res.body.applied).toEqual([ID_A]);
     expect(res.body.rejected).toEqual([
@@ -119,7 +137,9 @@ describe('sync', () => {
     const mallory = await signIn('mallory@example.com');
     await pushAs(peter, [weight()]);
 
-    const attempt = await pushAs(mallory, [weight({ weightKg: 300, updatedAt: '2026-10-07T07:59:59.000Z' })]);
+    const attempt = await pushAs(mallory, [
+      weight({ weightKg: 300, updatedAt: '2026-10-07T07:59:59.000Z' }),
+    ]);
     expect(attempt.body.ignored).toEqual([ID_A]);
     expect((await pullAs(mallory)).body.changes.weight_entries).toEqual([]);
     expect((await pullAs(peter)).body.changes.weight_entries[0].weightKg).toBe(81.4);
@@ -150,18 +170,45 @@ describe('sync', () => {
     expect(seen).toEqual(ids);
 
     const nothingNew = await pullAs(token, cursor);
-    expect(nothingNew.body).toEqual({ changes: { weight_entries: [], custom_exercises: [], exercise_favourites: [], plans: [], plan_days: [], plan_exercises: [], daily_habit: [], workout_sessions: [], set_logs: [] }, cursor, hasMore: false });
+    expect(nothingNew.body).toEqual({
+      changes: {
+        weight_entries: [],
+        custom_exercises: [],
+        exercise_favourites: [],
+        plans: [],
+        plan_days: [],
+        plan_exercises: [],
+        daily_habit: [],
+        workout_sessions: [],
+        set_logs: [],
+      },
+      cursor,
+      hasMore: false,
+    });
 
-    await pushAs(token, [weight({ id: ids[2], date: '2026-10-03', weightKg: 80, updatedAt: '2026-10-07T07:59:59.000Z' })]);
+    await pushAs(token, [
+      weight({
+        id: ids[2],
+        date: '2026-10-03',
+        weightKg: 80,
+        updatedAt: '2026-10-07T07:59:59.000Z',
+      }),
+    ]);
     const update = await pullAs(token, cursor);
     expect(update.body.changes.weight_entries.map((r: { id: string }) => r.id)).toEqual([ids[2]]);
   });
 
   it('refuses unknown collections and oversized batches', async () => {
     const token = await signIn('peter@example.com');
-    const unknown = await request(app).post('/sync/push').set('Authorization', `Bearer ${token}`).send({ changes: { secrets: [] } });
+    const unknown = await request(app)
+      .post('/sync/push')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ changes: { secrets: [] } });
     expect(unknown.status).toBe(400);
-    const tooMany = await pushAs(token, Array.from({ length: 501 }, () => weight()));
+    const tooMany = await pushAs(
+      token,
+      Array.from({ length: 501 }, () => weight()),
+    );
     expect(tooMany.status).toBe(400);
     expect((await pullAs(token, 0, 1000)).status).toBe(400);
   });
