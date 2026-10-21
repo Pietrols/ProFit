@@ -418,6 +418,7 @@ function Workout({
         </Card>
       )}
       <LoggedSets
+        user={user}
         session={session}
         logs={logs}
         items={itemView.items}

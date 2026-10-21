@@ -36,7 +36,17 @@ export function Screen({ title, eyebrow, children, scroll = true }: Props) {
 
   return (
     <SafeAreaView edges={['top']} style={[styles.fill, { backgroundColor: colors.bg }]}>
-      {scroll ? <ScrollView contentContainerStyle={styles.grow}>{body}</ScrollView> : body}
+      {scroll ? (
+        <ScrollView
+          contentContainerStyle={styles.grow}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+        >
+          {body}
+        </ScrollView>
+      ) : (
+        body
+      )}
     </SafeAreaView>
   );
 }
