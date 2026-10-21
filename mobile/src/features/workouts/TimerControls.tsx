@@ -2,9 +2,9 @@ import { useState } from 'react';
 import { AppText } from '@/ui/AppText';
 import { Button } from '@/ui/Button';
 import { TextField } from '@/ui/TextField';
-import { formatTimer, timerView, validateTimer, type TimerConfig, type TimerState } from './timers';
+import { validateTimer, type TimerConfig, type TimerState } from './timers';
 import { timerConfig } from './workoutForm';
-import { useWorkoutClock } from './useWorkoutClock';
+import { TimerReadout } from './TimerReadout';
 export function TimerControls({
   timer,
   busy,
@@ -12,6 +12,7 @@ export function TimerControls({
   pause,
   resume,
   clear,
+  showReadout = true,
 }: {
   timer: TimerState | null;
   busy: boolean;
@@ -19,6 +20,7 @@ export function TimerControls({
   pause: () => void;
   resume: () => void;
   clear: () => void;
+  showReadout?: boolean;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [mode, setMode] = useState<TimerConfig['mode']>('rest');
@@ -29,18 +31,24 @@ export function TimerControls({
   const error = validateTimer(config);
   return (
     <>
-      <AppText variant="title">{timer?.config.mode ?? 'Timer'}</AppText>
-      <TimerReadout timer={timer} busy={busy} pause={pause} resume={resume} />
-      {timer ? (
-        <Button label="Clear timer" variant="secondary" disabled={busy} onPress={clear} />
+      {showReadout ? (
+        <>
+          <AppText variant="title">{timer?.config.mode ?? 'Timer'}</AppText>
+          <TimerReadout timer={timer} busy={busy} pause={pause} resume={resume} />
+        </>
       ) : null}
       <Button
         label={expanded ? 'Hide timer settings' : 'Timer settings'}
         variant="secondary"
+        accessibilityState={{ expanded, disabled: busy }}
+        disabled={busy}
         onPress={() => setExpanded(!expanded)}
       />
       {expanded ? (
         <>
+          {timer ? (
+            <Button label="Clear timer" variant="secondary" disabled={busy} onPress={clear} />
+          ) : null}
           {(['rest', 'interval', 'Tabata', 'EMOM', 'AMRAP', 'stopwatch'] as const).map((value) => (
             <Button
               key={value}
@@ -56,6 +64,7 @@ export function TimerControls({
               value={seconds}
               onChangeText={setSeconds}
               keyboardType="number-pad"
+              editable={!busy}
             />
           ) : null}
           {mode === 'interval' ? (
@@ -64,6 +73,7 @@ export function TimerControls({
               value={rest}
               onChangeText={setRest}
               keyboardType="number-pad"
+              editable={!busy}
             />
           ) : null}
           {mode === 'interval' || mode === 'EMOM' ? (
@@ -72,6 +82,7 @@ export function TimerControls({
               value={rounds}
               onChangeText={setRounds}
               keyboardType="number-pad"
+              editable={!busy}
             />
           ) : null}
           {error ? <AppText color="caution">{error}</AppText> : null}
@@ -84,42 +95,6 @@ export function TimerControls({
             }}
           />
         </>
-      ) : null}
-    </>
-  );
-}
-
-function TimerReadout({
-  timer,
-  busy,
-  pause,
-  resume,
-}: {
-  timer: TimerState | null;
-  busy: boolean;
-  pause: () => void;
-  resume: () => void;
-}) {
-  const now = useWorkoutClock(timer !== null && timer.runningSince !== null);
-  const view = timer ? timerView(timer, now) : null;
-  return (
-    <>
-      <AppText variant="display">
-        {view ? formatTimer(view.remainingMs ?? view.elapsedMs, view.remainingMs !== null) : '0:00'}
-      </AppText>
-      {view ? (
-        <AppText>
-          {view.segment}
-          {view.round !== null ? ` · Round ${view.round}` : ''}
-        </AppText>
-      ) : null}
-      {timer && !view?.done ? (
-        <Button
-          label={timer.runningSince === null ? 'Resume timer' : 'Pause timer'}
-          variant="secondary"
-          disabled={busy || timer.config.mode === 'session'}
-          onPress={timer.runningSince === null ? resume : pause}
-        />
       ) : null}
     </>
   );
