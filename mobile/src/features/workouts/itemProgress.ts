@@ -13,7 +13,9 @@ export function workoutItemProgress(detail: AdjustmentContext) {
     slots.add(log.setIndex);
     completed.set(itemId, slots);
   }
-  return detail.itemView.items.map((item) => {
+  const order = detail.itemView.items.filter((item) => !item.deletedAt);
+  const indices = new Map(order.map((item, index) => [item.id, index]));
+  const rows = detail.itemView.items.map((item) => {
     const count = [...(completed.get(item.id) ?? [])].filter(
       (setIndex) => setIndex < item.exercise.sets,
     ).length;
@@ -23,7 +25,11 @@ export function workoutItemProgress(detail: AdjustmentContext) {
       completed: count,
       remaining,
       canTrain: !item.deletedAt && item.state === 'active' && remaining > 0,
+      canMoveUp: (indices.get(item.id) ?? 0) > 0,
+      canMoveDown: (indices.get(item.id) ?? order.length) < order.length - 1,
       canReduce: item.exercise.sets > 1 && !saved.get(item.id)?.has(item.exercise.sets - 1),
     };
   });
+  const pendingItems = rows.filter((row) => row.canTrain).length;
+  return rows.map((row) => ({ ...row, canDefer: row.canTrain && pendingItems > 1 }));
 }

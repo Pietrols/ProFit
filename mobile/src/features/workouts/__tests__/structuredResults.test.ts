@@ -154,3 +154,22 @@ it('blocks next work and record celebrations for incomplete data and never selec
     }).next,
   ).toBeNull();
 });
+
+it('offers queue moves only at valid boundaries and defer only when other pending work exists', () => {
+  expect(workoutItemProgress(input([], []))[0]).toMatchObject({
+    canMoveUp: false,
+    canMoveDown: false,
+    canDefer: false,
+  });
+  const added: SessionItem = {
+    ...planned(),
+    id: other,
+    origin: 'added',
+    originalPosition: null,
+    replacesItemId: null,
+    position: 1,
+  };
+  const rows = workoutItemProgress(input([added], []));
+  expect(rows[0]).toMatchObject({ canMoveUp: false, canMoveDown: true, canDefer: true });
+  expect(rows[1]).toMatchObject({ canMoveUp: true, canMoveDown: false, canDefer: true });
+});

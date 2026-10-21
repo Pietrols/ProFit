@@ -358,6 +358,13 @@ function Workout({
               setLastSet(null);
             })
           }
+          move={(item, direction) =>
+            run(async () => {
+              await workouts.adjust({ kind: 'move', item, order: itemView.items, direction });
+              if (direction === 'later') setSelectedItemId(null);
+              setLastSet(null);
+            })
+          }
           editingChanged={setAdjusting}
         />
       ) : null}

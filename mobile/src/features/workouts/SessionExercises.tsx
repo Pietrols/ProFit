@@ -5,6 +5,7 @@ import { Card } from '@/ui/Card';
 import { TextField } from '@/ui/TextField';
 import { workoutItemProgress } from './itemProgress';
 import type { AdjustmentContext, ItemChange } from './sessionChanges';
+import type { MoveDirection } from './sessionOrder';
 import type { SessionItem } from './structureTypes';
 
 export function SessionExercises({
@@ -14,6 +15,7 @@ export function SessionExercises({
   select,
   change,
   editingChanged,
+  move,
 }: {
   detail: AdjustmentContext;
   selected: string | null;
@@ -21,6 +23,7 @@ export function SessionExercises({
   select: (itemId: string) => void;
   change: (item: SessionItem, change: ItemChange) => Promise<void>;
   editingChanged: (editing: boolean) => void;
+  move: (item: SessionItem, direction: MoveDirection) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
   const [intent, setIntent] = useState<{
@@ -42,15 +45,16 @@ export function SessionExercises({
     setError(null);
     editingChanged(true);
   }
-  async function apply(item: SessionItem, patch: ItemChange) {
+  async function perform(action: () => Promise<void>) {
     setError(null);
     try {
-      await change(item, patch);
+      await action();
     } catch (error) {
       setError(error instanceof Error ? error.message : 'Could not save this adjustment.');
       throw error;
     }
   }
+  const apply = (item: SessionItem, patch: ItemChange) => perform(() => change(item, patch));
   async function saveOmission() {
     if (!intent) return;
     try {
@@ -110,77 +114,106 @@ export function SessionExercises({
               />
             </Card>
           ) : null}
-          {rows.map(({ item, completed, remaining, canTrain, canReduce }) => (
-            <Card key={item.id}>
-              <AppText variant="label">
-                {item.exercise.name}
-                {selected === item.id ? ' (selected)' : ''}
-              </AppText>
-              <AppText>
-                {completed} of {item.exercise.sets} target sets logged
-              </AppText>
-              <AppText color="text2">
-                {item.deletedAt ? 'Removed' : item.state}
-                {item.origin === 'planned' ? '' : `, ${item.origin}`}
-              </AppText>
-              {item.reason ? <AppText color="text2">{item.reason}</AppText> : null}
-              {item.deletedAt ? null : item.state === 'active' ? (
-                <>
+          {rows.map(
+            ({
+              item,
+              completed,
+              remaining,
+              canTrain,
+              canReduce,
+              canMoveUp,
+              canMoveDown,
+              canDefer,
+            }) => (
+              <Card key={item.id}>
+                <AppText variant="label">
+                  {item.exercise.name}
+                  {selected === item.id ? ' (selected)' : ''}
+                </AppText>
+                <AppText>
+                  {completed} of {item.exercise.sets} target sets logged
+                </AppText>
+                <AppText color="text2">
+                  {item.deletedAt ? 'Removed' : item.state}
+                  {item.origin === 'planned' ? '' : `, ${item.origin}`}
+                </AppText>
+                {item.reason ? <AppText color="text2">{item.reason}</AppText> : null}
+                {item.deletedAt ? null : item.state === 'active' ? (
+                  <>
+                    <Button
+                      label={`Train ${item.exercise.name} now`}
+                      variant="secondary"
+                      disabled={blocked || !canTrain}
+                      onPress={() => select(item.id)}
+                    />
+                    <Button
+                      label={`Do ${item.exercise.name} later`}
+                      variant="secondary"
+                      disabled={blocked || !canDefer}
+                      onPress={() => void perform(() => move(item, 'later')).catch(() => {})}
+                    />
+                    <Button
+                      label={`Move ${item.exercise.name} up`}
+                      variant="secondary"
+                      disabled={blocked || !canMoveUp}
+                      onPress={() => void perform(() => move(item, 'up')).catch(() => {})}
+                    />
+                    <Button
+                      label={`Move ${item.exercise.name} down`}
+                      variant="secondary"
+                      disabled={blocked || !canMoveDown}
+                      onPress={() => void perform(() => move(item, 'down')).catch(() => {})}
+                    />
+                    <Button
+                      label={`Skip remaining ${item.exercise.name} sets`}
+                      variant="secondary"
+                      disabled={blocked || remaining === 0}
+                      onPress={() => omit(item, 'skipped')}
+                    />
+                    <Button
+                      label={`Add a set to ${item.exercise.name}`}
+                      variant="secondary"
+                      disabled={blocked || item.exercise.sets >= 100}
+                      onPress={() =>
+                        void apply(item, {
+                          kind: 'targets',
+                          targets: { ...item.exercise, sets: item.exercise.sets + 1 },
+                        }).catch(() => {})
+                      }
+                    />
+                    <Button
+                      label={`Remove last unlogged set from ${item.exercise.name}`}
+                      variant="secondary"
+                      disabled={blocked || !canReduce}
+                      onPress={() =>
+                        void apply(item, {
+                          kind: 'targets',
+                          targets: { ...item.exercise, sets: item.exercise.sets - 1 },
+                        }).catch(() => {})
+                      }
+                    />
+                    <Button
+                      label={`Remove ${item.exercise.name} from workout`}
+                      variant="secondary"
+                      disabled={blocked}
+                      onPress={() => omit(item, 'removed')}
+                    />
+                  </>
+                ) : (
                   <Button
-                    label={`Train ${item.exercise.name} now`}
-                    variant="secondary"
-                    disabled={blocked || !canTrain}
-                    onPress={() => select(item.id)}
-                  />
-                  <Button
-                    label={`Skip remaining ${item.exercise.name} sets`}
-                    variant="secondary"
-                    disabled={blocked || remaining === 0}
-                    onPress={() => omit(item, 'skipped')}
-                  />
-                  <Button
-                    label={`Add a set to ${item.exercise.name}`}
-                    variant="secondary"
-                    disabled={blocked || item.exercise.sets >= 100}
-                    onPress={() =>
-                      void apply(item, {
-                        kind: 'targets',
-                        targets: { ...item.exercise, sets: item.exercise.sets + 1 },
-                      }).catch(() => {})
-                    }
-                  />
-                  <Button
-                    label={`Remove last unlogged set from ${item.exercise.name}`}
-                    variant="secondary"
-                    disabled={blocked || !canReduce}
-                    onPress={() =>
-                      void apply(item, {
-                        kind: 'targets',
-                        targets: { ...item.exercise, sets: item.exercise.sets - 1 },
-                      }).catch(() => {})
-                    }
-                  />
-                  <Button
-                    label={`Remove ${item.exercise.name} from workout`}
+                    label={`Restore ${item.exercise.name}`}
                     variant="secondary"
                     disabled={blocked}
-                    onPress={() => omit(item, 'removed')}
+                    onPress={() =>
+                      void apply(item, { kind: 'state', state: 'active', reason: null }).catch(
+                        () => {},
+                      )
+                    }
                   />
-                </>
-              ) : (
-                <Button
-                  label={`Restore ${item.exercise.name}`}
-                  variant="secondary"
-                  disabled={blocked}
-                  onPress={() =>
-                    void apply(item, { kind: 'state', state: 'active', reason: null }).catch(
-                      () => {},
-                    )
-                  }
-                />
-              )}
-            </Card>
-          ))}
+                )}
+              </Card>
+            ),
+          )}
         </>
       ) : null}
     </>
