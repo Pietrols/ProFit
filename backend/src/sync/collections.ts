@@ -11,27 +11,20 @@ import {
   weightEntries,
   workoutSessions,
 } from '../db/schema.js';
+import {
+  calendarDate,
+  exerciseId,
+  exerciseTargetFields,
+  isoTime,
+  LOG_FIELDS,
+  name,
+  syncFields,
+} from './wireFields.js';
+export { LOG_FIELDS } from './wireFields.js';
 
 // The tables phones sync, and how each record looks on the wire. Adding a synced feature later means
 // adding one entry here: a table with the sync columns, a Zod schema, and the two mappings.
 // Mirrored on the phone in mobile/src/features/sync/collections.ts.
-
-const isoTime = z.iso.datetime({ offset: true });
-
-// A calendar date as the phone saw it (YYYY-MM-DD), checked to be a real day.
-const calendarDate = z
-  .string()
-  .regex(/^\d{4}-\d{2}-\d{2}$/, 'must be a date like 2026-10-07')
-  .refine((value) => {
-    const d = new Date(`${value}T00:00:00Z`);
-    return !Number.isNaN(d.getTime()) && d.toISOString().startsWith(value);
-  }, 'is not a real date');
-
-const syncFields = {
-  id: z.uuid(),
-  updatedAt: isoTime,
-  deletedAt: isoTime.nullable(),
-};
 
 // The exercise vocabulary. Matches mobile/src/features/exercises/types.ts.
 export const CATEGORIES = [
@@ -103,19 +96,7 @@ export const favouriteRecord = z.strictObject({
   exerciseId: z.string().regex(/^[A-Za-z0-9_-]{1,100}$/, 'must be an exercise id'),
 });
 
-export const LOG_FIELDS = [
-  'reps',
-  'weight',
-  'time',
-  'distance',
-  'rest',
-  'RPE',
-  'notes',
-  'done',
-] as const;
-const exerciseId = z.string().regex(/^[A-Za-z0-9_-]{1,100}$/, 'must be an exercise id');
 const position = z.number().int().min(0).max(10000);
-const name = z.string().trim().min(1).max(80);
 export const planRecord = z.strictObject({
   ...syncFields,
   name,
@@ -136,16 +117,7 @@ export const planExerciseRecord = z.strictObject({
   dayId: z.uuid(),
   exerciseId,
   position,
-  sets: z.number().int().min(1).max(100),
-  targetReps: z.number().int().min(1).max(1000).nullable(),
-  targetTimeSeconds: z.number().int().min(1).max(86400).nullable(),
-  targetDistanceMetres: z.number().min(1).max(1000000).nullable(),
-  restSeconds: z.number().int().min(0).max(3600),
-  logFields: z
-    .array(z.enum(LOG_FIELDS))
-    .min(1)
-    .max(8)
-    .refine((v) => new Set(v).size === v.length, 'log fields must be unique'),
+  ...exerciseTargetFields,
 });
 export const habitRecord = z.strictObject({
   ...syncFields,
@@ -164,12 +136,7 @@ export const workoutSnapshot = z
         z.strictObject({
           exerciseId,
           name,
-          sets: planExerciseRecord.shape.sets,
-          targetReps: planExerciseRecord.shape.targetReps,
-          targetTimeSeconds: planExerciseRecord.shape.targetTimeSeconds,
-          targetDistanceMetres: planExerciseRecord.shape.targetDistanceMetres,
-          restSeconds: planExerciseRecord.shape.restSeconds,
-          logFields: planExerciseRecord.shape.logFields,
+          ...exerciseTargetFields,
         }),
       )
       .max(100),
