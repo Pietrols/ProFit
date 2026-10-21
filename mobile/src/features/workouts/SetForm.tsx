@@ -10,12 +10,14 @@ export function SetForm({
   units,
   busy,
   onLog,
+  submitLabel = 'Log set',
 }: {
   exercise: SnapshotExercise;
   initial: SetValues;
   units: Units;
   busy: boolean;
   onLog: (values: SetValues) => Promise<void>;
+  submitLabel?: string;
 }) {
   const [original] = useState(initial);
   const [draft, setDraftState] = useState(() => setDraft(initial, units));
@@ -54,7 +56,11 @@ export function SetForm({
         ),
       )}
       {error ? <AppText color="caution">{error}</AppText> : null}
-      <Button label={busy ? 'Saving set' : 'Log set'} disabled={busy} onPress={() => void log()} />
+      <Button
+        label={busy ? 'Saving set' : submitLabel}
+        disabled={busy}
+        onPress={() => void log()}
+      />
     </>
   );
 }
