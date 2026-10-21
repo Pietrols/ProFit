@@ -23,11 +23,11 @@ export function useWorkoutAwake(active: boolean): string | null {
   }, []);
   useEffect(() => {
     if (!active || !focused || !foreground) return;
-    setError(null);
     return awakeLease(
       { activate: activateKeepAwakeAsync, deactivate: deactivateKeepAwake },
       `workout:${randomId()}`,
       () => setError('Screen wake lock unavailable. Check your screen timeout while training.'),
+      () => setError(null),
     );
   }, [active, focused, foreground]);
   return error;

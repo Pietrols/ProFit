@@ -14,12 +14,24 @@ describe('workout wake lock lifecycle', () => {
       deactivate: vi.fn(async () => {}),
     };
     const error = vi.fn();
-    const release = awakeLease(api, 'visit-a', error);
+    const active = vi.fn();
+    const release = awakeLease(api, 'visit-a', error, active);
     release();
     activate();
     await Promise.resolve();
     expect(api.deactivate.mock.calls).toEqual([['visit-a'], ['visit-a']]);
     expect(error).not.toHaveBeenCalled();
+    expect(active).not.toHaveBeenCalled();
+  });
+  it('confirms an acquired wake lock only after successful activation', async () => {
+    const active = vi.fn();
+    const api = { activate: vi.fn(async () => {}), deactivate: vi.fn(async () => {}) };
+    const release = awakeLease(api, 'visit-b', vi.fn(), active);
+    expect(active).not.toHaveBeenCalled();
+    await Promise.resolve();
+    expect(active).toHaveBeenCalledOnce();
+    release();
+    expect(api.deactivate).toHaveBeenCalledWith('visit-b');
   });
   it('reports activation failures without an unhandled rejection', async () => {
     const error = vi.fn();
