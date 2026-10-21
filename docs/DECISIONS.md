@@ -427,3 +427,18 @@ checks. Future work selection excludes unavailable, skipped and removed items; t
 performed work still include their valid actual results. Preserve the legacy pure entry points
 as equivalence oracles and reuse their metric calculations for both variants. Storage readers
 return owned canonical data and issues; they do not fabricate positional ids for added items.
+
+## D45. Log a new performance against the reviewed item revision
+New stable logging reads the owned active session, effective item and existing slot in one
+transaction. Compare the reviewed item revision, difficulty and easier-today setting before
+capturing targets. A reorder can require a refresh but cannot send a draft to another item.
+Reject skipped, removed, tombstoned, unavailable or out-of-range work before any write.
+
+A live saved slot, including an explicitly incomplete result, is corrected through the existing
+edit flow. Logging does not silently replace it or move its original performance time. A deleted
+slot can be explicitly performed again with the same deterministic id, a fresh performance time
+and newly captured effective targets. That new edit must sort after the deletion even if the
+phone clock moved backward. Prior undo receipts then fail the full revision check. A deleted
+legacy slot may become stable only through this explicit new performance; ordinary corrections
+keep its legacy variant and unknown historical targets. Saving commits before any rest timer or
+alert starts. Structural controls and sync cutover remain disabled until 5.8.5 is complete.
