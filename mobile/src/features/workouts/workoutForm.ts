@@ -2,6 +2,7 @@ import { kgToLb, lbToKg } from '../weight/units';
 import type { LogField } from '../plans/types';
 import type { SetValues } from './types';
 export type Draft = Partial<Record<LogField, string>>;
+export type SetDraftEntry = { original: SetValues; draft: Draft };
 export type Units = 'metric' | 'imperial';
 export function fieldLabel(field: LogField, units: Units): string {
   return {

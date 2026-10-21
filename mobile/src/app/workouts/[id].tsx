@@ -23,7 +23,12 @@ import type { WorkoutDetail } from '@/features/workouts/workoutDetail';
 import { useWorkoutAwake } from '@/features/workouts/useWorkoutAwake';
 import { useWorkoutAlerts } from '@/features/workouts/WorkoutAlerts';
 import type { SetValues } from '@/features/workouts/types';
-import { recordLabel, setLabel, volumeLabel } from '@/features/workouts/workoutForm';
+import {
+  recordLabel,
+  setLabel,
+  volumeLabel,
+  type SetDraftEntry,
+} from '@/features/workouts/workoutForm';
 import { randomId } from '@/lib/randomId';
 import { kvStore } from '@/lib/storage/local';
 import { AppText } from '@/ui/AppText';
@@ -101,6 +106,7 @@ function Workout({
   const [confirm, setConfirm] = useState<'completed' | 'abandoned' | null>(null);
   const [lastSet, setLastSet] = useState<string | null>(null);
   const [correcting, setCorrecting] = useState(false);
+  const [drafts, setDrafts] = useState(() => new Map<string, SetDraftEntry>());
   useEffect(() => {
     let live = true;
     const version = ++timerVersion.current;
@@ -126,6 +132,8 @@ function Workout({
   );
   const active = session.status === 'active';
   const next = summary.next;
+  const draftKey = next ? `${next.exercisePosition}/${next.setIndex}/${units}` : '';
+  const changesBlocked = busy || correcting || workouts.stale || !!workouts.error;
   const awakeError = useWorkoutAwake(active);
   useEffect(() => {
     if (ready || !active) void alerts.update(user, session.id, active ? timer : null).catch(report);
@@ -178,6 +186,11 @@ function Workout({
         loggedAt: new Date().toISOString(),
         logFields: exercise!.logFields,
         values,
+      });
+      setDrafts((previous) => {
+        const remaining = new Map(previous);
+        remaining.delete(draftKey);
+        return remaining;
       });
       setLastSet(id);
       try {
@@ -282,12 +295,16 @@ function Workout({
           <AppText variant="title">{exercise.name}</AppText>
           <AppText color="text2">{setLabel(next.setIndex, exercise.sets)}</AppText>
           <SetForm
-            key={`${next.exercisePosition}/${next.setIndex}/${units}`}
+            key={draftKey}
             exercise={exercise}
             initial={initial}
             units={units}
             busy={busy || correcting || !ready || workouts.stale || !!workouts.error}
             onLog={log}
+            savedDraft={drafts.get(draftKey)}
+            onDraftChange={(entry) =>
+              setDrafts((previous) => new Map(previous).set(draftKey, entry))
+            }
           />
         </Card>
       ) : active ? (
@@ -310,7 +327,7 @@ function Workout({
           <Button
             label={session.easierToday ? 'Easier today: on' : 'Easier today: off'}
             variant="secondary"
-            disabled={busy}
+            disabled={changesBlocked}
             onPress={() =>
               fire(async () => {
                 await workouts.notes(session.id, notes, !session.easierToday);
@@ -357,12 +374,12 @@ function Workout({
         value={notes}
         onChangeText={setNotes}
         multiline
-        editable={!busy}
+        editable={!changesBlocked}
       />
       <Button
         label="Save notes"
         variant="secondary"
-        disabled={busy}
+        disabled={changesBlocked}
         onPress={() =>
           fire(async () => {
             await workouts.notes(session.id, notes, session.easierToday);
@@ -380,7 +397,7 @@ function Workout({
               </AppText>
               <Button
                 label={confirm === 'abandoned' ? 'Confirm abandon' : 'Confirm finish'}
-                disabled={busy}
+                disabled={changesBlocked}
                 onPress={() => fire(() => finish(confirm))}
               />
               <Button
@@ -394,12 +411,12 @@ function Workout({
             <>
               <Button
                 label="Finish session"
-                disabled={busy}
+                disabled={changesBlocked}
                 onPress={() => setConfirm('completed')}
               />
               <Button
                 label="Abandon session"
-                disabled={busy}
+                disabled={changesBlocked}
                 variant="secondary"
                 onPress={() => setConfirm('abandoned')}
               />

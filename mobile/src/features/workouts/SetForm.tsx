@@ -3,7 +3,7 @@ import { AppText } from '@/ui/AppText';
 import { Button } from '@/ui/Button';
 import { TextField } from '@/ui/TextField';
 import type { SnapshotExercise, SetValues } from './types';
-import { fieldLabel, parseSetDraft, setDraft, type Units } from './workoutForm';
+import { fieldLabel, parseSetDraft, setDraft, type SetDraftEntry, type Units } from './workoutForm';
 export function SetForm({
   exercise,
   initial,
@@ -11,6 +11,8 @@ export function SetForm({
   busy,
   onLog,
   submitLabel = 'Log set',
+  savedDraft,
+  onDraftChange,
 }: {
   exercise: SnapshotExercise;
   initial: SetValues;
@@ -18,10 +20,16 @@ export function SetForm({
   busy: boolean;
   onLog: (values: SetValues) => Promise<void>;
   submitLabel?: string;
+  savedDraft?: SetDraftEntry;
+  onDraftChange?: (entry: SetDraftEntry) => void;
 }) {
-  const [original] = useState(initial);
-  const [draft, setDraftState] = useState(() => setDraft(initial, units));
+  const [original] = useState(savedDraft?.original ?? initial);
+  const [draft, setDraftState] = useState(() => savedDraft?.draft ?? setDraft(original, units));
   const [error, setError] = useState<string | null>(null);
+  function change(next: typeof draft) {
+    setDraftState(next);
+    onDraftChange?.({ original, draft: next });
+  }
   async function log() {
     setError(null);
     try {
@@ -39,9 +47,7 @@ export function SetForm({
             label={draft.done === 'true' ? 'Done: yes' : 'Mark done'}
             variant="secondary"
             disabled={busy}
-            onPress={() =>
-              setDraftState({ ...draft, done: draft.done === 'true' ? 'false' : 'true' })
-            }
+            onPress={() => change({ ...draft, done: draft.done === 'true' ? 'false' : 'true' })}
           />
         ) : (
           <TextField
@@ -51,7 +57,7 @@ export function SetForm({
             editable={!busy}
             keyboardType={field === 'notes' ? 'default' : 'decimal-pad'}
             multiline={field === 'notes'}
-            onChangeText={(value) => setDraftState({ ...draft, [field]: value })}
+            onChangeText={(value) => change({ ...draft, [field]: value })}
           />
         ),
       )}
