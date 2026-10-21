@@ -4,7 +4,9 @@ import * as SecureStore from 'expo-secure-store';
 // AFTER_FIRST_UNLOCK lets the app read its session after a restart without the phone being unlocked
 // at that exact moment (for example when a notification wakes it).
 
-const options: SecureStore.SecureStoreOptions = { keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK };
+const options: SecureStore.SecureStoreOptions = {
+  keychainAccessible: SecureStore.AFTER_FIRST_UNLOCK,
+};
 
 export const secureStorage = {
   getItem: (key: string) => SecureStore.getItemAsync(key, options),

@@ -19,7 +19,8 @@ import { Screen } from '@/ui/Screen';
 export default function ProgressScreen() {
   const { colors, space } = useAppTheme();
   const snapshot = useAuth();
-  const unitSystem = snapshot.status === 'signedIn' ? (snapshot.me?.profile.unitSystem ?? 'metric') : 'metric';
+  const unitSystem =
+    snapshot.status === 'signedIn' ? (snapshot.me?.profile.unitSystem ?? 'metric') : 'metric';
   const { entries, error, save, remove } = useWeightLog();
   const [formDay, setFormDay] = useState<string | null>(null);
   const today = localDay(new Date());
@@ -42,16 +43,31 @@ export default function ProgressScreen() {
       <SyncBanner />
 
       <Card>
-        <AppText variant="label" color="text2">Body weight</AppText>
+        <AppText variant="label" color="text2">
+          Body weight
+        </AppText>
         {latest ? (
           <View style={{ gap: 2 }}>
-            <AppText style={{ fontFamily: fontFamilies.display, fontSize: 56, lineHeight: 58, color: colors.text }} accessibilityLabel={`Latest weight ${formatWeight(latest.weightKg, unitSystem)}`}>
+            <AppText
+              style={{
+                fontFamily: fontFamilies.display,
+                fontSize: 56,
+                lineHeight: 58,
+                color: colors.text,
+              }}
+              accessibilityLabel={`Latest weight ${formatWeight(latest.weightKg, unitSystem)}`}
+            >
               {formatWeight(latest.weightKg, unitSystem).toUpperCase()}
             </AppText>
-            <AppText color="text2">{formatDay(latest.date, today)}{change ? `  ·  ${change}` : ''}</AppText>
+            <AppText color="text2">
+              {formatDay(latest.date, today)}
+              {change ? `  ·  ${change}` : ''}
+            </AppText>
           </View>
         ) : (
-          <AppText color="text2">Weigh in at the same time each day, ideally in the morning, for numbers you can compare.</AppText>
+          <AppText color="text2">
+            Weigh in at the same time each day, ideally in the morning, for numbers you can compare.
+          </AppText>
         )}
         {formDay ? null : (
           <Button
@@ -77,7 +93,9 @@ export default function ProgressScreen() {
 
       {entries.length ? (
         <Card style={{ gap: 0, paddingVertical: space.sm }}>
-          <AppText variant="label" color="text2" style={{ paddingVertical: space.sm }}>Recent weigh-ins</AppText>
+          <AppText variant="label" color="text2" style={{ paddingVertical: space.sm }}>
+            Recent weigh-ins
+          </AppText>
           {entries.map((entry, i) => (
             <Pressable
               key={entry.id}
@@ -93,12 +111,19 @@ export default function ProgressScreen() {
                 borderTopWidth: i === 0 ? 0 : 1,
                 borderTopColor: colors.line,
                 opacity: pressed ? 0.7 : 1,
-              })}>
+              })}
+            >
               <View style={{ flex: 1, gap: 2 }}>
                 <AppText variant="bodyStrong">{formatDay(entry.date, today)}</AppText>
-                {entry.note ? <AppText variant="caption" color="text2" numberOfLines={1}>{entry.note}</AppText> : null}
+                {entry.note ? (
+                  <AppText variant="caption" color="text2" numberOfLines={1}>
+                    {entry.note}
+                  </AppText>
+                ) : null}
               </View>
-              <AppText variant="bodyStrong" style={{ fontVariant: ['tabular-nums'] }}>{formatWeight(entry.weightKg, unitSystem)}</AppText>
+              <AppText variant="bodyStrong" style={{ fontVariant: ['tabular-nums'] }}>
+                {formatWeight(entry.weightKg, unitSystem)}
+              </AppText>
             </Pressable>
           ))}
         </Card>
@@ -119,8 +144,14 @@ function SyncLine() {
   const { pending, syncing, lastSyncedAt, offline } = useSyncStatus();
   let text: string;
   if (syncing) text = 'Syncing…';
-  else if (pending > 0) text = `${pending === 1 ? '1 change' : `${pending} changes`} waiting to sync`;
-  else if (lastSyncedAt) text = `All synced at ${new Date(lastSyncedAt).toTimeString().slice(0, 5)}`;
+  else if (pending > 0)
+    text = `${pending === 1 ? '1 change' : `${pending} changes`} waiting to sync`;
+  else if (lastSyncedAt)
+    text = `All synced at ${new Date(lastSyncedAt).toTimeString().slice(0, 5)}`;
   else text = offline ? 'Not synced yet' : '';
-  return text ? <AppText variant="caption" color="text2" style={{ textAlign: 'center' }}>{text}</AppText> : null;
+  return text ? (
+    <AppText variant="caption" color="text2" style={{ textAlign: 'center' }}>
+      {text}
+    </AppText>
+  ) : null;
 }

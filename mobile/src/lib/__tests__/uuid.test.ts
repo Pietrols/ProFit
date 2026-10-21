@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { sha1, uuidv5 } from '../uuid';
 
-const hex = (bytes: Uint8Array) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+const hex = (bytes: Uint8Array) =>
+  Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
 const bytes = (text: string) => new TextEncoder().encode(text);
 
 // Reference values computed with Python's hashlib and uuid modules.
@@ -15,8 +16,12 @@ describe('sha1', () => {
 
 describe('uuidv5', () => {
   it('matches the reference implementation', () => {
-    expect(uuidv5('python.org', '6ba7b810-9dad-11d1-80b4-00c04fd430c8')).toBe('886313e1-3b8a-5372-9b90-0c9aee199e5d');
-    expect(uuidv5('https://profit.app/weight', '6ba7b811-9dad-11d1-80b4-00c04fd430c8')).toBe('278c3549-7cc1-546d-81e4-7b1c2d6b47f2');
+    expect(uuidv5('python.org', '6ba7b810-9dad-11d1-80b4-00c04fd430c8')).toBe(
+      '886313e1-3b8a-5372-9b90-0c9aee199e5d',
+    );
+    expect(uuidv5('https://profit.app/weight', '6ba7b811-9dad-11d1-80b4-00c04fd430c8')).toBe(
+      '278c3549-7cc1-546d-81e4-7b1c2d6b47f2',
+    );
   });
 
   it('gives the same id for the same name, a different one otherwise', () => {

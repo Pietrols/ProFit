@@ -35,13 +35,26 @@ describe('validateProfileForm', () => {
   });
 
   it('sends only the fields that changed', () => {
-    const form = { ...formFromMe(me), displayName: ' Pete ', daysPerWeek: 4, limitations: 'Left knee' };
-    expect(validateProfileForm(form, me, NOW).patch).toEqual({ displayName: 'Pete', daysPerWeek: 4, limitations: 'Left knee' });
+    const form = {
+      ...formFromMe(me),
+      displayName: ' Pete ',
+      daysPerWeek: 4,
+      limitations: 'Left knee',
+    };
+    expect(validateProfileForm(form, me, NOW).patch).toEqual({
+      displayName: 'Pete',
+      daysPerWeek: 4,
+      limitations: 'Left knee',
+    });
   });
 
   it('clears optional details that were emptied', () => {
     const form = { ...formFromMe(me), birthYear: '', heightCm: '', goal: null };
-    expect(validateProfileForm(form, me, NOW).patch).toEqual({ birthYear: null, heightCm: null, goal: null });
+    expect(validateProfileForm(form, me, NOW).patch).toEqual({
+      birthYear: null,
+      heightCm: null,
+      goal: null,
+    });
   });
 
   it('refuses an empty name, an under-13 birth year and an impossible height', () => {
@@ -54,8 +67,16 @@ describe('validateProfileForm', () => {
   });
 
   it('reads height in feet and inches when the unit system is imperial', () => {
-    const form = { ...formFromMe(me), unitSystem: 'imperial' as const, heightFeet: '6', heightInches: '1' };
-    expect(validateProfileForm(form, me, NOW).patch).toEqual({ unitSystem: 'imperial', heightCm: 185.4 });
+    const form = {
+      ...formFromMe(me),
+      unitSystem: 'imperial' as const,
+      heightFeet: '6',
+      heightInches: '1',
+    };
+    expect(validateProfileForm(form, me, NOW).patch).toEqual({
+      unitSystem: 'imperial',
+      heightCm: 185.4,
+    });
   });
 
   it('does not treat the round trip through feet and inches as a height change', () => {
@@ -64,7 +85,12 @@ describe('validateProfileForm', () => {
   });
 
   it('rejects 12 or more inches', () => {
-    const form = { ...formFromMe(me), unitSystem: 'imperial' as const, heightFeet: '5', heightInches: '12' };
+    const form = {
+      ...formFromMe(me),
+      unitSystem: 'imperial' as const,
+      heightFeet: '5',
+      heightInches: '12',
+    };
     expect(validateProfileForm(form, me, NOW).errors.height).toBeDefined();
   });
 });

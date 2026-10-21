@@ -12,12 +12,18 @@ const tick = (minutes = 1) => new Date((clockMs += minutes * 60_000));
 
 async function phone(server: ReturnType<typeof fakeSyncServer>, userId = PETER) {
   const db = await testDatabase();
-  const engine = createSyncEngine({ db, api: server.clientFor(userId), collections: syncedCollections, now: () => new Date(clockMs) });
+  const engine = createSyncEngine({
+    db,
+    api: server.clientFor(userId),
+    collections: syncedCollections,
+    now: () => new Date(clockMs),
+  });
   await engine.setUser(userId);
   return { db, engine };
 }
 
-const weights = async (db: Database, userId = PETER) => (await listWeights(db, userId)).map((w) => [w.date, w.weightKg]);
+const weights = async (db: Database, userId = PETER) =>
+  (await listWeights(db, userId)).map((w) => [w.date, w.weightKg]);
 
 describe('sync engine', () => {
   it('keeps an entry logged offline and sends it exactly once when the connection returns', async () => {
@@ -35,7 +41,10 @@ describe('sync engine', () => {
     await engine.sync();
     expect(engine.getStatus()).toMatchObject({ pending: 0, offline: false, problem: null });
     expect(server.rows.size).toBe(1);
-    expect([...server.rows.values()][0]!.record).toMatchObject({ date: '2026-10-07', weightKg: 81.4 });
+    expect([...server.rows.values()][0]!.record).toMatchObject({
+      date: '2026-10-07',
+      weightKg: 81.4,
+    });
   });
 
   it('merges two phones: different days add up, the same day keeps the later edit', async () => {
@@ -113,7 +122,8 @@ describe('sync engine', () => {
     const a = await phone(server);
     const day = (i: number) => new Date(Date.UTC(2025, 0, 1 + i)).toISOString().slice(0, 10);
     await a.db.transaction(async (tx) => {
-      for (let i = 0; i < 1203; i += 1) await saveWeight(tx, PETER, { date: day(i), weightKg: 80 + (i % 10) / 10 }, tick(0));
+      for (let i = 0; i < 1203; i += 1)
+        await saveWeight(tx, PETER, { date: day(i), weightKg: 80 + (i % 10) / 10 }, tick(0));
     });
     await a.engine.sync();
     expect(a.engine.getStatus().pending).toBe(0);
@@ -133,7 +143,12 @@ describe('sync engine', () => {
 
     // Peter signs out and someone else signs in on the same phone: same database, their own session.
     await engine.setUser(null);
-    const theirs = createSyncEngine({ db, api: server.clientFor(other), collections: syncedCollections, now: () => new Date(clockMs) });
+    const theirs = createSyncEngine({
+      db,
+      api: server.clientFor(other),
+      collections: syncedCollections,
+      now: () => new Date(clockMs),
+    });
     await theirs.setUser(other);
     await saveWeight(db, other, { date: '2026-10-07', weightKg: 64 }, tick());
     await theirs.sync();

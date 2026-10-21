@@ -3,7 +3,12 @@ import { finishPatch, isAnswered, skipPatch } from '../onboarding';
 
 describe('finishPatch', () => {
   it('saves every answer and marks onboarding completed', () => {
-    expect(finishPatch({ displayName: 'Pete', goal: 'bodybuilding', experience: 'beginner', trainingPlace: 'gym' }, 'Peter')).toEqual({
+    expect(
+      finishPatch(
+        { displayName: 'Pete', goal: 'bodybuilding', experience: 'beginner', trainingPlace: 'gym' },
+        'Peter',
+      ),
+    ).toEqual({
       displayName: 'Pete',
       goal: 'bodybuilding',
       experience: 'beginner',
@@ -13,7 +18,9 @@ describe('finishPatch', () => {
   });
 
   it('does not resend the name Google already gave, but still counts it as answered', () => {
-    expect(finishPatch({ displayName: 'Peter' }, 'Peter')).toEqual({ onboardingStatus: 'completed' });
+    expect(finishPatch({ displayName: 'Peter' }, 'Peter')).toEqual({
+      onboardingStatus: 'completed',
+    });
   });
 
   it('marks onboarding skipped when nothing was answered', () => {
@@ -29,7 +36,10 @@ describe('finishPatch', () => {
 
 describe('skipPatch', () => {
   it('keeps answers given so far and marks onboarding skipped', () => {
-    expect(skipPatch({ goal: 'weight_loss' }, 'Peter')).toEqual({ goal: 'weight_loss', onboardingStatus: 'skipped' });
+    expect(skipPatch({ goal: 'weight_loss' }, 'Peter')).toEqual({
+      goal: 'weight_loss',
+      onboardingStatus: 'skipped',
+    });
   });
 });
 

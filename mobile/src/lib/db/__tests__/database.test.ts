@@ -9,8 +9,22 @@ describe('migrate', () => {
     const latest = Math.max(...migrations.map((m) => m.version));
     expect(await migrate(db, migrations)).toBe(latest);
     expect(await migrate(db, migrations)).toBe(latest);
-    const tables = await db.all<{ name: string }>("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name");
-    expect(tables.map((t) => t.name)).toEqual(['custom_exercises', 'daily_habit', 'exercise_favourites', 'media', 'plan_days', 'plan_exercises', 'plans', 'set_logs', 'sync_state', 'weight_entries', 'workout_sessions']);
+    const tables = await db.all<{ name: string }>(
+      "SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name",
+    );
+    expect(tables.map((t) => t.name)).toEqual([
+      'custom_exercises',
+      'daily_habit',
+      'exercise_favourites',
+      'media',
+      'plan_days',
+      'plan_exercises',
+      'plans',
+      'set_logs',
+      'sync_state',
+      'weight_entries',
+      'workout_sessions',
+    ]);
   });
 
   it('applies only the steps a database has not had yet', async () => {
@@ -25,8 +39,12 @@ describe('migrate', () => {
 
   it('leaves the database unchanged when a step fails', async () => {
     const db = createDatabase(nodeDriver());
-    await expect(migrate(db, [{ version: 1, sql: 'CREATE TABLE ok (x INTEGER); NOT VALID SQL' }])).rejects.toThrow();
-    expect(await db.first<{ user_version: number }>('PRAGMA user_version')).toEqual({ user_version: 0 });
+    await expect(
+      migrate(db, [{ version: 1, sql: 'CREATE TABLE ok (x INTEGER); NOT VALID SQL' }]),
+    ).rejects.toThrow();
+    expect(await db.first<{ user_version: number }>('PRAGMA user_version')).toEqual({
+      user_version: 0,
+    });
     expect(await db.all("SELECT name FROM sqlite_master WHERE name = 'ok'")).toEqual([]);
   });
 });

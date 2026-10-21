@@ -20,7 +20,8 @@ export function useWeightLog(limit = 30) {
     let current = true;
     listWeights(db, userId, limit).then(
       (rows) => current && (setEntries(rows), setError(null)),
-      (e: unknown) => current && setError(e instanceof Error ? e.message : 'Could not read your weight log.'),
+      (e: unknown) =>
+        current && setError(e instanceof Error ? e.message : 'Could not read your weight log.'),
     );
     return () => {
       current = false;

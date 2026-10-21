@@ -43,8 +43,16 @@ export function createApiClient(options: Options): ApiClient {
   const now = options.now ?? Date.now;
   const timeoutMs = options.timeoutMs ?? DEFAULT_TIMEOUT_MS;
 
-  async function send(method: string, path: string, body: unknown, accessToken: string | null): Promise<Response> {
-    if (!options.baseUrl) throw new NetworkError('The app has no server address. Set EXPO_PUBLIC_API_URL in mobile/.env.');
+  async function send(
+    method: string,
+    path: string,
+    body: unknown,
+    accessToken: string | null,
+  ): Promise<Response> {
+    if (!options.baseUrl)
+      throw new NetworkError(
+        'The app has no server address. Set EXPO_PUBLIC_API_URL in mobile/.env.',
+      );
     const headers: Record<string, string> = { Accept: 'application/json' };
     if (body !== undefined) headers['Content-Type'] = 'application/json';
     if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
@@ -75,7 +83,12 @@ export function createApiClient(options: Options): ApiClient {
   const refresh = singleFlight(async (): Promise<Session> => {
     const current = options.getSession();
     if (!current) throw new ApiError(401, 'UNAUTHENTICATED', 'Sign in to continue.');
-    const response = await send('POST', '/auth/refresh', { refreshToken: current.refreshToken }, null);
+    const response = await send(
+      'POST',
+      '/auth/refresh',
+      { refreshToken: current.refreshToken },
+      null,
+    );
     if (!response.ok) {
       const error = await errorFromResponse(response);
       if (response.status === 401) options.onSessionExpired();
@@ -86,7 +99,11 @@ export function createApiClient(options: Options): ApiClient {
     return session;
   });
 
-  async function request<T>(method: string, path: string, { body, auth = true }: RequestOptions = {}): Promise<T> {
+  async function request<T>(
+    method: string,
+    path: string,
+    { body, auth = true }: RequestOptions = {},
+  ): Promise<T> {
     if (!auth) {
       const response = await send(method, path, body, null);
       if (!response.ok) throw await errorFromResponse(response);
@@ -110,7 +127,9 @@ export function createApiClient(options: Options): ApiClient {
     return readBody<T>(response);
   }
 
-  async function authHeaders({ refresh: force = false }: { refresh?: boolean } = {}): Promise<Record<string, string>> {
+  async function authHeaders({ refresh: force = false }: { refresh?: boolean } = {}): Promise<
+    Record<string, string>
+  > {
     let session = options.getSession();
     if (!session) throw new ApiError(401, 'UNAUTHENTICATED', 'Sign in to continue.');
     if (force || needsRefresh(session, now())) session = await refresh();

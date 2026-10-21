@@ -29,7 +29,8 @@ export function HubTile({ icon, label, value, hint, onPress }: Props) {
         borderColor: colors.line,
         padding: space.lg,
         justifyContent: 'space-between',
-      })}>
+      })}
+    >
       <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
         <View
           style={{
@@ -39,15 +40,20 @@ export function HubTile({ icon, label, value, hint, onPress }: Props) {
             backgroundColor: colors.surface2,
             alignItems: 'center',
             justifyContent: 'center',
-          }}>
+          }}
+        >
           <Ionicons name={icon} size={20} color={colors.accent} />
         </View>
         <Ionicons name="chevron-forward" size={18} color={colors.text2} />
       </View>
       <View style={{ gap: 2 }}>
-        <AppText variant="label" color="text2">{label}</AppText>
+        <AppText variant="label" color="text2">
+          {label}
+        </AppText>
         <AppText variant="stat">{value}</AppText>
-        <AppText variant="caption" color="text2" numberOfLines={1}>{hint}</AppText>
+        <AppText variant="caption" color="text2" numberOfLines={1}>
+          {hint}
+        </AppText>
       </View>
     </Pressable>
   );

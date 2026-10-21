@@ -31,12 +31,21 @@ export function OptionCard({ label, description, selected, onPress }: Props) {
         borderWidth: 1.5,
         borderColor: selected ? colors.accent : colors.line,
         backgroundColor: pressed ? colors.surface2 : colors.surface,
-      })}>
+      })}
+    >
       <View style={{ flex: 1, gap: 2 }}>
         <AppText variant="bodyStrong">{label}</AppText>
-        {description ? <AppText variant="caption" color="text2">{description}</AppText> : null}
+        {description ? (
+          <AppText variant="caption" color="text2">
+            {description}
+          </AppText>
+        ) : null}
       </View>
-      <Ionicons name={selected ? 'checkmark-circle' : 'ellipse-outline'} size={24} color={selected ? colors.accent : colors.text2} />
+      <Ionicons
+        name={selected ? 'checkmark-circle' : 'ellipse-outline'}
+        size={24}
+        color={selected ? colors.accent : colors.text2}
+      />
     </Pressable>
   );
 }

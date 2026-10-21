@@ -13,12 +13,24 @@ type Props<T> = {
 };
 
 // Several choices from short options (muscles). Each chip turns on and off; the caller decides limits.
-export function MultiChipGroup<T extends string>({ label, options, values, onToggle, hint, error }: Props<T>) {
+export function MultiChipGroup<T extends string>({
+  label,
+  options,
+  values,
+  onToggle,
+  hint,
+  error,
+}: Props<T>) {
   const { colors, radius, space } = useAppTheme();
   return (
     <View style={{ gap: space.xs }}>
-      <AppText variant="label" color="text2">{label}</AppText>
-      <View accessibilityLabel={label} style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}>
+      <AppText variant="label" color="text2">
+        {label}
+      </AppText>
+      <View
+        accessibilityLabel={label}
+        style={{ flexDirection: 'row', flexWrap: 'wrap', gap: space.sm }}
+      >
         {options.map((option) => {
           const selected = values.includes(option.value);
           return (
@@ -35,17 +47,31 @@ export function MultiChipGroup<T extends string>({ label, options, values, onTog
                 borderRadius: radius.pill,
                 borderWidth: 1,
                 borderColor: selected ? colors.accent : colors.line,
-                backgroundColor: selected ? colors.accent : pressed ? colors.surface2 : colors.surface,
-              })}>
-              <AppText variant="bodyStrong" style={{ color: selected ? colors.onAccent : colors.text }}>{option.label}</AppText>
+                backgroundColor: selected
+                  ? colors.accent
+                  : pressed
+                    ? colors.surface2
+                    : colors.surface,
+              })}
+            >
+              <AppText
+                variant="bodyStrong"
+                style={{ color: selected ? colors.onAccent : colors.text }}
+              >
+                {option.label}
+              </AppText>
             </Pressable>
           );
         })}
       </View>
       {error ? (
-        <AppText variant="caption" color="caution" accessibilityLiveRegion="polite">{error}</AppText>
+        <AppText variant="caption" color="caution" accessibilityLiveRegion="polite">
+          {error}
+        </AppText>
       ) : hint ? (
-        <AppText variant="caption" color="text2">{hint}</AppText>
+        <AppText variant="caption" color="text2">
+          {hint}
+        </AppText>
       ) : null}
     </View>
   );

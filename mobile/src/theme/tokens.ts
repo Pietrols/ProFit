@@ -54,7 +54,8 @@ export const fontFamilies = {
   bodySemiBold: 'Barlow_600SemiBold',
 } as const;
 
-export type TypeVariant = 'display' | 'title' | 'stat' | 'body' | 'bodyStrong' | 'label' | 'caption';
+export type TypeVariant =
+  'display' | 'title' | 'stat' | 'body' | 'bodyStrong' | 'label' | 'caption';
 
 type TypeStyle = {
   fontFamily: string;
@@ -70,7 +71,13 @@ export const typeScale: Record<TypeVariant, TypeStyle> = {
   stat: { fontFamily: fontFamilies.display, fontSize: 32, lineHeight: 34, letterSpacing: 0.5 },
   body: { fontFamily: fontFamilies.body, fontSize: 16, lineHeight: 22 },
   bodyStrong: { fontFamily: fontFamilies.bodySemiBold, fontSize: 16, lineHeight: 22 },
-  label: { fontFamily: fontFamilies.bodySemiBold, fontSize: 12, lineHeight: 16, letterSpacing: 0.8, textTransform: 'uppercase' },
+  label: {
+    fontFamily: fontFamilies.bodySemiBold,
+    fontSize: 12,
+    lineHeight: 16,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
   caption: { fontFamily: fontFamilies.body, fontSize: 13, lineHeight: 18 },
 };
 

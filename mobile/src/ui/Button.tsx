@@ -28,7 +28,8 @@ export function Button({ label, variant = 'primary', disabled, style, ...rest }:
           opacity: disabled ? 0.45 : state.pressed ? 0.85 : 1,
         },
         typeof style === 'function' ? style(state) : style,
-      ]}>
+      ]}
+    >
       <AppText variant="bodyStrong" style={{ color: primary ? colors.onAccent : colors.text }}>
         {label}
       </AppText>

@@ -18,8 +18,16 @@ export function Screen({ title, eyebrow, children, scroll = true }: Props) {
     <View style={{ gap: space.lg, paddingHorizontal: space.lg, paddingBottom: space.xxl }}>
       {(title || eyebrow) && (
         <View style={{ gap: space.xs, paddingTop: space.md }}>
-          {eyebrow ? <AppText variant="label" color="text2">{eyebrow}</AppText> : null}
-          {title ? <AppText variant="display" accessibilityRole="header">{title}</AppText> : null}
+          {eyebrow ? (
+            <AppText variant="label" color="text2">
+              {eyebrow}
+            </AppText>
+          ) : null}
+          {title ? (
+            <AppText variant="display" accessibilityRole="header">
+              {title}
+            </AppText>
+          ) : null}
         </View>
       )}
       {children}

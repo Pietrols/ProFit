@@ -17,7 +17,9 @@ let configured = false;
 function ensureConfigured() {
   if (configured) return;
   if (!googleSignInAvailable) {
-    throw new Error('Google sign-in is not set up in this build. Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID to mobile/.env.');
+    throw new Error(
+      'Google sign-in is not set up in this build. Add EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID to mobile/.env.',
+    );
   }
   GoogleOneTapSignIn.configure({ webClientId: config.googleWebClientId });
   configured = true;
@@ -30,8 +32,10 @@ export async function getGoogleIdToken(): Promise<string | null> {
   try {
     await GoogleOneTapSignIn.checkPlayServices();
     let response = await GoogleOneTapSignIn.signIn();
-    if (isNoSavedCredentialFoundResponse(response)) response = await GoogleOneTapSignIn.createAccount();
-    if (isNoSavedCredentialFoundResponse(response)) response = await GoogleOneTapSignIn.presentExplicitSignIn();
+    if (isNoSavedCredentialFoundResponse(response))
+      response = await GoogleOneTapSignIn.createAccount();
+    if (isNoSavedCredentialFoundResponse(response))
+      response = await GoogleOneTapSignIn.presentExplicitSignIn();
     if (isCancelledResponse(response)) return null;
     if (isSuccessResponse(response)) return response.data.idToken;
     throw new Error('Google did not return an account. Try again.');
@@ -50,7 +54,8 @@ export async function signOutOfGoogle(): Promise<void> {
 }
 
 function describeGoogleError(error: unknown): string {
-  if (!isErrorWithCode(error)) return error instanceof Error ? error.message : 'Google sign-in failed. Try again.';
+  if (!isErrorWithCode(error))
+    return error instanceof Error ? error.message : 'Google sign-in failed. Try again.';
   switch (error.code) {
     case statusCodes.PLAY_SERVICES_NOT_AVAILABLE:
       return 'Google Play services is missing or out of date on this phone. Update it and try again.';

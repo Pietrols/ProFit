@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import type { Me, ProfilePatch } from '../../profile/types';
-import { AUTH_KEY, createAuthStore, meKey, pendingKey, type AuthSnapshot, type KeyValue } from '../authStore';
+import {
+  AUTH_KEY,
+  createAuthStore,
+  meKey,
+  pendingKey,
+  type AuthSnapshot,
+  type KeyValue,
+} from '../authStore';
 import type { Session } from '../session';
 
 const NOW = Date.parse('2026-10-07T10:00:00Z');
@@ -56,7 +63,10 @@ function fakeApi() {
     sessions: 0,
   };
   const reply = (status: number, body?: unknown) =>
-    new Response(body === undefined ? null : JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+    new Response(body === undefined ? null : JSON.stringify(body), {
+      status,
+      headers: { 'Content-Type': 'application/json' },
+    });
 
   const fetchFn = (async (url: string | URL | Request, init?: RequestInit) => {
     if (!state.online) throw new TypeError('Network request failed');
@@ -68,7 +78,10 @@ function fakeApi() {
       return reply(200, { session: sessionNo(state.sessions), ...state.me });
     }
     if (method === 'POST' && path === '/auth/refresh') {
-      if (state.refuseRefresh) return reply(401, { error: { code: 'SESSION_EXPIRED', message: 'Your session has ended.' } });
+      if (state.refuseRefresh)
+        return reply(401, {
+          error: { code: 'SESSION_EXPIRED', message: 'Your session has ended.' },
+        });
       state.sessions += 1;
       return reply(200, { session: sessionNo(state.sessions) });
     }
@@ -78,7 +91,8 @@ function fakeApi() {
     }
     if (path === '/me' && method === 'GET') return reply(200, state.me);
     if (path === '/me' && method === 'PATCH') {
-      if (state.rejectPatchWith) return reply(state.rejectPatchWith.status, { error: state.rejectPatchWith });
+      if (state.rejectPatchWith)
+        return reply(state.rejectPatchWith.status, { error: state.rejectPatchWith });
       state.patches.push(body);
       const { displayName, ...profile } = body as ProfilePatch;
       if (displayName) state.me.user.displayName = displayName;
@@ -104,7 +118,8 @@ function setup(options: { googleToken?: string | null } = {}) {
       fetch: api.fetchFn,
       now: () => NOW,
       google: {
-        getIdToken: async () => (options.googleToken === undefined ? 'google-id-token' : options.googleToken),
+        getIdToken: async () =>
+          options.googleToken === undefined ? 'google-id-token' : options.googleToken,
         signOut: async () => {
           googleSignOuts.push(1);
         },
@@ -215,7 +230,11 @@ describe('auth store', () => {
     const store = make();
     await store.init();
     await store.signInForDevelopment('peter@example.com');
-    api.state.rejectPatchWith = { status: 400, code: 'VALIDATION_FAILED', message: 'birthYear: must be 2013 or earlier' };
+    api.state.rejectPatchWith = {
+      status: 400,
+      code: 'VALIDATION_FAILED',
+      message: 'birthYear: must be 2013 or earlier',
+    };
     await store.updateProfile({ birthYear: 2020 });
     const snapshot = signedIn(store.getSnapshot());
     expect(snapshot.hasPendingChanges).toBe(false);
@@ -249,7 +268,11 @@ describe('auth store with an ended sign-in', () => {
     secure.data.set(
       AUTH_KEY,
       JSON.stringify({
-        session: { accessToken: 'old', accessTokenExpiresAt: new Date(NOW - 1000).toISOString(), refreshToken: 'stolen-or-old' },
+        session: {
+          accessToken: 'old',
+          accessTokenExpiresAt: new Date(NOW - 1000).toISOString(),
+          refreshToken: 'stolen-or-old',
+        },
         user: baseMe.user,
       }),
     );
