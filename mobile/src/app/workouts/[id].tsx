@@ -2,12 +2,8 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMe } from '@/features/auth/AuthProvider';
 import { SyncBanner } from '@/features/sync/SyncBanner';
-import {
-  completedSets,
-  prefillFromSets,
-  sessionResultsFromSets,
-  sessionTargets,
-} from '@/features/workouts/logic';
+import { prefillFromSets, sessionTargets } from '@/features/workouts/logic';
+import { structuredWorkoutResults } from '@/features/workouts/structuredResults';
 import { SetForm } from '@/features/workouts/SetForm';
 import { TimerControls } from '@/features/workouts/TimerControls';
 import { SessionClock } from '@/features/workouts/SessionClock';
@@ -19,7 +15,7 @@ import {
 } from '@/features/workouts/timerStorage';
 import { pauseTimer, resumeTimer, startTimer, type TimerState } from '@/features/workouts/timers';
 import { useWorkout } from '@/features/workouts/useWorkout';
-import type { WorkoutDetail } from '@/features/workouts/workoutDetail';
+import type { StructuredWorkoutDetail } from '@/features/workouts/structuredDetail';
 import { useWorkoutAwake } from '@/features/workouts/useWorkoutAwake';
 import { useWorkoutAlerts } from '@/features/workouts/WorkoutAlerts';
 import type { SetValues } from '@/features/workouts/types';
@@ -79,11 +75,12 @@ function Workout({
   workouts,
   user,
 }: {
-  current: WorkoutDetail;
+  current: StructuredWorkoutDetail;
   workouts: ReturnType<typeof useWorkout>;
   user: string;
 }) {
-  const { session, logs } = current;
+  const { session, itemView, resultView } = current;
+  const logs = useMemo(() => resultView.loggedResults.map((row) => row.log), [resultView]);
   const { me } = useMe();
   const units = me?.profile.unitSystem ?? 'metric';
   const { alerts, error: alertError, report, enable } = useWorkoutAlerts();
@@ -95,9 +92,9 @@ function Workout({
       timerAfterLogs(
         savedTimer,
         logs.map((log) => log.loggedAt),
-        completedSets(session, logs).map((log) => log.id),
+        resultView.results.map((row) => row.log.id),
       ),
-    [savedTimer, session, logs],
+    [savedTimer, resultView, logs],
   );
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -126,19 +123,19 @@ function Workout({
       live = false;
     };
   }, [user, session.id]);
-  const summary = useMemo(
-    () => sessionResultsFromSets(session, logs, current.previousSets),
-    [session, logs, current.previousSets],
-  );
+  const summary = useMemo(() => structuredWorkoutResults(current), [current]);
   const active = session.status === 'active';
   const next = summary.next;
-  const draftKey = next ? `${next.exercisePosition}/${next.setIndex}/${units}` : '';
-  const changesBlocked = busy || correcting || workouts.stale || !!workouts.error;
+  const draftKey = next ? `${next.id}/${units}` : '';
+  const changesBlocked =
+    busy || correcting || workouts.stale || !!workouts.error || !summary.available;
+  const savedNext = next ? logs.find((log) => log.id === next.id) : null;
   const awakeError = useWorkoutAwake(active);
   useEffect(() => {
     if (ready || !active) void alerts.update(user, session.id, active ? timer : null).catch(report);
   }, [alerts, user, session.id, active, ready, timer, report]);
-  const exercise = next ? session.snapshot.exercises[next.exercisePosition]! : null;
+  const nextItem = next ? itemView.items.find((item) => item.id === next.itemId) : null;
+  const exercise = nextItem?.exercise;
   const initial = useMemo(
     () =>
       exercise
@@ -177,28 +174,27 @@ function Workout({
     void run(action).catch(() => {});
   };
   async function log(values: SetValues) {
-    if (!next || !exercise) return;
+    if (!next || !nextItem || !exercise || savedNext || changesBlocked) return;
     await run(async () => {
       const id = await workouts.log({
-        sessionId: session.id,
-        exercisePosition: next!.exercisePosition,
-        setIndex: next!.setIndex,
-        loggedAt: new Date().toISOString(),
-        logFields: exercise!.logFields,
+        item: nextItem,
+        setIndex: next.setIndex,
         values,
+        difficulty: session.snapshot.difficulty,
+        easierToday: session.easierToday,
       });
       setDrafts((previous) => {
         const remaining = new Map(previous);
         remaining.delete(draftKey);
         return remaining;
       });
-      setLastSet(id);
+      setLastSet(values.done === false ? null : id);
       try {
         await saveTimer(
-          exercise!.restSeconds
+          values.done !== false && exercise.restSeconds
             ? {
                 ...startTimer(
-                  { mode: 'rest', seconds: exercise!.restSeconds },
+                  { mode: 'rest', seconds: exercise.restSeconds },
                   Date.now(),
                   randomId(),
                 ),
@@ -237,6 +233,15 @@ function Workout({
           <AppText color="caution">{workouts.error}</AppText>
           <Button label="Retry workout read" variant="secondary" onPress={workouts.retry} />
         </>
+      ) : null}
+      {!summary.available ? (
+        <Card>
+          <AppText color="caution">
+            Some saved workout data is unavailable. Totals may be incomplete. Refresh before logging
+            another set or finishing.
+          </AppText>
+          <Button label="Refresh workout data" variant="secondary" onPress={workouts.retry} />
+        </Card>
       ) : null}
       {error ? <AppText color="caution">{error}</AppText> : null}
       {workouts.stale && !workouts.error ? (
@@ -294,20 +299,27 @@ function Workout({
         <Card>
           <AppText variant="title">{exercise.name}</AppText>
           <AppText color="text2">{setLabel(next.setIndex, exercise.sets)}</AppText>
-          <SetForm
-            key={draftKey}
-            exercise={exercise}
-            initial={initial}
-            units={units}
-            busy={busy || correcting || !ready || workouts.stale || !!workouts.error}
-            onLog={log}
-            savedDraft={drafts.get(draftKey)}
-            onDraftChange={(entry) =>
-              setDrafts((previous) => new Map(previous).set(draftKey, entry))
-            }
-          />
+          {savedNext ? (
+            <AppText color="caution">
+              This set has an incomplete saved result. Use Edit in Logged sets below to review it,
+              or delete the saved result before logging a new performance.
+            </AppText>
+          ) : (
+            <SetForm
+              key={draftKey}
+              exercise={exercise}
+              initial={initial}
+              units={units}
+              busy={changesBlocked || !ready}
+              onLog={log}
+              savedDraft={drafts.get(draftKey)}
+              onDraftChange={(entry) =>
+                setDrafts((previous) => new Map(previous).set(draftKey, entry))
+              }
+            />
+          )}
         </Card>
-      ) : active ? (
+      ) : active && summary.available ? (
         <Card>
           <AppText variant="title">
             {session.snapshot.restDay ? 'Rest day' : 'All planned sets logged'}
@@ -350,6 +362,7 @@ function Workout({
       <LoggedSets
         session={session}
         logs={logs}
+        items={itemView.items}
         units={units}
         busy={busy || (active && !ready) || workouts.stale || !!workouts.error}
         actions={workouts}

@@ -2,17 +2,22 @@ import { useCallback, useState } from 'react';
 import type { Database } from '../../lib/db/database';
 import { useAuthStore } from '../auth/AuthProvider';
 import { useSyncContext } from '../sync/SyncProvider';
-import type { SetInput, SetValues } from './types';
+import type { SetValues } from './types';
 import type { SetRecord, SetUndoReceipt } from './setChanges';
 import { correctLoggedSet, removeLoggedSet, undoLoggedSet } from './setCorrections';
 import { useWorkoutQuery } from './useWorkoutQuery';
-import { readWorkoutDetail } from './workoutDetail';
+import { readStructuredWorkoutDetail } from './structuredDetail';
+import { logStableSet } from './stableLogging';
+import type { StablePerformanceInput } from './stablePerformance';
 import * as store from './workouts';
 
 export function useWorkout(id: string) {
   const { db, engine } = useSyncContext();
   const authStore = useAuthStore();
-  const load = useCallback((db: Database, user: string) => readWorkoutDetail(db, user, id), [id]);
+  const load = useCallback(
+    (db: Database, user: string) => readStructuredWorkoutDetail(db, user, id),
+    [id],
+  );
   const query = useWorkoutQuery(`workout:${id}`, load, !!id);
   const identity = `${query.userId}/${id}`;
   const [pending, setPending] = useState<{ identity: string; afterRevision: number } | null>(null);
@@ -39,7 +44,10 @@ export function useWorkout(id: string) {
       stale && query.error
         ? 'Saved on this phone. Refresh the workout before logging another set.'
         : query.error,
-    log: (input: SetInput) => write((user) => store.saveSet(db, user, input, new Date())),
+    log: (input: StablePerformanceInput) => {
+      if (input.item.sessionId !== id) throw new Error('Choose a set from this workout.');
+      return write((user) => logStableSet(db, user, input, new Date()));
+    },
     correct: (target: SetRecord, values: SetValues, restore = false) => {
       checkTarget(target);
       return write((user) => correctLoggedSet(db, user, target, values, new Date(), restore));
