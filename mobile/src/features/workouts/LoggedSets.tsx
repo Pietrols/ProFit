@@ -6,13 +6,15 @@ import { LoggedSetValues } from './LoggedSetValues';
 import { SetConflict, type SetConflictState } from './SetConflict';
 import { SetForm } from './SetForm';
 import { SetConflictError, type SetRecord, type SetUndoReceipt } from './setChanges';
-import type { SetLog, SetValues, WorkoutSession } from './types';
+import type { SessionItem, WorkoutResult } from './structureTypes';
+import type { SetValues, WorkoutSession } from './types';
 import type { useWorkout } from './useWorkout';
 import { setLabel, type Units } from './workoutForm';
 
 export function LoggedSets({
   session,
   logs,
+  items = [],
   units,
   busy,
   actions,
@@ -22,7 +24,8 @@ export function LoggedSets({
   deleted,
 }: {
   session: WorkoutSession;
-  logs: readonly SetLog[];
+  logs: readonly WorkoutResult[];
+  items?: readonly SessionItem[];
   units: Units;
   busy: boolean;
   actions: Pick<ReturnType<typeof useWorkout>, 'correct' | 'remove' | 'undo'>;
@@ -90,7 +93,20 @@ export function LoggedSets({
     }
   }
   const blocked = busy || !!editing || !!conflict;
-  const exercise = editing ? session.snapshot.exercises[editing.record.exercisePosition]! : null;
+  function displayExercise(log: WorkoutResult) {
+    const exercise =
+      'itemId' in log
+        ? items.find((item) => item.id === log.itemId)?.exercise
+        : session.snapshot.exercises[log.exercisePosition];
+    return exercise
+      ? {
+          ...exercise,
+          logFields: log.logFields,
+          sets: 'itemId' in log ? log.targetsAtPerformance.sets : exercise.sets,
+        }
+      : null;
+  }
+  const exercise = editing ? displayExercise(editing.record) : null;
   return (
     <>
       <AppText variant="title">Logged sets</AppText>
@@ -139,7 +155,8 @@ export function LoggedSets({
       ) : null}
       {!logs.length ? <AppText color="text2">No sets logged yet.</AppText> : null}
       {logs.map((log) => {
-        const item = session.snapshot.exercises[log.exercisePosition]!;
+        const item = displayExercise(log);
+        if (!item) return null;
         const target: SetRecord = { ...log, deletedAt: null };
         return (
           <Card key={log.id}>

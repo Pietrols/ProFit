@@ -9,6 +9,7 @@ import {
   type SetRecord,
 } from '../setChanges';
 import { at, sessionId, set } from './fixtures';
+import { plannedItemId } from '../structureIdentity';
 
 const record = (): SetRecord => ({
   ...set(),
@@ -82,4 +83,52 @@ it('undoes only the matching deletion and preserves the same id and original res
   expect(() => undoSet(receipt, newer, at(5))).toThrow(SetConflictError);
   const deletedAgain = removeSet(newer, setRevision(newer), at(5));
   expect(() => undoSet(receipt, deletedAgain, at(6))).toThrow(SetConflictError);
+});
+
+it('preserves stable performance metadata and includes every target in correction conflict checks', () => {
+  const original: SetRecord = {
+    ...record(),
+    itemId: plannedItemId(sessionId, 0),
+    side: 'bilateral',
+    targetsAtPerformance: {
+      sets: 3,
+      targetReps: 8,
+      targetTimeSeconds: null,
+      targetDistanceMetres: null,
+      restSeconds: 60,
+    },
+  };
+  const revision = setRevision(original);
+  const corrected = correctSet(original, { weight: 60, reps: 8 }, revision, at(3));
+  expect(corrected).toMatchObject({
+    itemId: original.itemId,
+    side: 'bilateral',
+    targetsAtPerformance: original.targetsAtPerformance,
+    loggedAt: original.loggedAt,
+  });
+  for (const field of [
+    'sets',
+    'targetReps',
+    'targetTimeSeconds',
+    'targetDistanceMetres',
+    'restSeconds',
+  ] as const) {
+    const changed = {
+      ...original,
+      targetsAtPerformance: { ...original.targetsAtPerformance, [field]: 1 },
+    };
+    expect(() => correctSet(changed, { weight: 60 }, revision, at(3))).toThrow(SetConflictError);
+  }
+  expect(() => removeSet({ ...original, itemId: sessionId }, revision, at(3))).toThrow(
+    SetConflictError,
+  );
+  const removed = removeSet(original, revision, at(3));
+  const restored = undoSet(
+    { before: original, deletedRevision: setRevision(removed) },
+    removed,
+    at(4),
+  );
+  expect(restored).toEqual({ ...original, updatedAt: at(4).toISOString() });
+  if ('itemId' in corrected) corrected.targetsAtPerformance.sets = 1;
+  expect(original.targetsAtPerformance.sets).toBe(3);
 });

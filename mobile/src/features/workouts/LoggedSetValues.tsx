@@ -2,7 +2,13 @@ import { AppText } from '@/ui/AppText';
 import type { SetLog } from './types';
 import { fieldLabel, setDraft, type Units } from './workoutForm';
 
-export function LoggedSetValues({ log, units }: { log: SetLog; units: Units }) {
+export function LoggedSetValues({
+  log,
+  units,
+}: {
+  log: Pick<SetLog, 'logFields' | 'values'>;
+  units: Units;
+}) {
   const shown = setDraft(log.values, units);
   return (
     <>
