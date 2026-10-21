@@ -90,6 +90,42 @@ describe('sync engine', () => {
     expect(get).toHaveBeenLastCalledWith('/sync/pull?protocol=2&since=0&limit=500');
     expect(engine.getStatus()).toMatchObject({ pending: 0, problem: null });
   });
+
+  it('does not upload or acknowledge the old account after sign-out during negotiation', async () => {
+    const server = fakeSyncServer();
+    const db = await testDatabase();
+    const api = server.clientFor(PETER);
+    const originalGet = api.get;
+    let release!: () => void;
+    let started!: () => void;
+    const began = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    api.get = async <T>(path: string): Promise<T> => {
+      if (path === '/sync/capabilities') {
+        started();
+        await gate;
+      }
+      return originalGet<T>(path);
+    };
+    const beforePush = vi.fn(async () => []);
+    const engine = createSyncEngine({ db, api, collections: syncedCollections, beforePush });
+    await saveWeight(db, PETER, { date: '2026-10-07', weightKg: 81 }, tick());
+    await engine.setUser(PETER);
+    const running = engine.sync();
+    await began;
+    await engine.setUser(null);
+    release();
+    await running;
+    expect(beforePush).not.toHaveBeenCalled();
+    expect(server.state.pushes).toBe(0);
+    expect(await db.first('SELECT dirty FROM weight_entries')).toEqual({ dirty: 1 });
+    expect(await db.first('SELECT * FROM sync_state')).toBeNull();
+    expect(engine.getStatus()).toMatchObject({ syncing: false, pending: 0, lastSyncedAt: null });
+  });
   it('keeps an entry logged offline and sends it exactly once when the connection returns', async () => {
     const server = fakeSyncServer();
     const { db, engine } = await phone(server);
