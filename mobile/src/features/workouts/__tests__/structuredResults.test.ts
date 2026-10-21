@@ -7,6 +7,7 @@ import { capturePerformanceTargets } from '../structureTargets';
 import type { SessionItem, StableSetLog, WorkoutResult } from '../structureTypes';
 import { structuredWorkoutResults } from '../structuredResults';
 import { workoutResultsView } from '../workoutResultsView';
+import { workoutItemProgress } from '../itemProgress';
 import { at, other, session, sessionId, set } from './fixtures';
 
 const parent = () => ({ ...session(), id: sessionId, updatedAt: at(0).toISOString() });
@@ -73,9 +74,52 @@ it('counts current slots separately from removed or extra actuals without losing
     outsideTargetCompleted: 1,
     volumeKg: 720,
     available: true,
+    originalTotal: 3,
+    originalCompleted: 1,
+    originalOmitted: 2,
+    addedCompleted: 1,
   });
   expect(result.next).toEqual({ itemId: added.id, setIndex: 1, id: sessionSlotId(added, 1) });
   expect(detail).toEqual(before);
+});
+
+it('reports all-skipped work as omitted and never lets added work erase an original miss', () => {
+  const skipped = { ...planned(), state: 'skipped' as const };
+  const detail = input([skipped], []);
+  expect(structuredWorkoutResults(detail)).toMatchObject({
+    originalTotal: 3,
+    originalCompleted: 0,
+    originalOmitted: 3,
+    addedCompleted: 0,
+    actualCompleted: 0,
+    completed: 0,
+  });
+  expect(workoutItemProgress(detail)[0]).toMatchObject({
+    completed: 0,
+    remaining: 3,
+    canTrain: false,
+  });
+});
+
+it('keeps completed tail slots and incomplete saved slots out of local set-reduction controls', () => {
+  const item = planned();
+  const tail = {
+    ...stable(item, 2),
+    logFields: ['reps', 'done'] as const,
+    values: { reps: 8, done: false },
+  };
+  const detail = input([], [{ ...tail, logFields: [...tail.logFields] }]);
+  expect(workoutItemProgress(detail)[0]).toMatchObject({
+    completed: 0,
+    remaining: 3,
+    canTrain: true,
+    canReduce: false,
+  });
+  expect(workoutItemProgress(input([], [stable(item, 2)]))[0]).toMatchObject({
+    completed: 1,
+    remaining: 2,
+    canReduce: false,
+  });
 });
 
 it('skips inactive work and restores the same slot instead of changing original identities', () => {

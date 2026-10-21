@@ -29,11 +29,33 @@ export function structuredWorkoutResults({
     }
   }
   const metrics = performedResults(session, resultView.results, previousSets);
+  let originalTotal = 0;
+  let originalCompleted = 0;
+  let originalOmitted = 0;
+  const originals = new Map(
+    itemView.items
+      .filter((item) => item.origin === 'planned')
+      .map((item) => [item.originalPosition, item]),
+  );
+  for (const [position, exercise] of session.snapshot.exercises.entries()) {
+    originalTotal += exercise.sets;
+    const item = originals.get(position);
+    if (!item) continue;
+    for (let setIndex = 0; setIndex < exercise.sets; setIndex += 1) {
+      if (completedSlots.has(`${item.id}:${setIndex}`)) originalCompleted += 1;
+      else if (item.deletedAt || item.state !== 'active' || setIndex >= item.exercise.sets)
+        originalOmitted += 1;
+    }
+  }
   return {
     total,
     completed,
     actualCompleted: resultView.results.length,
     outsideTargetCompleted: resultView.results.length - completed,
+    originalTotal,
+    originalCompleted,
+    originalOmitted,
+    addedCompleted: resultView.results.length - originalCompleted,
     next,
     available,
     volumeKg: metrics.volumeKg,
