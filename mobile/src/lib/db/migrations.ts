@@ -1,5 +1,6 @@
 import type { Migration } from './database';
 import { timeSqlV1 } from './timeSql';
+import { WORKOUT_HISTORY_V6 } from './workoutHistoryV6';
 
 // The phone's schema, one step per version. Never edit a step that has shipped; add a new one.
 //
@@ -121,4 +122,5 @@ CREATE INDEX workout_sessions_active ON workout_sessions (user_id, status, ${tim
 CREATE INDEX workout_sessions_completion ON workout_sessions (user_id, plan_id, status, ${timeSqlV1('ended_at')} DESC, id) WHERE deleted_at IS NULL;
 `,
   },
+  { version: 6, sql: WORKOUT_HISTORY_V6 },
 ];

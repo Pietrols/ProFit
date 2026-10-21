@@ -23,6 +23,8 @@ describe('migrate', () => {
       'set_logs',
       'sync_state',
       'weight_entries',
+      'workout_history_dirty',
+      'workout_history_index',
       'workout_sessions',
     ]);
   });
