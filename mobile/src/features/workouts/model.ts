@@ -46,31 +46,56 @@ export function validateSnapshot(value: unknown): string | null {
     (value.restDay ? value.exercises.length !== 0 : value.exercises.length === 0)
   )
     return 'Choose a training exercise or a rest day.';
-  for (const e of value.exercises) {
-    if (
-      !object(e) ||
-      !keys(e, [
-        'exerciseId',
-        'name',
-        'sets',
-        'targetReps',
-        'targetTimeSeconds',
-        'targetDistanceMetres',
-        'restSeconds',
-        'logFields',
-      ]) ||
-      typeof e.exerciseId !== 'string' ||
-      !/^[A-Za-z0-9_-]{1,100}$/.test(e.exerciseId) ||
-      !name(e.name) ||
-      !integer(e.sets, 1, 100) ||
-      !integer(e.restSeconds, 0, 3600) ||
-      !fields(e.logFields) ||
-      (e.targetReps !== null && !integer(e.targetReps, 1, 1000)) ||
-      (e.targetTimeSeconds !== null && !integer(e.targetTimeSeconds, 1, 86400)) ||
-      (e.targetDistanceMetres !== null && !number(e.targetDistanceMetres, 1, 1000000))
-    )
-      return 'Check the exercise targets and selected fields.';
+  for (const exercise of value.exercises) {
+    const error = validateSnapshotExercise(exercise);
+    if (error) return error;
   }
+  return null;
+}
+function targetNumbers(value: ObjectValue): boolean {
+  return (
+    integer(value.sets, 1, 100) &&
+    integer(value.restSeconds, 0, 3600) &&
+    (value.targetReps === null || integer(value.targetReps, 1, 1000)) &&
+    (value.targetTimeSeconds === null || integer(value.targetTimeSeconds, 1, 86400)) &&
+    (value.targetDistanceMetres === null || number(value.targetDistanceMetres, 1, 1000000))
+  );
+}
+export function validatePerformanceTargets(value: unknown): string | null {
+  if (
+    !object(value) ||
+    !keys(value, [
+      'sets',
+      'targetReps',
+      'targetTimeSeconds',
+      'targetDistanceMetres',
+      'restSeconds',
+    ]) ||
+    !targetNumbers(value)
+  )
+    return 'Check the targets at performance.';
+  return null;
+}
+export function validateSnapshotExercise(value: unknown): string | null {
+  if (
+    !object(value) ||
+    !keys(value, [
+      'exerciseId',
+      'name',
+      'sets',
+      'targetReps',
+      'targetTimeSeconds',
+      'targetDistanceMetres',
+      'restSeconds',
+      'logFields',
+    ]) ||
+    typeof value.exerciseId !== 'string' ||
+    !/^[A-Za-z0-9_-]{1,100}$/.test(value.exerciseId) ||
+    !name(value.name) ||
+    !fields(value.logFields) ||
+    !targetNumbers(value)
+  )
+    return 'Check the exercise targets and selected fields.';
   return null;
 }
 export function validateSession(value: unknown): string | null {
@@ -105,6 +130,35 @@ export function validateSession(value: unknown): string | null {
     return 'The end time must match the status and follow the start.';
   return validateSnapshot(value.snapshot);
 }
+export function validateLoggedValues(logFields: unknown, values: unknown): string | null {
+  if (!fields(logFields) || !object(values)) return 'Check the set details.';
+  const limits: Record<string, number> = {
+    reps: 1000,
+    weight: 2000,
+    time: 86400,
+    distance: 1000000,
+    rest: 3600,
+    RPE: 10,
+  };
+  for (const [field, v] of Object.entries(values)) {
+    if (!logFields.includes(field as LogField)) return 'Only selected fields can be logged.';
+    if (
+      field === 'notes'
+        ? typeof v !== 'string' || v.length > 2000
+        : field === 'done'
+          ? typeof v !== 'boolean'
+          : !number(v, 0, limits[field] ?? -1) || (field === 'reps' && !Number.isInteger(v))
+    )
+      return 'Check the logged value and its limits.';
+  }
+  if (
+    !Object.values(values).some(
+      (v) => typeof v === 'number' || v === true || (typeof v === 'string' && v.trim().length > 0),
+    )
+  )
+    return 'Enter a result or mark done.';
+  return null;
+}
 export function validateSet(value: unknown, snapshot?: WorkoutSnapshot): string | null {
   if (
     !object(value) ||
@@ -124,31 +178,8 @@ export function validateSet(value: unknown, snapshot?: WorkoutSnapshot): string 
     !object(value.values)
   )
     return 'Check the set details.';
-  const limits: Record<string, number> = {
-    reps: 1000,
-    weight: 2000,
-    time: 86400,
-    distance: 1000000,
-    rest: 3600,
-    RPE: 10,
-  };
-  for (const [field, v] of Object.entries(value.values)) {
-    if (!value.logFields.includes(field as LogField)) return 'Only selected fields can be logged.';
-    if (
-      field === 'notes'
-        ? typeof v !== 'string' || v.length > 2000
-        : field === 'done'
-          ? typeof v !== 'boolean'
-          : !number(v, 0, limits[field] ?? -1) || (field === 'reps' && !Number.isInteger(v))
-    )
-      return 'Check the logged value and its limits.';
-  }
-  if (
-    !Object.values(value.values).some(
-      (v) => typeof v === 'number' || v === true || (typeof v === 'string' && v.trim().length > 0),
-    )
-  )
-    return 'Enter a result or mark done.';
+  const error = validateLoggedValues(value.logFields, value.values);
+  if (error) return error;
   if (snapshot) {
     const exercise = snapshot.exercises[value.exercisePosition as number];
     if (
