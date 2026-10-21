@@ -287,3 +287,22 @@ show that native alerts are unavailable.
 If a set committed after a saved timer began, recovery discards that old timer. Failed refresh
 after a committed workout write is reported separately, so it does not skip the saved set's
 timer transition. Phone verification remains required before Phase 5 is complete.
+
+## D38. Phase 5 correction scope and tooling approval
+Peter authorized the review corrections on 20 October 2026: set edit/delete/undo, flexible
+session selection, skip/restore, add/remove/replace/reorder, history and exercise comparison,
+bounded history reads, isolated timer rendering, steppers, one-tap rest days, plate loading,
+per-side results and planned-versus-actual summaries. The detailed acceptance contract is
+`phases/PHASE_5_CORRECTIONS.md`; BUILD_PLAN orders 5.8.1 through 5.8.12 before the final 5.7
+real-phone gate. This approval is scope, not a claim that these features are implemented.
+
+ESLint, Prettier and their required development parsers/configuration, including Expo and
+TypeScript integration, are approved. Do not ask again for those tools. Unrelated runtime
+dependencies still require approval. Enforce readable code and small, tested, pushed commits;
+keep mechanical formatting separate from behavior and do not rewrite merged history.
+
+Keep the original routine immutable and store session adjustments separately from performed
+results. Finalize stable identities and backward-compatible contracts before structural edits.
+Preserve legacy histories, unsynced edits and tombstones. These corrections supersede the
+original Phase 5 exclusions for replacement and history. Automatic progression and broader
+progress charts remain in their later phases. Physical notification testing remains mandatory.

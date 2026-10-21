@@ -40,7 +40,11 @@ using an Expo API. If `npx expo install` cannot reach Expo's servers, take the v
 ## Rules
 
 1. **Small commits.** One logical change per commit, conventional prefixes: `feat:`, `fix:`,
-   `test:`, `docs:`, `chore:`, `refactor:`. Commit as soon as a step works.
+   `test:`, `docs:`, `chore:`, `refactor:`. Commit and push each tested change, not only a
+   completed checklist step. Aim for 50 to 200 hand-written changed lines across at most five
+   related files; split changes above roughly 300 lines. Generated lockfiles/migrations,
+   standalone design documents and mechanical formatting are exceptions. Keep those separate
+   from behavioral changes. Do not rewrite merged history or squash away these reviewable commits.
 2. **Branches.** Work on `feat/<name>` off `rebuild`. Merge only when tests and typechecks pass.
 3. **Logic that produces numbers lives in pure functions with tests beside them.** Progression,
    streaks, calorie targets, macro totals, timers, sync merging. They are plain TypeScript modules
@@ -61,3 +65,10 @@ using an Expo API. If `npx expo install` cannot reach Expo's servers, take the v
 10. **Log assumptions** in `docs/DECISIONS.md` instead of deciding silently.
 11. **Writing style.** Never use em dashes in code comments, docs, commit messages or UI copy. Use
     commas, colons, parentheses or separate sentences. UI copy is plain and specific.
+12. **Readable code.** Use multiline functions and JSX, one statement per line, descriptive
+    names and small components. Formatting does not replace sensible module boundaries.
+13. **Tooling gates.** D38 approves ESLint, Prettier and their required development configuration.
+    After setup, run format checks, lint, typecheck and tests in both packages. Require the same
+    checks in CI. Fix warnings rather than adding blanket rule disables or feature-folder ignores.
+14. **Product acceptance.** Test the user scenarios as well as pure functions. Complete
+    `docs/phases/PHASE_5_CORRECTIONS.md` before Phase 6. CI cannot prove a real-phone result.
