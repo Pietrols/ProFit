@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { createDatabase, migrate, type Driver, type SqlValue } from '../../../lib/db/database';
 import { migrations } from '../../../lib/db/migrations';
 import { nodeDriver } from '../../../lib/db/__tests__/nodeDriver';
@@ -71,27 +71,36 @@ async function fixture(count: number, sets = 0, legacy = false, mixed = false) {
 }
 
 describe('bounded workout reads', () => {
-  it('prepares only related workouts on first use and leaves unrelated history queued', async () => {
-    const { db, reads, driver } = await fixture(2000, 20, false, true);
-    await readWorkoutDetail(db, user, id(1999));
-    const coldSetReads = reads.filter((q) => q.sql.includes('FROM set_logs'));
-    expect(coldSetReads.reduce((n, q) => n + q.rows, 0)).toBe(20000);
-    expect(
-      await db.first(
-        "SELECT COUNT(*) AS n FROM workout_history_index WHERE exercise_id = 'Other_exercise'",
-      ),
-    ).toEqual({ n: 0 });
-    expect(await db.first('SELECT COUNT(*) AS n FROM workout_history_dirty')).toEqual({ n: 1000 });
-    reads.length = 0;
-    await readWorkoutDetail(db, user, id(1999));
-    expect(reads).toHaveLength(5);
-    expect(reads.filter((q) => q.sql.includes('FROM set_logs')).map((q) => q.rows)).toEqual([20]);
-    await readWorkoutDetail(db, user, id(1998));
-    expect(await db.first('SELECT COUNT(*) AS n FROM workout_history_dirty')).toEqual({ n: 0 });
-    driver.raw.close();
+  describe('targeted cold preparation', () => {
+    let populated: Awaited<ReturnType<typeof fixture>>;
+    beforeAll(async () => {
+      populated = await fixture(2000, 20, false, true);
+    });
+    afterAll(() => populated?.driver.raw.close());
+    it('prepares only related workouts on first use and leaves unrelated history queued', async () => {
+      const { db, reads } = populated;
+      await readWorkoutDetail(db, user, id(1999));
+      const coldSetReads = reads.filter((q) => q.sql.includes('FROM set_logs'));
+      expect(coldSetReads.reduce((n, q) => n + q.rows, 0)).toBe(20000);
+      expect(
+        await db.first(
+          "SELECT COUNT(*) AS n FROM workout_history_index WHERE exercise_id = 'Other_exercise'",
+        ),
+      ).toEqual({ n: 0 });
+      expect(await db.first('SELECT COUNT(*) AS n FROM workout_history_dirty')).toEqual({
+        n: 1000,
+      });
+      reads.length = 0;
+      await readWorkoutDetail(db, user, id(1999));
+      expect(reads).toHaveLength(5);
+      expect(reads.filter((q) => q.sql.includes('FROM set_logs')).map((q) => q.rows)).toEqual([20]);
+      await readWorkoutDetail(db, user, id(1998));
+      expect(await db.first('SELECT COUNT(*) AS n FROM workout_history_dirty')).toEqual({ n: 0 });
+    });
   });
-  it('keeps warm detail and exact comparison reads constant as history reaches 40,000 sets', async () => {
-    for (const count of [50, 500, 2000]) {
+  it.each([50, 500, 2000])(
+    'keeps warm detail and exact comparisons bounded with %i sessions of 20 sets',
+    async (count) => {
       const { db, reads, driver } = await fixture(count, 20);
       await readWorkoutDetail(db, user, id(count - 1));
       const coldSetReads = reads.filter((q) => q.sql.includes('FROM set_logs'));
@@ -120,8 +129,8 @@ describe('bounded workout reads', () => {
         expect(details).toContain('SEARCH workout_history_index USING INDEX');
       }
       driver.raw.close();
-    }
-  });
+    },
+  );
   it('reads only the requested owned session and its sets, without a second parent query', async () => {
     for (const count of [50, 2000]) {
       const { db, reads } = await fixture(count, 20);
