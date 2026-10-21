@@ -15,7 +15,11 @@ const rejectGoogle: GoogleVerifier = async () => {
   throw unauthorized('GOOGLE_TOKEN_INVALID', 'not used here');
 };
 const config = loadConfig({ NODE_ENV: 'test', JWT_SECRET: 's'.repeat(40), AUTH_DEV_LOGIN: 'true' });
-const app = createApp(config, createLogger(config), { db: database.db, verifyGoogle: rejectGoogle, now: () => new Date('2026-10-07T10:00:00Z') });
+const app = createApp(config, createLogger(config), {
+  db: database.db,
+  verifyGoogle: rejectGoogle,
+  now: () => new Date('2026-10-07T10:00:00Z'),
+});
 
 async function signIn() {
   const res = await request(app).post('/auth/dev').send({ email: 'peter@example.com' });
@@ -54,7 +58,12 @@ describe('custom exercises and favourites', () => {
     const push = await request(app)
       .post('/sync/push')
       .set('Authorization', `Bearer ${token}`)
-      .send({ changes: { custom_exercises: [exercise()], exercise_favourites: [favourite('Barbell_Squat')] } });
+      .send({
+        changes: {
+          custom_exercises: [exercise()],
+          exercise_favourites: [favourite('Barbell_Squat')],
+        },
+      });
     expect(push.body).toMatchObject({ applied: [exercise().id, favourite('x').id], rejected: [] });
 
     const pull = await request(app).get('/sync/pull').set('Authorization', `Bearer ${token}`);

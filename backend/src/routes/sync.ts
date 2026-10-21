@@ -10,10 +10,9 @@ import { MAX_BATCH, pull, push } from '../sync/service.js';
 // failing the whole batch. Here only the envelope is checked.
 const PushBody = z.strictObject({
   changes: z.strictObject(
-    Object.fromEntries(COLLECTION_NAMES.map((name) => [name, z.array(z.unknown()).max(MAX_BATCH).optional()])) as Record<
-      CollectionName,
-      z.ZodOptional<z.ZodArray<z.ZodUnknown>>
-    >,
+    Object.fromEntries(
+      COLLECTION_NAMES.map((name) => [name, z.array(z.unknown()).max(MAX_BATCH).optional()]),
+    ) as Record<CollectionName, z.ZodOptional<z.ZodArray<z.ZodUnknown>>>,
   ),
 });
 

@@ -19,12 +19,22 @@ beforeAll(async () => {
   privateKey = pair.privateKey;
   otherPrivateKey = other.privateKey;
   const jwk = { ...(await exportJWK(pair.publicKey)), kid: 'test-key', alg: 'RS256' };
-  verify = createGoogleVerifier({ clientIds: [CLIENT_ID], keys: createLocalJWKSet({ keys: [jwk] }), now: () => now });
+  verify = createGoogleVerifier({
+    clientIds: [CLIENT_ID],
+    keys: createLocalJWKSet({ keys: [jwk] }),
+    now: () => now,
+  });
 });
 
 // Builds a token shaped like the ones Google issues, with any claim overridden.
 function googleToken(claims: JWTPayload = {}, key: PrivateKey = privateKey) {
-  return new SignJWT({ email: 'peter@example.com', email_verified: true, name: 'Peter', picture: 'https://example.com/p.jpg', ...claims })
+  return new SignJWT({
+    email: 'peter@example.com',
+    email_verified: true,
+    name: 'Peter',
+    picture: 'https://example.com/p.jpg',
+    ...claims,
+  })
     .setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
     .setIssuer((claims.iss as string) ?? 'https://accounts.google.com')
     .setAudience((claims.aud as string) ?? CLIENT_ID)
@@ -54,7 +64,9 @@ describe('Google ID token verification', () => {
   });
 
   it('accepts the bare issuer form Google also uses', async () => {
-    expect((await verify(await googleToken({ iss: 'accounts.google.com' }))).sub).toBe('1234567890');
+    expect((await verify(await googleToken({ iss: 'accounts.google.com' }))).sub).toBe(
+      '1234567890',
+    );
   });
 
   it.each([
@@ -66,11 +78,15 @@ describe('Google ID token verification', () => {
   });
 
   it('rejects a token not signed by Google', async () => {
-    expect(await codeOf(verify(await googleToken({}, otherPrivateKey)))).toBe('GOOGLE_TOKEN_INVALID');
+    expect(await codeOf(verify(await googleToken({}, otherPrivateKey)))).toBe(
+      'GOOGLE_TOKEN_INVALID',
+    );
   });
 
   it('refuses an account whose email is not verified', async () => {
-    expect(await codeOf(verify(await googleToken({ email_verified: false })))).toBe('GOOGLE_EMAIL_UNVERIFIED');
+    expect(await codeOf(verify(await googleToken({ email_verified: false })))).toBe(
+      'GOOGLE_EMAIL_UNVERIFIED',
+    );
   });
 
   it('says so clearly when no client IDs are configured', async () => {

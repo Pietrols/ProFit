@@ -39,7 +39,15 @@ export function createApp(config: Config, logger: Logger, deps: AppDeps): Expres
     const start = process.hrtime.bigint();
     res.on('finish', () => {
       const ms = Number(process.hrtime.bigint() - start) / 1e6;
-      logger.info({ method: req.method, path: req.originalUrl.split('?')[0], status: res.statusCode, ms: Math.round(ms) }, 'request');
+      logger.info(
+        {
+          method: req.method,
+          path: req.originalUrl.split('?')[0],
+          status: res.statusCode,
+          ms: Math.round(ms),
+        },
+        'request',
+      );
     });
     next();
   });
@@ -55,7 +63,11 @@ export function createApp(config: Config, logger: Logger, deps: AppDeps): Expres
   );
   app.use('/me', requireAuth(config.JWT_SECRET, now), meRouter(deps.db, now));
   app.use('/sync', requireAuth(config.JWT_SECRET, now), syncRouter(deps.db, now));
-  app.use('/media', requireAuth(config.JWT_SECRET, now), mediaRouter(deps.db, deps.media ?? mediaStore(config.MEDIA_DIR)));
+  app.use(
+    '/media',
+    requireAuth(config.JWT_SECRET, now),
+    mediaRouter(deps.db, deps.media ?? mediaStore(config.MEDIA_DIR)),
+  );
 
   app.use(notFoundHandler);
   app.use(errorHandler(logger));

@@ -12,7 +12,9 @@ export const notFoundHandler: RequestHandler = (req, _res, next) => {
 export function errorHandler(logger: Logger): ErrorRequestHandler {
   return (err, req, res, _next) => {
     let status = 500;
-    let body: ErrorBody = { error: { code: 'INTERNAL', message: 'Something went wrong on our side.' } };
+    let body: ErrorBody = {
+      error: { code: 'INTERNAL', message: 'Something went wrong on our side.' },
+    };
 
     if (err instanceof AppError) {
       status = err.status;
@@ -31,9 +33,17 @@ export function errorHandler(logger: Logger): ErrorRequestHandler {
 }
 
 function isBodyParseError(err: unknown): boolean {
-  return typeof err === 'object' && err !== null && (err as { type?: string }).type === 'entity.parse.failed';
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    (err as { type?: string }).type === 'entity.parse.failed'
+  );
 }
 
 function isTooLarge(err: unknown): boolean {
-  return typeof err === 'object' && err !== null && (err as { type?: string }).type === 'entity.too.large';
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    (err as { type?: string }).type === 'entity.too.large'
+  );
 }

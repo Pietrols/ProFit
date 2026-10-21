@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { AppError } from '../lib/errors.js';
-import { ACCESS_TOKEN_TTL_SECONDS, hashToken, newRefreshToken, refreshExpiry, signAccessToken, verifyAccessToken } from './tokens.js';
+import {
+  ACCESS_TOKEN_TTL_SECONDS,
+  hashToken,
+  newRefreshToken,
+  refreshExpiry,
+  signAccessToken,
+  verifyAccessToken,
+} from './tokens.js';
 
 const SECRET = 's'.repeat(40);
 const USER = '6f1c2b0e-0000-4000-8000-000000000001';

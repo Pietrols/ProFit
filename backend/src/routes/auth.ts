@@ -18,7 +18,11 @@ export function authRouter({ ctx, verifyGoogle, devLogin }: Options): Router {
     const { idToken } = parseInput(GoogleBody, req.body);
     const identity = await verifyGoogle(idToken);
     const result = await signInWithIdentity(ctx, identity);
-    res.json({ session: result.session, user: userDto(result.user), profile: profileDto(result.profile) });
+    res.json({
+      session: result.session,
+      user: userDto(result.user),
+      profile: profileDto(result.profile),
+    });
   });
 
   // Emulators and local tests sign in with any email. Only mounted when AUTH_DEV_LOGIN is on,
@@ -27,8 +31,17 @@ export function authRouter({ ctx, verifyGoogle, devLogin }: Options): Router {
     router.post('/dev', async (req, res) => {
       const { email, name } = parseInput(DevBody, req.body);
       const normalised = email.toLowerCase();
-      const result = await signInWithIdentity(ctx, { sub: `dev:${normalised}`, email: normalised, name: name ?? null, picture: null });
-      res.json({ session: result.session, user: userDto(result.user), profile: profileDto(result.profile) });
+      const result = await signInWithIdentity(ctx, {
+        sub: `dev:${normalised}`,
+        email: normalised,
+        name: name ?? null,
+        picture: null,
+      });
+      res.json({
+        session: result.session,
+        user: userDto(result.user),
+        profile: profileDto(result.profile),
+      });
     });
   }
 

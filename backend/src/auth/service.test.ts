@@ -3,14 +3,25 @@ import { afterAll, beforeEach, describe, expect, it } from 'vitest';
 import { profiles, refreshTokens, users } from '../db/schema.js';
 import { AppError } from '../lib/errors.js';
 import { openTestDatabase, resetTables } from '../test/db.js';
-import { REFRESH_RETRY_GRACE_SECONDS, refreshSession, signInWithIdentity, signOut, type AuthContext } from './service.js';
+import {
+  REFRESH_RETRY_GRACE_SECONDS,
+  refreshSession,
+  signInWithIdentity,
+  signOut,
+  type AuthContext,
+} from './service.js';
 import { verifyAccessToken } from './tokens.js';
 
 const database = openTestDatabase();
 const SECRET = 's'.repeat(40);
 let clock = new Date('2026-10-05T08:00:00Z');
 const ctx: AuthContext = { db: database.db, secret: SECRET, now: () => clock };
-const peter = { sub: 'google-123', email: 'peter@example.com', name: 'Peter K', picture: 'https://example.com/a.jpg' };
+const peter = {
+  sub: 'google-123',
+  email: 'peter@example.com',
+  name: 'Peter K',
+  picture: 'https://example.com/a.jpg',
+};
 
 const advance = (seconds: number) => {
   clock = new Date(clock.getTime() + seconds * 1000);
@@ -34,7 +45,11 @@ afterAll(() => database.close());
 describe('signing in with a Google identity', () => {
   it('creates the user with a pending profile and a working session', async () => {
     const result = await signInWithIdentity(ctx, peter);
-    expect(result.user).toMatchObject({ googleSub: 'google-123', email: 'peter@example.com', displayName: 'Peter K' });
+    expect(result.user).toMatchObject({
+      googleSub: 'google-123',
+      email: 'peter@example.com',
+      displayName: 'Peter K',
+    });
     expect(result.profile.onboardingStatus).toBe('pending');
     expect(await verifyAccessToken(result.session.accessToken, SECRET, clock)).toBe(result.user.id);
   });

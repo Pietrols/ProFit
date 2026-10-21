@@ -20,19 +20,32 @@ export type AuthContext = { db: Db; secret: string; now: () => Date };
 
 export type SignInResult = { session: Session; user: User; profile: Profile };
 
-const sessionExpired = () => unauthorized('SESSION_EXPIRED', 'Your session has ended. Sign in again.');
+const sessionExpired = () =>
+  unauthorized('SESSION_EXPIRED', 'Your session has ended. Sign in again.');
 
 // Find the user by their Google account id, or create them with an empty profile.
 // The display name is only taken from Google on first sign-in, so a name the user edited stays.
-export async function signInWithIdentity(ctx: AuthContext, identity: GoogleIdentity): Promise<SignInResult> {
+export async function signInWithIdentity(
+  ctx: AuthContext,
+  identity: GoogleIdentity,
+): Promise<SignInResult> {
   const now = ctx.now();
   const fallbackName = identity.name?.trim() || identity.email.split('@')[0] || '';
   const [user] = await ctx.db
     .insert(users)
-    .values({ googleSub: identity.sub, email: identity.email, displayName: fallbackName, avatarUrl: identity.picture })
+    .values({
+      googleSub: identity.sub,
+      email: identity.email,
+      displayName: fallbackName,
+      avatarUrl: identity.picture,
+    })
     .onConflictDoUpdate({
       target: users.googleSub,
-      set: { email: identity.email, avatarUrl: sql`coalesce(${users.avatarUrl}, ${identity.picture})`, updatedAt: now },
+      set: {
+        email: identity.email,
+        avatarUrl: sql`coalesce(${users.avatarUrl}, ${identity.picture})`,
+        updatedAt: now,
+      },
     })
     .returning();
   if (!user) throw new Error('User upsert returned no row');
@@ -45,7 +58,13 @@ export async function signInWithIdentity(ctx: AuthContext, identity: GoogleIdent
   return { session, user, profile };
 }
 
-async function issueSession(db: Db, secret: string, userId: string, familyId: string, now: Date): Promise<Session> {
+async function issueSession(
+  db: Db,
+  secret: string,
+  userId: string,
+  familyId: string,
+  now: Date,
+): Promise<Session> {
   const access = await signAccessToken(userId, secret, now);
   const refreshToken = newRefreshToken();
   await db.insert(refreshTokens).values({
@@ -55,7 +74,11 @@ async function issueSession(db: Db, secret: string, userId: string, familyId: st
     expiresAt: refreshExpiry(now),
     createdAt: now,
   });
-  return { accessToken: access.token, accessTokenExpiresAt: access.expiresAt.toISOString(), refreshToken };
+  return {
+    accessToken: access.token,
+    accessTokenExpiresAt: access.expiresAt.toISOString(),
+    refreshToken,
+  };
 }
 
 // Trade a refresh token for a new pair. Each token works once; a token presented again after the

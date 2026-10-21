@@ -15,7 +15,9 @@ const EnvSchema = z
   .object({
     NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
     PORT: z.coerce.number().int().min(1).max(65535).default(4000),
-    LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).default('info'),
+    LOG_LEVEL: z
+      .enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent'])
+      .default('info'),
     // Comma-separated list of origins allowed by CORS. Empty means "allow none" for browsers;
     // the mobile app does not send an Origin header, so it is unaffected.
     CORS_ORIGINS: z.string().default(''),
@@ -32,12 +34,31 @@ const EnvSchema = z
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;
-    if (!env.DATABASE_URL) ctx.addIssue({ code: 'custom', path: ['DATABASE_URL'], message: 'is required in production' });
+    if (!env.DATABASE_URL)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['DATABASE_URL'],
+        message: 'is required in production',
+      });
     if (!env.JWT_SECRET || env.JWT_SECRET.length < 32) {
-      ctx.addIssue({ code: 'custom', path: ['JWT_SECRET'], message: 'must be set to at least 32 characters in production' });
+      ctx.addIssue({
+        code: 'custom',
+        path: ['JWT_SECRET'],
+        message: 'must be set to at least 32 characters in production',
+      });
     }
-    if (!env.GOOGLE_CLIENT_IDS.trim()) ctx.addIssue({ code: 'custom', path: ['GOOGLE_CLIENT_IDS'], message: 'is required in production' });
-    if (env.AUTH_DEV_LOGIN) ctx.addIssue({ code: 'custom', path: ['AUTH_DEV_LOGIN'], message: 'must be off in production' });
+    if (!env.GOOGLE_CLIENT_IDS.trim())
+      ctx.addIssue({
+        code: 'custom',
+        path: ['GOOGLE_CLIENT_IDS'],
+        message: 'is required in production',
+      });
+    if (env.AUTH_DEV_LOGIN)
+      ctx.addIssue({
+        code: 'custom',
+        path: ['AUTH_DEV_LOGIN'],
+        message: 'must be off in production',
+      });
   });
 
 type Env = z.infer<typeof EnvSchema>;

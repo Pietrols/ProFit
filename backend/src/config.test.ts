@@ -40,9 +40,12 @@ describe('database and auth settings', () => {
     expect(c.googleClientIds).toEqual(['web-client.apps.googleusercontent.com']);
   });
 
-  it.each(['DATABASE_URL', 'JWT_SECRET', 'GOOGLE_CLIENT_IDS'])('refuses to start in production without %s', (key) => {
-    expect(() => loadConfig({ ...production, [key]: undefined })).toThrow(new RegExp(key));
-  });
+  it.each(['DATABASE_URL', 'JWT_SECRET', 'GOOGLE_CLIENT_IDS'])(
+    'refuses to start in production without %s',
+    (key) => {
+      expect(() => loadConfig({ ...production, [key]: undefined })).toThrow(new RegExp(key));
+    },
+  );
 
   it('refuses a short signing secret in production', () => {
     expect(() => loadConfig({ ...production, JWT_SECRET: 'short' })).toThrow(/JWT_SECRET/);

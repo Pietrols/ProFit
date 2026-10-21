@@ -32,7 +32,10 @@ describe('error shape', () => {
   });
 
   it('answers malformed JSON with a 400 instead of a crash', async () => {
-    const res = await request(app).post('/health').set('Content-Type', 'application/json').send('{bad json');
+    const res = await request(app)
+      .post('/health')
+      .set('Content-Type', 'application/json')
+      .send('{bad json');
     expect(res.status).toBe(400);
     expect(res.body.error.code).toBe('INVALID_JSON');
   });

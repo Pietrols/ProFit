@@ -25,9 +25,18 @@ export const MAX_CLOCK_LEAD_MS = 5 * 60_000;
 
 export type Rejected = { collection: CollectionName; id: string | null; reason: string };
 export type PushResult = { applied: string[]; ignored: string[]; rejected: Rejected[] };
-export type PullResult = { changes: Record<CollectionName, unknown[]>; cursor: number; hasMore: boolean };
+export type PullResult = {
+  changes: Record<CollectionName, unknown[]>;
+  cursor: number;
+  hasMore: boolean;
+};
 
-export async function push(db: Db, userId: string, changes: Partial<Record<CollectionName, unknown[]>>, now: Date): Promise<PushResult> {
+export async function push(
+  db: Db,
+  userId: string,
+  changes: Partial<Record<CollectionName, unknown[]>>,
+  now: Date,
+): Promise<PushResult> {
   const result: PushResult = { applied: [], ignored: [], rejected: [] };
   const latestAllowed = now.getTime() + MAX_CLOCK_LEAD_MS;
 
@@ -46,17 +55,31 @@ export async function push(db: Db, userId: string, changes: Partial<Record<Colle
         }
         const record = parsed.data;
         const updatedAt = new Date(Math.min(Date.parse(record.updatedAt), latestAllowed));
-        const deletedAt = record.deletedAt ? new Date(Math.min(Date.parse(record.deletedAt), latestAllowed)) : null;
+        const deletedAt = record.deletedAt
+          ? new Date(Math.min(Date.parse(record.deletedAt), latestAllowed))
+          : null;
         const data = toRow(record);
 
         // Insert, or replace the stored copy only when it belongs to this user and is older.
         // A record id owned by someone else is never touched and simply reported as ignored.
         const written = await tx
           .insert(table)
-          .values({ id: record.id, userId, updatedAt, deletedAt, version: sql`nextval('sync_version_seq')`, ...data } as unknown as SyncTable['$inferInsert'])
+          .values({
+            id: record.id,
+            userId,
+            updatedAt,
+            deletedAt,
+            version: sql`nextval('sync_version_seq')`,
+            ...data,
+          } as unknown as SyncTable['$inferInsert'])
           .onConflictDoUpdate({
             target: table.id,
-            set: excludedColumns(table, ['updatedAt', 'deletedAt', 'version', ...Object.keys(data)]),
+            set: excludedColumns(table, [
+              'updatedAt',
+              'deletedAt',
+              'version',
+              ...Object.keys(data),
+            ]),
             setWhere: and(eq(table.userId, userId), sql`${table.updatedAt} < excluded.updated_at`),
           })
           .returning({ id: table.id });
@@ -69,7 +92,12 @@ export async function push(db: Db, userId: string, changes: Partial<Record<Colle
   return result;
 }
 
-export async function pull(db: Db, userId: string, since: number, limit: number): Promise<PullResult> {
+export async function pull(
+  db: Db,
+  userId: string,
+  since: number,
+  limit: number,
+): Promise<PullResult> {
   type Item = { name: CollectionName; version: number; wire: unknown };
   const items: Item[] = [];
 
@@ -87,7 +115,9 @@ export async function pull(db: Db, userId: string, since: number, limit: number)
   // One sequence feeds every table, so sorting by version gives one ordered stream.
   items.sort((a, b) => a.version - b.version);
   const page = items.slice(0, limit);
-  const changes = Object.fromEntries(COLLECTION_NAMES.map((name) => [name, [] as unknown[]])) as Record<CollectionName, unknown[]>;
+  const changes = Object.fromEntries(
+    COLLECTION_NAMES.map((name) => [name, [] as unknown[]]),
+  ) as Record<CollectionName, unknown[]>;
   for (const item of page) changes[item.name].push(item.wire);
 
   return {
@@ -109,5 +139,7 @@ function idOf(raw: unknown): string | null {
 }
 
 function describe(error: { issues: { path: PropertyKey[]; message: string }[] }): string {
-  return error.issues.map((i) => (i.path.length ? `${i.path.join('.')}: ${i.message}` : i.message)).join('; ');
+  return error.issues
+    .map((i) => (i.path.length ? `${i.path.join('.')}: ${i.message}` : i.message))
+    .join('; ');
 }
