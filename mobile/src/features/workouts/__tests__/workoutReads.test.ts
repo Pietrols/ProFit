@@ -7,6 +7,8 @@ import { readWorkoutOverview, readWorkoutPage } from '../workoutReads';
 import { setLogId } from '../identity';
 import { readWorkout } from '../workouts';
 import { readWorkoutDetail } from '../workoutDetail';
+import { readStructuredWorkoutDetail } from '../structuredDetail';
+import { structuredWorkoutResults } from '../structuredResults';
 import { prefillFromSets, sessionResultsFromSets } from '../logic';
 import { at, other, snapshot, user } from './fixtures';
 
@@ -100,17 +102,22 @@ describe('bounded workout reads', () => {
   });
   describe.each([50, 500, 2000])('detail with %i sessions of 20 sets', (count) => {
     let populated: Awaited<ReturnType<typeof fixture>>;
+    let coldReadRows: number[];
     beforeAll(async () => {
       populated = await fixture(count, 20);
+      await readWorkoutDetail(populated.db, user, id(count - 1));
+      coldReadRows = populated.reads
+        .filter((query) => query.sql.includes('FROM set_logs'))
+        .map((query) => query.rows);
     });
     afterAll(() => populated?.driver.raw.close());
-    it('keeps warm detail and exact comparisons bounded', async () => {
+    it('prepares related history in bounded batches', () => {
+      expect(coldReadRows.reduce((total, rows) => total + rows, 0)).toBe(count * 20);
+      expect(coldReadRows).toHaveLength(count / 25 + 1);
+      expect(coldReadRows.every((rows) => rows <= 500)).toBe(true);
+    });
+    it('keeps legacy and structured warm reads and exact comparisons bounded', async () => {
       const { db, reads } = populated;
-      await readWorkoutDetail(db, user, id(count - 1));
-      const coldSetReads = reads.filter((q) => q.sql.includes('FROM set_logs'));
-      expect(coldSetReads.reduce((n, q) => n + q.rows, 0)).toBe(count * 20);
-      expect(coldSetReads).toHaveLength(count / 25 + 1);
-      expect(coldSetReads.every((q) => q.rows <= 500)).toBe(true);
       reads.length = 0;
       const current = (await readWorkoutDetail(db, user, id(count - 1)))!;
       expect(reads).toHaveLength(5);
@@ -132,6 +139,16 @@ describe('bounded workout reads', () => {
         expect(details).not.toContain('MATERIALIZE previous');
         expect(details).toContain('SEARCH workout_history_index USING INDEX');
       }
+      reads.length = 0;
+      const structured = (await readStructuredWorkoutDetail(db, user, id(count - 1)))!;
+      expect(reads).toHaveLength(6);
+      expect(reads.reduce((n, q) => n + q.rows, 0)).toBeLessThanOrEqual(102);
+      expect(structured.resultView.available).toBe(true);
+      expect(structuredWorkoutResults(structured)).toMatchObject({
+        completed: 20,
+        volumeKg: summary.volumeKg,
+        records: summary.records,
+      });
     });
   });
   it('reads only the requested owned session and its sets, without a second parent query', async () => {
