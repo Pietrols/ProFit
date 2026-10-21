@@ -9,6 +9,8 @@ import { SessionExercises } from '@/features/workouts/SessionExercises';
 import { DraftSetForm } from '@/features/workouts/DraftSetForm';
 import { draftResultRevision } from '@/features/workouts/draftRecord';
 import { TimerControls } from '@/features/workouts/TimerControls';
+import { TimerReadout } from '@/features/workouts/TimerReadout';
+import { workoutPreview } from '@/features/workouts/workoutPreview';
 import { SessionClock } from '@/features/workouts/SessionClock';
 import { LoggedSets } from '@/features/workouts/LoggedSets';
 import {
@@ -129,6 +131,7 @@ function Workout({
     [current, selectedItemId],
   );
   const next = selection.current;
+  const preview = useMemo(() => workoutPreview(current, next), [current, next]);
   const draftRevision = next ? draftResultRevision(current.resultRecords, next.id) : 'new';
   const draftKey = next ? `${next.id}/${draftRevision}` : '';
   const changesBlocked =
@@ -221,17 +224,6 @@ function Workout({
   return (
     <Screen title={session.snapshot.dayName}>
       <SyncBanner />
-      <Card>
-        <AppText variant="label">{active ? 'In progress' : session.status}</AppText>
-        <SessionClock startedAt={session.startedAt} endedAt={session.endedAt} />
-        <AppText>
-          {summary.completed} / {summary.total} current target sets logged
-        </AppText>
-        <AppText color="text2">
-          Original routine: {summary.originalCompleted} / {summary.originalTotal} sets logged.
-          Omitted: {summary.originalOmitted}. Additional logged sets: {summary.addedCompleted}.
-        </AppText>
-      </Card>
       {workouts.error ? (
         <>
           <AppText color="caution">{workouts.error}</AppText>
@@ -265,44 +257,22 @@ function Workout({
           <AppText color="text2">Loading saved timer</AppText>
         )
       ) : null}
-      {active ? (
-        <>
-          <Card>
-            <TimerControls
-              timer={timer}
-              busy={busy || !ready}
-              start={(config) => fire(() => saveTimer(startTimer(config, Date.now(), randomId())))}
-              pause={() => fire(() => saveTimer(timer ? pauseTimer(timer, Date.now()) : null))}
-              resume={() => fire(() => saveTimer(timer ? resumeTimer(timer, Date.now()) : null))}
-              clear={() => fire(() => saveTimer(null))}
-            />
-            <AppText variant="caption" color="text2">
-              Rest alerts use your phone notifications. Silent mode and phone settings can suppress
-              or delay them.
-            </AppText>
-            {alertError ? <AppText color="caution">{alertError}</AppText> : null}
-            <Button
-              label="Enable rest alerts"
-              variant="secondary"
-              disabled={busy || !ready}
-              onPress={() =>
-                fire(async () => {
-                  try {
-                    await enable();
-                    await alerts.update(user, session.id, timer);
-                  } catch (e) {
-                    report(e);
-                  }
-                })
-              }
-            />
-          </Card>
-        </>
-      ) : null}
       {active && exercise && next ? (
         <Card>
           <AppText variant="title">{exercise.name}</AppText>
-          <AppText color="text2">{setLabel(next.setIndex, exercise.sets)}</AppText>
+          <AppText color="text2">
+            {setLabel(next.setIndex, exercise.sets)} · {summary.completed} / {summary.total} target
+            sets logged
+          </AppText>
+          {timer ? (
+            <TimerReadout
+              compact
+              timer={timer}
+              busy={busy || !ready}
+              pause={() => fire(() => saveTimer(pauseTimer(timer, Date.now())))}
+              resume={() => fire(() => saveTimer(resumeTimer(timer, Date.now())))}
+            />
+          ) : null}
           {savedNext ? (
             <AppText color="caution">
               This set has an incomplete saved result. Use Edit in Logged sets below to review it,
@@ -336,7 +306,26 @@ function Workout({
               ? 'No sets logged. Review any omitted work before finishing.'
               : 'Review your logged sets and finish when you are ready.'}
           </AppText>
+          {timer ? (
+            <TimerReadout
+              compact
+              timer={timer}
+              busy={busy || !ready}
+              pause={() => fire(() => saveTimer(pauseTimer(timer, Date.now())))}
+              resume={() => fire(() => saveTimer(resumeTimer(timer, Date.now())))}
+            />
+          ) : null}
         </Card>
+      ) : null}
+      {active && next ? (
+        <AppText variant="caption" color="text2">
+          {selection.following
+            ? `Next set: ${itemView.items.find((item) => item.id === selection.following!.itemId)?.exercise.name}, set ${selection.following.setIndex + 1}. `
+            : 'Last pending set. '}
+          {preview
+            ? `Next exercise: ${preview.ordinal}. ${preview.item.exercise.name}, ${preview.remaining} sets remaining.`
+            : 'No other exercises pending.'}
+        </AppText>
       ) : null}
       {active ? (
         <SessionExercises
@@ -384,6 +373,52 @@ function Workout({
           }
           editingChanged={setAdjusting}
         />
+      ) : null}
+      <Card>
+        <AppText variant="label">{active ? 'In progress' : session.status}</AppText>
+        <SessionClock startedAt={session.startedAt} endedAt={session.endedAt} />
+        <AppText>
+          {summary.completed} / {summary.total} current target sets logged
+        </AppText>
+        <AppText color="text2">
+          Original routine: {summary.originalCompleted} / {summary.originalTotal} sets logged.
+          Omitted: {summary.originalOmitted}. Additional logged sets: {summary.addedCompleted}.
+        </AppText>
+      </Card>
+      {active ? (
+        <>
+          <Card>
+            <TimerControls
+              showReadout={!summary.available}
+              timer={timer}
+              busy={busy || !ready}
+              start={(config) => fire(() => saveTimer(startTimer(config, Date.now(), randomId())))}
+              pause={() => fire(() => saveTimer(timer ? pauseTimer(timer, Date.now()) : null))}
+              resume={() => fire(() => saveTimer(timer ? resumeTimer(timer, Date.now()) : null))}
+              clear={() => fire(() => saveTimer(null))}
+            />
+            <AppText variant="caption" color="text2">
+              Rest alerts use your phone notifications. Silent mode and phone settings can suppress
+              or delay them.
+            </AppText>
+            {alertError ? <AppText color="caution">{alertError}</AppText> : null}
+            <Button
+              label="Enable rest alerts"
+              variant="secondary"
+              disabled={busy || !ready}
+              onPress={() =>
+                fire(async () => {
+                  try {
+                    await enable();
+                    await alerts.update(user, session.id, timer);
+                  } catch (e) {
+                    report(e);
+                  }
+                })
+              }
+            />
+          </Card>
+        </>
       ) : null}
       {summary.records
         .filter((r) => !active || r.setId === lastSet)
