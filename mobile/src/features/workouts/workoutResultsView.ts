@@ -1,8 +1,7 @@
 import { sessionInput, validateSession, validTime, validUuid } from './model';
 import { latestRecords } from './recordOrder';
 import type { SessionItemsView } from './sessionItemsView';
-import { plannedItemId } from './structureIdentity';
-import { validateLegacySetContext, validateStableSetContext } from './structureModel';
+import { resultValidatorForItem } from './structureModel';
 import type { PerformanceTargets, WorkoutResult } from './structureTypes';
 import type { WorkoutSession } from './types';
 
@@ -27,6 +26,14 @@ export function workoutResultsView(
   if (!validUuid(session.id) || session.deletedAt || validateSession(sessionInput(session)))
     return { results: [], unavailableResultIds: [], available: false };
   const items = new Map(itemView.items.map((item) => [item.id, item]));
+  const originals = new Map(
+    itemView.items
+      .filter((item) => item.origin === 'planned')
+      .map((item) => [item.originalPosition, item.id]),
+  );
+  const validators = new Map(
+    itemView.items.map((item) => [item.id, resultValidatorForItem(session, item)]),
+  );
   const scoped = records.filter((result) => result.sessionId === session.id);
   const unavailable = new Set([
     ...unavailableIds,
@@ -40,8 +47,8 @@ export function workoutResultsView(
     let targets: PerformanceTargets | null = null;
     if ('itemId' in log) {
       itemId = log.itemId;
-      const item = items.get(itemId);
-      if (!item || validateStableSetContext(log, item, session)) {
+      const validate = validators.get(itemId);
+      if (!validate || validate(log)) {
         unavailable.add(log.id);
         continue;
       }
@@ -56,17 +63,13 @@ export function workoutResultsView(
         unavailable.add(log.id);
         continue;
       }
-      itemId = plannedItemId(session.id, log.exercisePosition);
-      const item = items.get(itemId);
-      if (
-        !item ||
-        'side' in log ||
-        'targetsAtPerformance' in log ||
-        validateLegacySetContext(log, item, session)
-      ) {
+      const originalId = originals.get(log.exercisePosition);
+      const validate = originalId ? validators.get(originalId) : null;
+      if (!originalId || !validate || validate(log)) {
         unavailable.add(log.id);
         continue;
       }
+      itemId = originalId;
     }
     if (log.values.done === false) continue;
     const copy = { ...log, logFields: [...log.logFields], values: { ...log.values } };

@@ -7,8 +7,10 @@ import {
   validateSnapshotExercise,
   validateSet,
 } from './model';
-import { plannedItemId, sessionSlotId } from './structureIdentity';
-import type { SessionItem, StableSetLog } from './structureTypes';
+import { uuidv5 } from '../../lib/uuid';
+import { setLogId } from './identity';
+import { plannedItemId } from './structureIdentity';
+import type { SessionItem, StableSetLog, WorkoutResult } from './structureTypes';
 import type { SetLog, WorkoutSession } from './types';
 
 type ObjectValue = Record<string, unknown>;
@@ -130,16 +132,9 @@ export function validateStableSetContext(
   item: SessionItem,
   session: WorkoutSession,
 ): string | null {
-  const error = validateStableSetRecord(result) ?? validateSessionItem(item, session);
+  const error = validateStableSetRecord(result);
   if (error) return error;
-  if (
-    result.sessionId !== session.id ||
-    result.itemId !== item.id ||
-    result.exercisePosition !== item.originalPosition ||
-    result.id !== sessionSlotId(item, result.setIndex)
-  )
-    return 'This set does not match its session exercise and slot.';
-  return validatePerformanceTime(result, session);
+  return resultValidatorForItem(session, item)(result);
 }
 
 export function validateLegacySetContext(
@@ -147,27 +142,40 @@ export function validateLegacySetContext(
   item: SessionItem,
   session: WorkoutSession,
 ): string | null {
-  const error =
-    validateSet(setInput(result), session.snapshot) ?? validateSessionItem(item, session);
-  if (error) return error;
-  if (
-    item.origin !== 'planned' ||
-    result.sessionId !== session.id ||
-    result.exercisePosition !== item.originalPosition ||
-    result.id !== sessionSlotId(item, result.setIndex)
-  )
-    return 'This legacy set does not match its original exercise and slot.';
-  return validatePerformanceTime(result, session);
+  if ('itemId' in result || 'side' in result || 'targetsAtPerformance' in result)
+    return 'This result is not in the legacy format.';
+  return resultValidatorForItem(session, item)(result);
 }
 
-function validatePerformanceTime(
-  result: Pick<SetLog, 'loggedAt'>,
-  session: WorkoutSession,
-): string | null {
-  if (
-    Date.parse(result.loggedAt) < Date.parse(session.startedAt) ||
-    (session.endedAt !== null && Date.parse(result.loggedAt) > Date.parse(session.endedAt))
-  )
-    return 'Log the set within the session times.';
-  return null;
+// Build once per item in a synchronous read snapshot, then validate each result against it.
+export function resultValidatorForItem(session: WorkoutSession, item: SessionItem) {
+  const itemError = validateSessionItem(item, session);
+  const { id, origin, originalPosition } = item;
+  const sessionId = session.id;
+  const start = Date.parse(session.startedAt);
+  const end = session.endedAt === null ? Infinity : Date.parse(session.endedAt);
+  return (result: WorkoutResult): string | null => {
+    if (itemError) return itemError;
+    const stable = 'itemId' in result;
+    const error = stable
+      ? validateStableSetRecord(result)
+      : validateSet(setInput(result), session.snapshot);
+    if (error) return error;
+    const slotId =
+      origin === 'planned'
+        ? setLogId(sessionId, originalPosition, result.setIndex)
+        : uuidv5(`set:${result.setIndex}`, id);
+    if (
+      result.sessionId !== sessionId ||
+      result.exercisePosition !== originalPosition ||
+      result.id !== slotId ||
+      (stable
+        ? result.itemId !== id
+        : origin !== 'planned' || 'side' in result || 'targetsAtPerformance' in result)
+    )
+      return 'This set does not match its session exercise and slot.';
+    const time = Date.parse(result.loggedAt);
+    if (time < start || time > end) return 'Log the set within the session times.';
+    return null;
+  };
 }

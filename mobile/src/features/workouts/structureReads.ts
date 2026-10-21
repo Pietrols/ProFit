@@ -23,6 +23,14 @@ export async function readSessionStructure(tx: Sql, user: string, session: Worko
     `SELECT ${RESULT_COLUMNS} FROM set_logs WHERE user_id = ? AND session_id = ?`,
     [user, session.id],
   );
+  return structureFromRows(session, itemRows, resultRows);
+}
+
+export function structureFromRows(
+  session: WorkoutSession,
+  itemRows: readonly ItemRow[],
+  resultRows: readonly ResultRow[],
+) {
   const itemRecords: SessionItem[] = [];
   const resultRecords: WorkoutResult[] = [];
   const unavailableItems: string[] = [];

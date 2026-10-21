@@ -1,6 +1,7 @@
 import { expect, it } from 'vitest';
 import {
   validateSessionItem,
+  validateLegacySetContext,
   validateStableSetContext,
   validateStableSetRecord,
 } from '../structureModel';
@@ -110,4 +111,13 @@ it('preserves performed work when current items are removed, reduced or change f
     expect(validateStableSetContext(performed, changed, parent())).toBeNull();
     expect(performed.targetsAtPerformance.sets).toBe(3);
   }
+});
+
+it('keeps full variant validators strict while sharing one item context across result reads', () => {
+  const legacy = { ...set(), id: sessionSlotId(item(), 0), updatedAt: at(1).toISOString() };
+  expect(validateLegacySetContext(legacy, item(), parent())).toBeNull();
+  expect(
+    validateLegacySetContext({ ...result(), exercisePosition: 0 }, item(), parent()),
+  ).not.toBeNull();
+  expect(validateStableSetContext(legacy as StableSetLog, item(), parent())).not.toBeNull();
 });
