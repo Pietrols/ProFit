@@ -1,6 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createRestAlerts, type RestPort, type RestRequest } from '../restAlerts';
 import { pauseTimer, startTimer } from '../timers';
+import { timerAfterLogs } from '../timerStorage';
+import { sessionId } from './fixtures';
 
 const timer = (generation = 'a') => startTimer({ mode: 'rest', seconds: 30 }, 1000, generation);
 function fixture() {
@@ -21,6 +23,19 @@ function fixture() {
   return { pending, port, alerts: createRestAlerts(port, () => 2000) };
 }
 describe('scheduled rest alerts', () => {
+  it('cancels the source set alert after deletion and crash recovery without restarting on an edit', async () => {
+    const { alerts, pending, port } = fixture();
+    const linked = { ...timer(), sourceSetId: sessionId };
+    await alerts.setUser('u');
+    await alerts.update('u', 's', linked);
+    await alerts.update('u', 's', timerAfterLogs(linked, [], [sessionId]));
+    expect(port.schedule).toHaveBeenCalledOnce();
+    await alerts.reconcile(async () => timerAfterLogs(linked, [], []));
+    expect(pending.size).toBe(0);
+    expect(port.cancel).toHaveBeenCalledWith('1');
+    await alerts.update('u', 's', null);
+    expect(port.schedule).toHaveBeenCalledOnce();
+  });
   it('keeps a matching alert and replaces it when an early set starts new rest', async () => {
     const { alerts, pending, port } = fixture();
     await alerts.setUser('u');

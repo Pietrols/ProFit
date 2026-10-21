@@ -14,7 +14,8 @@ import { kvStore } from '@/lib/storage/local';
 import { createRestAlerts } from './restAlerts';
 import { restPort, enableRestAlerts } from './notificationPort';
 import { loadWorkoutTimer, timerAfterLogs } from './timerStorage';
-import { getSession, listSets } from './workouts';
+import { readWorkout } from './workouts';
+import { completedSets } from './logic';
 
 const Context = createContext<{
   alerts: ReturnType<typeof createRestAlerts>;
@@ -34,8 +35,6 @@ export function WorkoutAlerts({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => {
     const read = async (user: string, session: string) => {
-      const saved = await getSession(db, user, session);
-      if (saved?.status !== 'active') return null;
       let timer;
       try {
         timer = await loadWorkoutTimer(kvStore, user, session);
@@ -43,11 +42,14 @@ export function WorkoutAlerts({ children }: { children: ReactNode }) {
         report(e);
         return null;
       }
-      // A crash after committing a new set must not preserve the previous set's alert.
-      const logs = await listSets(db, user, session);
+      const saved = await db.transaction((tx) => readWorkout(tx, user, session));
+      if (saved?.session.status !== 'active') return null;
+      const logs = completedSets(saved.session, saved.logs);
+      // A committed replacement or source deletion invalidates the old alert after a crash.
       return timerAfterLogs(
         timer,
         logs.map((log) => log.loggedAt),
+        logs.map((log) => log.id),
       );
     };
     const refresh = () => {

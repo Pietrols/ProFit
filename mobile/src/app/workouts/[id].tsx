@@ -2,7 +2,12 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMe } from '@/features/auth/AuthProvider';
 import { SyncBanner } from '@/features/sync/SyncBanner';
-import { prefillFromSets, sessionResultsFromSets, sessionTargets } from '@/features/workouts/logic';
+import {
+  completedSets,
+  prefillFromSets,
+  sessionResultsFromSets,
+  sessionTargets,
+} from '@/features/workouts/logic';
 import { SetForm } from '@/features/workouts/SetForm';
 import { TimerControls } from '@/features/workouts/TimerControls';
 import { SessionClock } from '@/features/workouts/SessionClock';
@@ -84,8 +89,9 @@ function Workout({
       timerAfterLogs(
         savedTimer,
         logs.map((log) => log.loggedAt),
+        completedSets(session, logs).map((log) => log.id),
       ),
-    [savedTimer, logs],
+    [savedTimer, session, logs],
   );
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -175,7 +181,14 @@ function Workout({
       try {
         await saveTimer(
           exercise!.restSeconds
-            ? startTimer({ mode: 'rest', seconds: exercise!.restSeconds }, Date.now(), randomId())
+            ? {
+                ...startTimer(
+                  { mode: 'rest', seconds: exercise!.restSeconds },
+                  Date.now(),
+                  randomId(),
+                ),
+                sourceSetId: id,
+              }
             : null,
         );
       } catch {

@@ -2,7 +2,9 @@ import { useCallback, useState } from 'react';
 import type { Database } from '../../lib/db/database';
 import { useAuthStore } from '../auth/AuthProvider';
 import { useSyncContext } from '../sync/SyncProvider';
-import type { SetInput } from './types';
+import type { SetInput, SetValues } from './types';
+import type { SetRecord, SetUndoReceipt } from './setChanges';
+import { correctLoggedSet, removeLoggedSet, undoLoggedSet } from './setCorrections';
 import { useWorkoutQuery } from './useWorkoutQuery';
 import { readWorkoutDetail } from './workoutDetail';
 import * as store from './workouts';
@@ -27,6 +29,9 @@ export function useWorkout(id: string) {
     await query.refresh();
     return value;
   };
+  const checkTarget = (target: SetRecord) => {
+    if (target.sessionId !== id) throw new Error('Choose a set from this workout.');
+  };
   return {
     ...query,
     stale,
@@ -35,6 +40,18 @@ export function useWorkout(id: string) {
         ? 'Saved on this phone. Refresh the workout before logging another set.'
         : query.error,
     log: (input: SetInput) => write((user) => store.saveSet(db, user, input, new Date())),
+    correct: (target: SetRecord, values: SetValues, restore = false) => {
+      checkTarget(target);
+      return write((user) => correctLoggedSet(db, user, target, values, new Date(), restore));
+    },
+    remove: (target: SetRecord) => {
+      checkTarget(target);
+      return write((user) => removeLoggedSet(db, user, target, new Date()));
+    },
+    undo: (receipt: SetUndoReceipt) => {
+      checkTarget(receipt.before);
+      return write((user) => undoLoggedSet(db, user, receipt, new Date()));
+    },
     notes: (target: string, notes: string, easierToday: boolean) =>
       write((user) => store.updateSession(db, user, target, { notes, easierToday }, new Date())),
     finish: (target: string, status: 'completed' | 'abandoned') =>
