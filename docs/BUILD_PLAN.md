@@ -113,7 +113,7 @@ before the final 5.7 phone gate. This is an authorized Phase 5 correction, not P
 ESLint, Prettier and their required development configuration are approved.
 
 - [x] 5.8.1 Audit the source and commit the correction design, acceptance matrix and execution order.
-- [ ] 5.8.2 Install/configure approved lint and formatting tools, make small formatting-only commits,
+- [x] 5.8.2 Install/configure approved lint and formatting tools, make small formatting-only commits,
   and require both checks in backend/mobile CI.
 - [ ] 5.8.3 Bound workout/history queries, remove duplicate reads, isolate timer rendering and
   verify exact relevant exercise-history calculations without all-history work per tick/save.

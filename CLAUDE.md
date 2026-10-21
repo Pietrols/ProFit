@@ -24,6 +24,8 @@ cd backend && npm install
 npm run dev          # tsx watch on :4000
 npm test             # vitest
 npm run typecheck
+npm run format:check
+npm run lint
 docker compose up -d db   # from repo root: Postgres 16 on :5432
 
 # Mobile
@@ -31,6 +33,8 @@ cd mobile && npm install
 npx expo start       # needs a development build on the phone (Expo Go cannot run this app)
 npm test             # vitest for pure logic
 npm run typecheck
+npm run format:check
+npm run lint
 ```
 
 Expo changes between SDK releases: read `mobile/AGENTS.md` and check the versioned docs before

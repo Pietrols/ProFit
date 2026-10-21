@@ -550,3 +550,32 @@ branch and design prepared. The execution environment is unavailable, so no pack
 installation, code correction, local test, device run or performance measurement is
 claimed in this checkpoint. The first implementation step after the documentation is
 5.8.2, the approved lint/format setup. All executable correction boxes remain open.
+
+## Step 5.8.2 implementation, 21 October 2026
+
+Installed the approved development tools and recorded their versions and compiler compatibility
+in D39. Both packages now expose `format`, `format:check` and `lint`. Prettier uses the shared
+100-column, single-quote, semicolon and LF configuration. Source/configuration checks exclude
+generated environment declarations, bundled data and binary assets. ESLint scans both packages,
+enforces one statement per line and fails on warnings. Mobile extends Expo's SDK 57 flat config,
+including hooks rules. No feature folders or hooks rules are disabled.
+
+Mechanical formatting was committed separately for backend, workouts, plans, exercises and
+shared UI/infrastructure, using the documented formatting exception. Small functional commits
+then fixed the misleading starter-command name, imports, a redundant disable comment, JSX copy,
+lazy timer initialization, stale timer-restore dependencies and a ref written during render.
+Workout reads now check the current auth-store account before publishing results. The wake-lock
+warning clears after successful activation; a new regression test checks that confirmation is
+not emitted after leaving the screen. Alert error reporting has stable effect dependencies.
+
+Both packages pass formatting, zero-warning lint and typecheck. The backend build passes.
+All 321 mobile tests pass locally. Backend database tests use CI's PostgreSQL service under
+BUILD_PLAN rule 8 because local PostgreSQL cannot be installed here. CI passed for the tooling
+installation and the published workout-effect corrections. The completing commit
+adds mandatory format and lint steps to both existing CI jobs; its CI result remains the gate.
+Web and Android JavaScript exports pass. These are not APK builds or phone interaction results.
+
+The unrelated local icon modification was excluded from every commit. No workout-history
+performance improvement is claimed by this tooling step. Step 5.8.3 is next: bounded reads,
+exact relevant history, shared invalidation and isolated clock rendering. The remaining
+corrections and the physical 5.7 phone gate remain open; Phase 6 has not started.
