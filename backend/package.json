@@ -14,7 +14,10 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "tsx src/scripts/migrate.ts"
+    "db:migrate": "tsx src/scripts/migrate.ts",
+    "lint": "eslint . --max-warnings 0",
+    "format:check": "prettier --check \"src/**/*.{ts,tsx}\" \"*.{js,cjs,mjs,ts,json}\" ../.prettierrc.json",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\" \"*.{js,cjs,mjs,ts,json}\" ../.prettierrc.json"
   },
   "dependencies": {
     "cors": "^2.8.6",
