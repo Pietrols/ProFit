@@ -35,6 +35,7 @@ export function SessionExercises({
   ) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [actionsItem, setActionsItem] = useState<string | null>(null);
   const [editor, setEditor] = useState<{
     mode: ExerciseEditorMode;
     item: SessionItem | null;
@@ -95,6 +96,7 @@ export function SessionExercises({
       <Button
         label={expanded ? 'Hide exercise overview' : 'Choose or adjust exercises'}
         variant="secondary"
+        accessibilityState={{ expanded, disabled: blocked }}
         disabled={blocked}
         onPress={() => setExpanded(!expanded)}
       />
@@ -153,19 +155,13 @@ export function SessionExercises({
             </Card>
           ) : null}
           {rows.map(
-            ({
-              item,
-              completed,
-              remaining,
-              canTrain,
-              canReduce,
-              canMoveUp,
-              canMoveDown,
-              canDefer,
-            }) => (
+            (
+              { item, completed, remaining, canTrain, canReduce, canMoveUp, canMoveDown, canDefer },
+              index,
+            ) => (
               <Card key={item.id}>
                 <AppText variant="label">
-                  {item.exercise.name}
+                  {index + 1}. {item.exercise.name}
                   {selected === item.id ? ' (selected)' : ''}
                 </AppText>
                 <AppText>
@@ -179,79 +175,90 @@ export function SessionExercises({
                 {item.deletedAt ? null : item.state === 'active' ? (
                   <>
                     <Button
-                      label={`Train ${item.exercise.name} now`}
+                      label={`Train ${index + 1}. ${item.exercise.name} now`}
                       variant="secondary"
                       disabled={blocked || !canTrain}
                       onPress={() => select(item.id)}
                     />
                     <Button
-                      label={`Edit workout targets for ${item.exercise.name}`}
+                      label={`${actionsItem === item.id ? 'Hide adjustments for' : 'Adjust'} ${index + 1}. ${item.exercise.name}`}
                       variant="secondary"
+                      accessibilityState={{ expanded: actionsItem === item.id, disabled: blocked }}
                       disabled={blocked}
-                      onPress={() => openEditor('targets', item)}
+                      onPress={() => setActionsItem(actionsItem === item.id ? null : item.id)}
                     />
-                    <Button
-                      label={`Replace remaining ${item.exercise.name} work`}
-                      variant="secondary"
-                      disabled={blocked || !canTrain}
-                      onPress={() => openEditor('replace', item)}
-                    />
-                    <Button
-                      label={`Do ${item.exercise.name} later`}
-                      variant="secondary"
-                      disabled={blocked || !canDefer}
-                      onPress={() => void perform(() => move(item, 'later')).catch(() => {})}
-                    />
-                    <Button
-                      label={`Move ${item.exercise.name} up`}
-                      variant="secondary"
-                      disabled={blocked || !canMoveUp}
-                      onPress={() => void perform(() => move(item, 'up')).catch(() => {})}
-                    />
-                    <Button
-                      label={`Move ${item.exercise.name} down`}
-                      variant="secondary"
-                      disabled={blocked || !canMoveDown}
-                      onPress={() => void perform(() => move(item, 'down')).catch(() => {})}
-                    />
-                    <Button
-                      label={`Skip remaining ${item.exercise.name} sets`}
-                      variant="secondary"
-                      disabled={blocked || remaining === 0}
-                      onPress={() => omit(item, 'skipped')}
-                    />
-                    <Button
-                      label={`Add a set to ${item.exercise.name}`}
-                      variant="secondary"
-                      disabled={blocked || item.exercise.sets >= 100}
-                      onPress={() =>
-                        void apply(item, {
-                          kind: 'targets',
-                          targets: { ...item.exercise, sets: item.exercise.sets + 1 },
-                        }).catch(() => {})
-                      }
-                    />
-                    <Button
-                      label={`Remove last unlogged set from ${item.exercise.name}`}
-                      variant="secondary"
-                      disabled={blocked || !canReduce}
-                      onPress={() =>
-                        void apply(item, {
-                          kind: 'targets',
-                          targets: { ...item.exercise, sets: item.exercise.sets - 1 },
-                        }).catch(() => {})
-                      }
-                    />
-                    <Button
-                      label={`Remove ${item.exercise.name} from workout`}
-                      variant="secondary"
-                      disabled={blocked}
-                      onPress={() => omit(item, 'removed')}
-                    />
+                    {actionsItem === item.id ? (
+                      <>
+                        <Button
+                          label={`Edit workout targets for ${index + 1}. ${item.exercise.name}`}
+                          variant="secondary"
+                          disabled={blocked}
+                          onPress={() => openEditor('targets', item)}
+                        />
+                        <Button
+                          label={`Replace remaining ${index + 1}. ${item.exercise.name} work`}
+                          variant="secondary"
+                          disabled={blocked || !canTrain}
+                          onPress={() => openEditor('replace', item)}
+                        />
+                        <Button
+                          label={`Do ${index + 1}. ${item.exercise.name} later`}
+                          variant="secondary"
+                          disabled={blocked || !canDefer}
+                          onPress={() => void perform(() => move(item, 'later')).catch(() => {})}
+                        />
+                        <Button
+                          label={`Move ${index + 1}. ${item.exercise.name} up`}
+                          variant="secondary"
+                          disabled={blocked || !canMoveUp}
+                          onPress={() => void perform(() => move(item, 'up')).catch(() => {})}
+                        />
+                        <Button
+                          label={`Move ${index + 1}. ${item.exercise.name} down`}
+                          variant="secondary"
+                          disabled={blocked || !canMoveDown}
+                          onPress={() => void perform(() => move(item, 'down')).catch(() => {})}
+                        />
+                        <Button
+                          label={`Skip remaining ${index + 1}. ${item.exercise.name} sets`}
+                          variant="secondary"
+                          disabled={blocked || remaining === 0}
+                          onPress={() => omit(item, 'skipped')}
+                        />
+                        <Button
+                          label={`Add a set to ${index + 1}. ${item.exercise.name}`}
+                          variant="secondary"
+                          disabled={blocked || item.exercise.sets >= 100}
+                          onPress={() =>
+                            void apply(item, {
+                              kind: 'targets',
+                              targets: { ...item.exercise, sets: item.exercise.sets + 1 },
+                            }).catch(() => {})
+                          }
+                        />
+                        <Button
+                          label={`Remove last unlogged set from ${index + 1}. ${item.exercise.name}`}
+                          variant="secondary"
+                          disabled={blocked || !canReduce}
+                          onPress={() =>
+                            void apply(item, {
+                              kind: 'targets',
+                              targets: { ...item.exercise, sets: item.exercise.sets - 1 },
+                            }).catch(() => {})
+                          }
+                        />
+                        <Button
+                          label={`Remove ${index + 1}. ${item.exercise.name} from workout`}
+                          variant="secondary"
+                          disabled={blocked}
+                          onPress={() => omit(item, 'removed')}
+                        />
+                      </>
+                    ) : null}
                   </>
                 ) : (
                   <Button
-                    label={`Restore ${item.exercise.name}`}
+                    label={`Restore ${index + 1}. ${item.exercise.name}`}
                     variant="secondary"
                     disabled={blocked}
                     onPress={() =>

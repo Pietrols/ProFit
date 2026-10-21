@@ -118,7 +118,7 @@ export function DraftSetForm({
       {record.units !== units ? (
         <AppText color="text2">
           This draft keeps {record.units === 'metric' ? 'kg and metres' : 'lb and miles'}. Your new
-          unit preference applies to the next set.
+          unit preference applies to new drafts.
         </AppText>
       ) : null}
       <SetForm

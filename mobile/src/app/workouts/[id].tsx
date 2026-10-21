@@ -1,5 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ScrollView } from 'react-native';
 import { useMe } from '@/features/auth/AuthProvider';
 import { SyncBanner } from '@/features/sync/SyncBanner';
 import { prefillFromSets, sessionTargets } from '@/features/workouts/logic';
@@ -100,6 +101,7 @@ function Workout({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
+  const scroll = useRef<ScrollView>(null);
   const [confirm, setConfirm] = useState<'completed' | 'abandoned' | null>(null);
   const [lastSet, setLastSet] = useState<string | null>(null);
   const [correcting, setCorrecting] = useState(false);
@@ -222,7 +224,7 @@ function Workout({
     setConfirm(null);
   }
   return (
-    <Screen title={session.snapshot.dayName}>
+    <Screen title={session.snapshot.dayName} scrollRef={scroll}>
       <SyncBanner />
       {workouts.error ? (
         <>
@@ -335,6 +337,7 @@ function Workout({
           select={(itemId) => {
             setSelectedItemId(itemId);
             setLastSet(null);
+            scroll.current?.scrollTo({ y: 0, animated: true });
           }}
           change={(item, change) =>
             run(async () => {

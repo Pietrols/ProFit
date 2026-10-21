@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactNode, Ref } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/theme/ThemeProvider';
@@ -9,10 +9,11 @@ type Props = {
   eyebrow?: string;
   children: ReactNode;
   scroll?: boolean;
+  scrollRef?: Ref<ScrollView>;
 };
 
 // Standard screen frame: themed background, safe-area top inset, side padding, optional title.
-export function Screen({ title, eyebrow, children, scroll = true }: Props) {
+export function Screen({ title, eyebrow, children, scroll = true, scrollRef }: Props) {
   const { colors, space } = useAppTheme();
   const body = (
     <View style={{ gap: space.lg, paddingHorizontal: space.lg, paddingBottom: space.xxl }}>
@@ -38,6 +39,7 @@ export function Screen({ title, eyebrow, children, scroll = true }: Props) {
     <SafeAreaView edges={['top']} style={[styles.fill, { backgroundColor: colors.bg }]}>
       {scroll ? (
         <ScrollView
+          ref={scrollRef}
           contentContainerStyle={styles.grow}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
