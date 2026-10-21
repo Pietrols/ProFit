@@ -46,14 +46,21 @@ async function writeRows(tx: Sql, user: string, rows: ExerciseHistoryRow[]) {
 
 async function refreshBatch(tx: Sql, user: string, exercises?: readonly string[]) {
   if (exercises?.length === 0) return { sessions: 0, results: 0 };
-  const dirty = await tx.all<{ session_id: string }>(
-    exercises
-      ? `SELECT DISTINCT d.session_id FROM workout_history_catalog c
+  const requested = exercises ? [...new Set(exercises)] : null;
+  let dirty: { session_id: string }[] = [];
+  // New items can expand the request beyond the original snapshot's 100 exercises.
+  for (let start = 0; start < (requested?.length ?? 1); start += 400) {
+    const batch = requested?.slice(start, start + 400);
+    dirty = await tx.all<{ session_id: string }>(
+      batch
+        ? `SELECT DISTINCT d.session_id FROM workout_history_catalog c
          JOIN workout_history_dirty d ON d.user_id = c.user_id AND d.session_id = c.session_id
-         WHERE c.user_id = ? AND c.exercise_id IN (${placeholders(exercises.length)}) ORDER BY d.session_id LIMIT 25`
-      : 'SELECT session_id FROM workout_history_dirty WHERE user_id = ? ORDER BY session_id LIMIT 25',
-    exercises ? [user, ...exercises] : [user],
-  );
+         WHERE c.user_id = ? AND c.exercise_id IN (${placeholders(batch.length)}) ORDER BY d.session_id LIMIT 25`
+        : 'SELECT session_id FROM workout_history_dirty WHERE user_id = ? ORDER BY session_id LIMIT 25',
+      batch ? [user, ...batch] : [user],
+    );
+    if (dirty.length) break;
+  }
   if (!dirty.length) return { sessions: 0, results: 0 };
   const ids = dirty.map((row) => row.session_id);
   const owned = `user_id = ? AND session_id IN (${placeholders(ids.length)})`;
