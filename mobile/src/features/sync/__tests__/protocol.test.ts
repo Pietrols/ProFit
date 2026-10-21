@@ -2,17 +2,19 @@ import { expect, it } from 'vitest';
 import { ApiError, NetworkError } from '../../../lib/api/errors';
 import { checkSyncCapabilities, negotiateSync } from '../protocol';
 
-const capabilities = { protocols: [1, 2], minimumProtocol: 1, features: [] };
-it('accepts negotiated legacy data but requires every requested new-format capability', () => {
+const capabilities = {
+  protocols: [1, 2],
+  minimumProtocol: 2,
+  features: ['workout_structure_v1'],
+};
+it('requires structural support even when the server understands protocol 2', () => {
   expect(() => checkSyncCapabilities(capabilities)).not.toThrow();
-  expect(() => checkSyncCapabilities(capabilities, ['workout_structure_v1'])).toThrow(
+  expect(() => checkSyncCapabilities({ ...capabilities, features: [] })).toThrow(
     expect.objectContaining({ code: 'SYNC_SERVER_UPGRADE_REQUIRED' }),
   );
-  expect(() =>
-    checkSyncCapabilities({ ...capabilities, features: ['workout_structure_v1'] }, [
-      'workout_structure_v1',
-    ]),
-  ).not.toThrow();
+  expect(() => checkSyncCapabilities(capabilities, ['future_feature'])).toThrow(
+    expect.objectContaining({ code: 'SYNC_SERVER_UPGRADE_REQUIRED' }),
+  );
 });
 
 it('distinguishes an outdated app from an outdated or malformed server response', () => {

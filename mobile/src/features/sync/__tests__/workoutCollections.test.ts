@@ -2,6 +2,7 @@ import { expect, it } from 'vitest';
 import {
   fromWire,
   setLogsCollection,
+  syncedCollections,
   toWire,
   type Collection,
   type WireRecord,
@@ -29,13 +30,10 @@ const legacy: WireRecord = {
 };
 
 it('keeps absent legacy metadata as SQL NULL instead of JSON arrays on pull and push', () => {
-  const collection = withWorkoutResultFields(setLogsCollection);
-  const before = structuredClone(setLogsCollection);
-  const { row, wire } = roundTrip(collection, legacy);
+  const { row, wire } = roundTrip(setLogsCollection, legacy);
   expect(row.targets_at_performance).toBeNull();
   expect(wire).toEqual({ ...legacy, itemId: null, side: null, targetsAtPerformance: null });
-  expect(setLogsCollection).toEqual(before);
-  expect(fromWire(collection, wire).values).toContain(null);
+  expect(fromWire(setLogsCollection, wire).values).toContain(null);
 });
 
 it('round-trips stable nullable positions, target objects and tombstones without changing numeric zero', () => {
@@ -53,7 +51,7 @@ it('round-trips stable nullable positions, target objects and tombstones without
       restSeconds: 0,
     },
   };
-  const { row, wire } = roundTrip(withWorkoutResultFields(setLogsCollection), record);
+  const { row, wire } = roundTrip(setLogsCollection, record);
   expect(row.exercise_position).toBeNull();
   expect(wire).toEqual(record);
 });
@@ -78,4 +76,19 @@ it('round-trips session-item snapshots and preserves the existing JSON-list defa
     fields: [{ column: 'items', wire: 'items', json: true }],
   };
   expect(fromWire(oldList, legacy).values.at(-1)).toBe('[]');
+});
+
+it('registers both mappings once and extends a base without mutating it', () => {
+  expect(syncedCollections.filter((collection) => collection.name === 'session_items')).toEqual([
+    sessionItemsCollection,
+  ]);
+  expect(syncedCollections.filter((collection) => collection.name === 'set_logs')).toEqual([
+    setLogsCollection,
+  ]);
+  expect(new Set(setLogsCollection.fields.map((field) => field.column)).size).toBe(
+    setLogsCollection.fields.length,
+  );
+  const base: Collection = { name: 'set_logs', fields: [] };
+  expect(withWorkoutResultFields(base).fields).toHaveLength(3);
+  expect(base.fields).toEqual([]);
 });

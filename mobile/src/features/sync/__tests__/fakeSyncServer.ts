@@ -17,7 +17,11 @@ export function fakeSyncServer() {
 
   function handle(userId: string, url: URL, method: string, body: unknown): Response {
     if (method === 'GET' && url.pathname === '/sync/capabilities')
-      return reply(200, { protocols: [1, 2], minimumProtocol: 1, features: [] });
+      return reply(200, {
+        protocols: [1, 2],
+        minimumProtocol: 2,
+        features: ['workout_structure_v1'],
+      });
     if (method === 'POST' && url.pathname === '/sync/push') {
       state.pushes += 1;
       const result = {

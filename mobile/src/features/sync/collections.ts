@@ -1,6 +1,8 @@
 // The tables this phone syncs and how a row maps to the API's wire record. Mirrors
 // backend/src/sync/collections.ts; adding a synced feature means one entry here and one there.
 
+import { sessionItemsCollection, withWorkoutResultFields } from './workoutCollections';
+
 export type WireRecord = { id: string; updatedAt: string; deletedAt: string | null } & Record<
   string,
   unknown
@@ -92,7 +94,7 @@ export const workoutSessionsCollection: Collection = {
     { column: 'snapshot', wire: 'snapshot', json: true },
   ],
 };
-export const setLogsCollection: Collection = {
+const legacySetLogsCollection: Collection = {
   name: 'set_logs',
   fields: [
     { column: 'session_id', wire: 'sessionId' },
@@ -103,6 +105,8 @@ export const setLogsCollection: Collection = {
     { column: 'values_json', wire: 'values', json: true },
   ],
 };
+export const setLogsCollection = withWorkoutResultFields(legacySetLogsCollection);
+
 export const syncedCollections: Collection[] = [
   weightEntriesCollection,
   customExercisesCollection,
@@ -113,6 +117,7 @@ export const syncedCollections: Collection[] = [
   dailyHabitCollection,
   workoutSessionsCollection,
   setLogsCollection,
+  sessionItemsCollection,
 ];
 
 type Row = Record<string, unknown>;
