@@ -1,4 +1,5 @@
 import { StartWorkout } from '@/features/workouts/StartWorkout';
+import { useWorkoutOverview } from '@/features/workouts/useWorkoutOverview';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useExerciseLibrary } from '@/features/exercises/useExerciseLibrary';
 import { ExerciseTargets } from '@/features/plans/ExerciseTargets';
@@ -13,6 +14,9 @@ export default function DayEditor() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const plans = usePlans();
   const library = useExerciseLibrary();
+  const day = plans.data?.days.find((d) => d.id === id);
+  const plan = plans.data?.plans.find((p) => p.id === day?.planId);
+  const workouts = useWorkoutOverview(plan?.id ?? null, !!plan);
   if (plans.error || library.error || !plans.data || !library.exercises)
     return (
       <PlanState
@@ -23,10 +27,8 @@ export default function DayEditor() {
         }}
       />
     );
-  const day = plans.data.days.find((d) => d.id === id);
-  if (!day) return <PlanState error={null} retry={plans.retry} missing />;
+  if (!day || !plan) return <PlanState error={null} retry={plans.retry} missing />;
   const exercises = plans.data.exercises.filter((e) => e.dayId === day.id);
-  const plan = plans.data.plans.find((p) => p.id === day.planId)!;
   return (
     <Screen title={day.name}>
       <SyncBanner />
@@ -35,6 +37,7 @@ export default function DayEditor() {
         day={day}
         exercises={exercises}
         names={new Map(library.exercises.map((e) => [e.id, e.name]))}
+        workouts={workouts}
       />
       {day.restDay ? (
         <EmptyState

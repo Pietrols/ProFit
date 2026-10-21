@@ -1,6 +1,6 @@
 import { StartWorkout } from '@/features/workouts/StartWorkout';
 import { lastCompletion } from '@/features/workouts/logic';
-import { useWorkouts } from '@/features/workouts/useWorkouts';
+import { useWorkoutOverview } from '@/features/workouts/useWorkoutOverview';
 import { router } from 'expo-router';
 import { View } from 'react-native';
 import { useExerciseLibrary } from '@/features/exercises/useExerciseLibrary';
@@ -24,7 +24,8 @@ export default function HomeScreen() {
   const now = new Date();
   const plans = usePlans();
   const library = useExerciseLibrary();
-  const workouts = useWorkouts();
+  const plan = plans.data ? activePlan(plans.data.plans) : null;
+  const workouts = useWorkoutOverview(plan?.id ?? null, !!plans.data);
   if (
     plans.error ||
     library.error ||
@@ -43,14 +44,13 @@ export default function HomeScreen() {
         }}
       />
     );
-  const plan = activePlan(plans.data.plans);
   const day = plan
     ? todaysDay(
         plan,
         plans.data.days,
         lastCompletion(
           plan.id,
-          workouts.data.map((h) => h.session),
+          workouts.data.latestCompletion ? [workouts.data.latestCompletion] : [],
         ),
         localDay(now),
       )
@@ -61,18 +61,21 @@ export default function HomeScreen() {
     <Screen eyebrow={formatHomeDate(now)} title={greetingFor(now.getHours(), me?.user.displayName)}>
       <SyncBanner />
       {!day
-        ? workouts.data
-            .filter((h) => h.session.status === 'active')
-            .map(({ session }) => (
-              <Button
-                key={session.id}
-                label={`Resume ${session.snapshot.dayName}`}
-                onPress={() =>
-                  router.push({ pathname: '/workouts/[id]', params: { id: session.id } })
-                }
-              />
-            ))
+        ? workouts.data.active.map((session) => (
+            <Button
+              key={session.id}
+              label={`Resume ${session.snapshot.dayName}`}
+              onPress={() =>
+                router.push({ pathname: '/workouts/[id]', params: { id: session.id } })
+              }
+            />
+          ))
         : null}
+      {!day && workouts.data.hasMoreActive ? (
+        <AppText color="text2">
+          More active workouts are saved. Finish or abandon these before starting another.
+        </AppText>
+      ) : null}
       <Card>
         <AppText variant="label" color="accent">
           Today
@@ -111,6 +114,7 @@ export default function HomeScreen() {
                   day={day}
                   exercises={exercises}
                   names={new Map(library.exercises.map((e) => [e.id, e.name]))}
+                  workouts={workouts}
                 />
               ) : null}
             </>

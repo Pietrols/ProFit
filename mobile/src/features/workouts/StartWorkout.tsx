@@ -3,23 +3,24 @@ import { useRef, useState } from 'react';
 import { AppText } from '@/ui/AppText';
 import { Button } from '@/ui/Button';
 import type { Plan, PlanDay, PlanExercise } from '../plans/types';
-import { useWorkouts } from './useWorkouts';
+import type { WorkoutOverviewState } from './useWorkoutOverview';
 export function StartWorkout({
   plan,
   day,
   exercises,
   names,
+  workouts,
 }: {
   plan: Plan;
   day: PlanDay;
   exercises: PlanExercise[];
   names: ReadonlyMap<string, string>;
+  workouts: WorkoutOverviewState;
 }) {
-  const workouts = useWorkouts();
   const lock = useRef(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const active = workouts.data?.filter((h) => h.session.status === 'active') ?? [];
+  const active = workouts.data?.active ?? [];
   async function start() {
     if (lock.current) return;
     lock.current = true;
@@ -43,13 +44,18 @@ export function StartWorkout({
           <Button label="Retry workouts" variant="secondary" onPress={workouts.retry} />
         </>
       ) : null}
-      {active.map(({ session }) => (
+      {active.map((session) => (
         <Button
           key={session.id}
           label={`Resume ${session.snapshot.dayName}`}
           onPress={() => router.push({ pathname: '/workouts/[id]', params: { id: session.id } })}
         />
       ))}
+      {workouts.data?.hasMoreActive ? (
+        <AppText color="text2">
+          More active workouts are saved. Finish or abandon these before starting another.
+        </AppText>
+      ) : null}
       {!active.length ? (
         <Button
           label={
