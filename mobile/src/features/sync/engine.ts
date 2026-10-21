@@ -2,6 +2,7 @@ import type { ApiClient } from '../../lib/api/client';
 import { isNetworkError, messageFor } from '../../lib/api/errors';
 import type { Database, Sql } from '../../lib/db/database';
 import { fromWire, toWire, type Collection, type WireRecord } from './collections';
+import { negotiateSync, SYNC_PROTOCOL } from './protocol';
 
 // Moves dirty rows to the server and the server's newer rows to the phone. The protocol is in
 // docs/phases/PHASE_2.md. No React Native imports: tests drive it with Node's SQLite.
@@ -85,7 +86,10 @@ export function createSyncEngine({
       }
       if (!sent) return problems;
 
-      const response = await api.post<PushResponse>('/sync/push', { changes });
+      const response = await api.post<PushResponse>('/sync/push', {
+        protocol: SYNC_PROTOCOL,
+        changes,
+      });
       const rejected = new Set(response.rejected.map((r) => `${r.collection}/${r.id}`));
       for (const r of response.rejected) problems.push(r.reason);
 
@@ -136,7 +140,9 @@ export function createSyncEngine({
         [userId],
       );
       const since = state?.cursor ?? 0;
-      const page = await api.get<PullResponse>(`/sync/pull?since=${since}&limit=${BATCH}`);
+      const page = await api.get<PullResponse>(
+        `/sync/pull?protocol=${SYNC_PROTOCOL}&since=${since}&limit=${BATCH}`,
+      );
       await db.transaction(async (tx) => {
         for (const c of collections) {
           for (const record of page.changes[c.name] ?? []) await applyRemote(tx, c, userId, record);
@@ -177,6 +183,8 @@ export function createSyncEngine({
     if (!userId) return;
     setStatus({ syncing: true });
     try {
+      await negotiateSync(api);
+      if (currentUser !== userId) return;
       const problems = beforePush ? await beforePush(userId) : [];
       problems.push(...(await pushAll(userId)));
       await pullAll(userId);

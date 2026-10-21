@@ -16,6 +16,8 @@ export function fakeSyncServer() {
     new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
   function handle(userId: string, url: URL, method: string, body: unknown): Response {
+    if (method === 'GET' && url.pathname === '/sync/capabilities')
+      return reply(200, { protocols: [1, 2], minimumProtocol: 1, features: [] });
     if (method === 'POST' && url.pathname === '/sync/push') {
       state.pushes += 1;
       const result = {

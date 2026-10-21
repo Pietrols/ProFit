@@ -1,4 +1,5 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import { ApiError } from '../../../lib/api/errors';
 import type { Database } from '../../../lib/db/database';
 import { testDatabase } from '../../../lib/db/__tests__/nodeDriver';
 import { deleteWeight, listWeights, saveWeight } from '../../weight/weightLog';
@@ -26,6 +27,69 @@ const weights = async (db: Database, userId = PETER) =>
   (await listWeights(db, userId)).map((w) => [w.date, w.weightKg]);
 
 describe('sync engine', () => {
+  it.each(['missing endpoint', 'old server', 'newer app required'])(
+    'keeps pending edits and its cursor before uploads or writes when compatibility fails: %s',
+    async (scenario) => {
+      const server = fakeSyncServer();
+      const db = await testDatabase();
+      const api = server.clientFor(PETER);
+      const beforePush = vi.fn(async () => []);
+      const originalGet = api.get;
+      const requests = vi.fn();
+      api.get = async <T>(path: string): Promise<T> => {
+        requests(path);
+        if (path !== '/sync/capabilities') return originalGet<T>(path);
+        if (scenario === 'missing endpoint') throw new ApiError(404, 'NOT_FOUND', 'Not found');
+        return {
+          protocols: [scenario === 'old server' ? 1 : 3],
+          minimumProtocol: scenario === 'old server' ? 1 : 3,
+          features: [],
+        } as T;
+      };
+      const engine = createSyncEngine({ db, api, collections: syncedCollections, beforePush });
+      await saveWeight(db, PETER, { date: '2026-10-07', weightKg: 81 }, tick());
+      await db.run('INSERT INTO sync_state (user_id, cursor, last_synced_at) VALUES (?, 25, ?)', [
+        PETER,
+        '2026-10-01T00:00:00Z',
+      ]);
+      await engine.setUser(PETER);
+      await engine.sync();
+      expect(engine.getStatus()).toMatchObject({ pending: 1, offline: false, syncing: false });
+      expect(engine.getStatus().problem).toContain('Update');
+      expect(beforePush).not.toHaveBeenCalled();
+      expect(server.state.pushes).toBe(0);
+      expect(requests).toHaveBeenCalledExactlyOnceWith('/sync/capabilities');
+      expect(await db.first('SELECT cursor, last_synced_at FROM sync_state')).toEqual({
+        cursor: 25,
+        last_synced_at: '2026-10-01T00:00:00Z',
+      });
+      expect(await db.first('SELECT dirty FROM weight_entries')).toEqual({ dirty: 1 });
+      api.get = originalGet;
+      await engine.sync();
+      expect(engine.getStatus()).toMatchObject({ pending: 0, problem: null });
+      expect(beforePush).toHaveBeenCalledOnce();
+    },
+  );
+
+  it('negotiates before media work and sends the agreed version on push and pull', async () => {
+    const server = fakeSyncServer();
+    const db = await testDatabase();
+    const api = server.clientFor(PETER);
+    const get = vi.spyOn(api, 'get');
+    const post = vi.spyOn(api, 'post');
+    const beforePush = vi.fn(async () => {
+      expect(get).toHaveBeenCalledExactlyOnceWith('/sync/capabilities');
+      expect(post).not.toHaveBeenCalled();
+      return [];
+    });
+    const engine = createSyncEngine({ db, api, collections: syncedCollections, beforePush });
+    await saveWeight(db, PETER, { date: '2026-10-07', weightKg: 81 }, tick());
+    await engine.setUser(PETER);
+    await engine.sync();
+    expect(post).toHaveBeenCalledWith('/sync/push', expect.objectContaining({ protocol: 2 }));
+    expect(get).toHaveBeenLastCalledWith('/sync/pull?protocol=2&since=0&limit=500');
+    expect(engine.getStatus()).toMatchObject({ pending: 0, problem: null });
+  });
   it('keeps an entry logged offline and sends it exactly once when the connection returns', async () => {
     const server = fakeSyncServer();
     const { db, engine } = await phone(server);
