@@ -794,3 +794,64 @@ Next within 5.8.5:
    Deployment remains server first, then app; do not reset local storage or sync cursors.
 4. Run mixed legacy/stable two-client compatibility, ownership, arrival-order and dirty-data
    regressions, confirm full CI and tick 5.8.5 only in its completing commit. Then start 5.8.6.
+
+
+## Step 5.8.5 completion, 21 October 2026
+
+Stable item/slot storage, readers, logging and sync compatibility are connected. The original
+routine snapshot and every legacy set identity remain intact. Normal new performance captures
+its effective targets, chosen fields, original item link and logging time. Logging rechecks the
+reviewed item and difficulty revision in the write transaction; a live saved slot requires
+correction or explicit deletion rather than silent replacement.
+
+The workout route uses the owned structured detail reader and stable logging command. Valid
+incomplete results remain in Logged sets for correction but contribute no completion, volume
+or records. An open correction retains the reviewed exercise form if a later read becomes
+unavailable. Unreadable or orphaned structural records show an incomplete-data message and
+block new performance and finishing until they resolve. Already performed work remains
+attributed to its original exercise when current item state or targets change.
+
+Both sync registries now include session_items and the result union. Absent legacy metadata
+stays SQL NULL, never a fabricated target. PostgreSQL migration 0006 permits null original
+positions; its isolated populated-table regression preserves live legacy rows and tombstones.
+The server requires protocol 2 before validating a push envelope or returning a pull page and
+advertises workout_structure_v1. The client requires that feature before media work, push,
+acknowledgement or pull. Deploy the server before the app without clearing local data or
+resetting cursors. Old apps receive HTTP 426 and retain pending local work until upgraded.
+
+Added acceptance evidence:
+
+- Failed protocol-2 feature negotiation leaves seven mixed dirty records and a nonzero cursor
+  unchanged. After support returns, both variants and item/result tombstones reach another
+  phone with zero values and exact performance metadata preserved.
+- Two offline phones add independent occurrences of the same exercise. Both survive sync.
+  Concurrent display reorder and result edit/delete converge using existing latest-edit rules;
+  Undo restores the same slot and original performance time. The routine is unchanged.
+- PostgreSQL API regressions cover legacy/stable round trips, whole-request old-client rejection,
+  foreign ownership protection, partial-metadata rejection, stale tombstone revival and
+  child-before-item-before-session pagination through one cursor.
+- Rest-alert recovery reads stable sources, including added exercises with null original
+  positions. Value correction keeps the original timer; incomplete/deleted sources and ended
+  or unavailable workouts are ineligible. This is read-port coverage, not a physical alert test.
+- Legacy and structured warm detail comparisons are checked at 50, 500 and 2,000 workouts of
+  20 sets. Structured reads use six queries and return at most 102 rows for this fixture.
+  Cold preparation retains the 25-session/500-result batch assertions. Cache construction is
+  fixture setup for the warm checks; their default five-second timeout is unchanged. A local
+  CPU profile also showed first-use cache construction remains materially more expensive than
+  warm reads. No phone latency or p95 claim is made from this host.
+
+Validation: 449 mobile tests pass locally, both packages pass formatting/lint/typecheck,
+backend build and six supplemental pure backend tests pass, and all 125 backend tests pass
+in PostgreSQL CI, which is the
+backend gate under Build Plan rule 8. Both jobs passed for commit 67cc792 in CI run
+39672695150. Current web and Android JavaScript exports pass. These
+exports are not APK builds, visual interaction checks or proof of background notifications.
+
+PR #9 was already merged into rebuild before these later commits. The remaining work is in
+new draft PR #10: https://github.com/Pietrols/ProFit/pull/10. Each logical change has a separate
+commit and push; the generated Drizzle snapshot is kept in its migration commit.
+
+Next is 5.8.6: selection, do-later, skip/restore, add/remove/replace, independent display order
+and future set-count changes. Do not rewrite the routine or any performed identity. UI hierarchy,
+steppers, durable drafts, history screens and native acceptance remain in their ordered steps.
+Phase 6 has not started. The physical 5.7 gate remains open.

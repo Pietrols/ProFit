@@ -119,7 +119,7 @@ ESLint, Prettier and their required development configuration are approved.
   verify exact relevant exercise-history calculations without all-history work per tick/save.
 - [x] 5.8.4 Add logged-set edit, delete and undo with stable identity, original performance time,
   conflict handling and recalculated totals/records.
-- [ ] 5.8.5 Add stable session-item/slot contracts and backward-compatible migrations/sync,
+- [x] 5.8.5 Add stable session-item/slot contracts and backward-compatible migrations/sync,
   preserving legacy histories, dirty edits and tombstones before structural session changes.
 - [ ] 5.8.6 Add select, do-later, skip/restore, add/remove/replace, reorder and set-count changes.
   Keep the original routine and performed results intact.

@@ -403,13 +403,14 @@ for history. The first stable variant is bilateral. Per-side wire semantics and 
 compatibility gate are finalized in 5.8.10. Commit schema fixtures before migrations, preserve
 pending legacy rows/tombstones, and complete indexed read compatibility before enabling writes.
 
-Storage is staged while this feature remains disabled. SQLite migration 8 permits a null
-original position and restores its indexes/invalidation triggers after copying legacy columns.
-PostgreSQL migration 0005 adds only the item table and nullable metadata columns. Drop its
-exercise_position NOT NULL constraint when switching result serialization to the union, before
-the D42 cutover. Until that complete slice, no structural collection/feature is advertised or
-written through app controls. Do not mistake the additive storage checkpoint for completed
-reader/sync compatibility.
+Storage preparation used SQLite migration 8 to permit a null original position and restore
+indexes/invalidation triggers after copying legacy columns. PostgreSQL migration 0005 added
+only the item table and nullable metadata columns. Migration 0006 drops exercise_position's
+NOT NULL constraint before the union serializer is registered. The completed 5.8.5 cutover
+advertises workout_structure_v1 with minimum protocol 2 and requires it on the client before
+sync. Normal workout logging now writes stable performances through the owned item/slot store.
+Exercise adaptation controls still wait for 5.8.6. Deploy server first, then app; preserve local
+rows, tombstones and cursors throughout the upgrade.
 
 ## D44. Resolve structural records before counting performed work
 The effective read model first scopes records to an owned session, then resolves revisions by

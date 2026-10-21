@@ -1,6 +1,6 @@
 import type { Collection } from './collections';
 
-// Prepared mappings. Register only with the required workout_structure_v1 negotiation gate.
+// Registered with the required workout_structure_v1 negotiation gate.
 export const sessionItemsCollection: Collection = {
   name: 'session_items',
   fields: [
