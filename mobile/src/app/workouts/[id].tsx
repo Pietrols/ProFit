@@ -4,6 +4,8 @@ import { useMe } from '@/features/auth/AuthProvider';
 import { SyncBanner } from '@/features/sync/SyncBanner';
 import { prefillFromSets, sessionTargets } from '@/features/workouts/logic';
 import { structuredWorkoutResults } from '@/features/workouts/structuredResults';
+import { chooseWorkoutSlot } from '@/features/workouts/workoutSelection';
+import { SessionExercises } from '@/features/workouts/SessionExercises';
 import { SetForm } from '@/features/workouts/SetForm';
 import { TimerControls } from '@/features/workouts/TimerControls';
 import { SessionClock } from '@/features/workouts/SessionClock';
@@ -103,6 +105,8 @@ function Workout({
   const [confirm, setConfirm] = useState<'completed' | 'abandoned' | null>(null);
   const [lastSet, setLastSet] = useState<string | null>(null);
   const [correcting, setCorrecting] = useState(false);
+  const [adjusting, setAdjusting] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState(() => new Map<string, SetDraftEntry>());
   useEffect(() => {
     let live = true;
@@ -125,10 +129,14 @@ function Workout({
   }, [user, session.id]);
   const summary = useMemo(() => structuredWorkoutResults(current), [current]);
   const active = session.status === 'active';
-  const next = summary.next;
+  const selection = useMemo(
+    () => chooseWorkoutSlot(current, selectedItemId),
+    [current, selectedItemId],
+  );
+  const next = selection.current;
   const draftKey = next ? `${next.id}/${units}` : '';
   const changesBlocked =
-    busy || correcting || workouts.stale || !!workouts.error || !summary.available;
+    busy || correcting || adjusting || workouts.stale || !!workouts.error || !summary.available;
   const savedNext = next ? logs.find((log) => log.id === next.id) : null;
   const awakeError = useWorkoutAwake(active);
   useEffect(() => {
@@ -225,7 +233,11 @@ function Workout({
         <AppText variant="label">{active ? 'In progress' : session.status}</AppText>
         <SessionClock startedAt={session.startedAt} endedAt={session.endedAt} />
         <AppText>
-          {summary.completed} / {summary.total} sets logged
+          {summary.completed} / {summary.total} current target sets logged
+        </AppText>
+        <AppText color="text2">
+          Original routine: {summary.originalCompleted} / {summary.originalTotal} sets logged.
+          Omitted: {summary.originalOmitted}. Additional logged sets: {summary.addedCompleted}.
         </AppText>
       </Card>
       {workouts.error ? (
@@ -322,10 +334,32 @@ function Workout({
       ) : active && summary.available ? (
         <Card>
           <AppText variant="title">
-            {session.snapshot.restDay ? 'Rest day' : 'All planned sets logged'}
+            {session.snapshot.restDay ? 'Rest day' : 'No pending sets'}
           </AppText>
-          <AppText>Finish when you are ready.</AppText>
+          <AppText>
+            {summary.actualCompleted === 0
+              ? 'No sets logged. Review any omitted work before finishing.'
+              : 'Review your logged sets and finish when you are ready.'}
+          </AppText>
         </Card>
+      ) : null}
+      {active ? (
+        <SessionExercises
+          detail={current}
+          selected={next?.itemId ?? null}
+          busy={busy || correcting || workouts.stale || !!workouts.error || !summary.available}
+          select={(itemId) => {
+            setSelectedItemId(itemId);
+            setLastSet(null);
+          }}
+          change={(item, change) =>
+            run(async () => {
+              await workouts.adjust({ kind: 'change', item, change });
+              setLastSet(null);
+            })
+          }
+          editingChanged={setAdjusting}
+        />
       ) : null}
       {summary.records
         .filter((r) => !active || r.setId === lastSet)
@@ -364,7 +398,7 @@ function Workout({
         logs={logs}
         items={itemView.items}
         units={units}
-        busy={busy || (active && !ready) || workouts.stale || !!workouts.error}
+        busy={busy || adjusting || (active && !ready) || workouts.stale || !!workouts.error}
         actions={workouts}
         execute={run}
         editingChanged={setCorrecting}
@@ -406,7 +440,7 @@ function Workout({
               <AppText>
                 {confirm === 'abandoned'
                   ? 'Abandon this session? Saved sets are kept, but the plan will not advance.'
-                  : `Finish with ${summary.completed} of ${summary.total} sets logged?`}
+                  : `Finish with ${summary.completed} of ${summary.total} current target sets logged? Original sets omitted: ${summary.originalOmitted}.`}
               </AppText>
               <Button
                 label={confirm === 'abandoned' ? 'Confirm abandon' : 'Confirm finish'}

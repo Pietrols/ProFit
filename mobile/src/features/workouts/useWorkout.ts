@@ -9,6 +9,7 @@ import { useWorkoutQuery } from './useWorkoutQuery';
 import { readStructuredWorkoutDetail } from './structuredDetail';
 import { logStableSet } from './stableLogging';
 import type { StablePerformanceInput } from './stablePerformance';
+import { adjustSession, type SessionAdjustment } from './sessionAdjustments';
 import * as store from './workouts';
 
 export function useWorkout(id: string) {
@@ -48,6 +49,8 @@ export function useWorkout(id: string) {
       if (input.item.sessionId !== id) throw new Error('Choose a set from this workout.');
       return write((user) => logStableSet(db, user, input, new Date()));
     },
+    adjust: (command: SessionAdjustment) =>
+      write((user) => adjustSession(db, user, id, command, new Date())),
     correct: (target: SetRecord, values: SetValues, restore = false) => {
       checkTarget(target);
       return write((user) => correctLoggedSet(db, user, target, values, new Date(), restore));
