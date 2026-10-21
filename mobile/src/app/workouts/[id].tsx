@@ -355,6 +355,12 @@ function Workout({
           change={(item, change) =>
             run(async () => {
               await workouts.adjust({ kind: 'change', item, change });
+              if (
+                change.kind === 'state' &&
+                change.state !== 'active' &&
+                item.id === selectedItemId
+              )
+                setSelectedItemId(null);
               setLastSet(null);
             })
           }
@@ -362,6 +368,22 @@ function Workout({
             run(async () => {
               await workouts.adjust({ kind: 'move', item, order: itemView.items, direction });
               if (direction === 'later') setSelectedItemId(null);
+              setLastSet(null);
+            })
+          }
+          edit={(mode, item, id, exercise) =>
+            run(async () => {
+              if (mode === 'add') await workouts.adjust({ kind: 'add', id, exercise });
+              else if (mode === 'replace' && item)
+                await workouts.adjust({ kind: 'replace', item, id, exercise });
+              else if (mode === 'targets' && item)
+                await workouts.adjust({
+                  kind: 'change',
+                  item,
+                  change: { kind: 'targets', targets: exercise },
+                });
+              else throw new Error('Choose an available session exercise.');
+              if (mode !== 'targets') setSelectedItemId(id);
               setLastSet(null);
             })
           }

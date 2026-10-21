@@ -6,6 +6,8 @@ import { TextField } from '@/ui/TextField';
 import { workoutItemProgress } from './itemProgress';
 import type { AdjustmentContext, ItemChange } from './sessionChanges';
 import type { MoveDirection } from './sessionOrder';
+import { WorkoutExerciseEditor, type ExerciseEditorMode } from './WorkoutExerciseEditor';
+import type { SnapshotExercise } from './types';
 import type { SessionItem } from './structureTypes';
 
 export function SessionExercises({
@@ -16,6 +18,7 @@ export function SessionExercises({
   change,
   editingChanged,
   move,
+  edit,
 }: {
   detail: AdjustmentContext;
   selected: string | null;
@@ -24,8 +27,18 @@ export function SessionExercises({
   change: (item: SessionItem, change: ItemChange) => Promise<void>;
   editingChanged: (editing: boolean) => void;
   move: (item: SessionItem, direction: MoveDirection) => Promise<void>;
+  edit: (
+    mode: ExerciseEditorMode,
+    item: SessionItem | null,
+    id: string,
+    exercise: SnapshotExercise,
+  ) => Promise<void>;
 }) {
   const [expanded, setExpanded] = useState(false);
+  const [editor, setEditor] = useState<{
+    mode: ExerciseEditorMode;
+    item: SessionItem | null;
+  } | null>(null);
   const [intent, setIntent] = useState<{
     item: SessionItem;
     state: 'skipped' | 'removed';
@@ -34,7 +47,16 @@ export function SessionExercises({
   const [error, setError] = useState<string | null>(null);
   useEffect(() => () => editingChanged(false), [editingChanged]);
   const rows = useMemo(() => workoutItemProgress(detail), [detail]);
-  const blocked = busy || !!intent;
+  const blocked = busy || !!intent || !!editor;
+  function openEditor(mode: ExerciseEditorMode, item: SessionItem | null) {
+    setEditor({ mode, item });
+    setError(null);
+    editingChanged(true);
+  }
+  function closeEditor() {
+    setEditor(null);
+    editingChanged(false);
+  }
   function close() {
     setIntent(null);
     setError(null);
@@ -79,6 +101,22 @@ export function SessionExercises({
       {expanded ? (
         <>
           <AppText variant="title">For this workout</AppText>
+          <Button
+            label="Add exercise to workout"
+            variant="secondary"
+            disabled={blocked}
+            onPress={() => openEditor('add', null)}
+          />
+          {editor ? (
+            <WorkoutExerciseEditor
+              key={`${editor.mode}/${editor.item?.id ?? 'new'}`}
+              mode={editor.mode}
+              item={editor.item}
+              busy={busy}
+              cancel={closeEditor}
+              save={(id, exercise) => edit(editor.mode, editor.item, id, exercise)}
+            />
+          ) : null}
           {error ? (
             <AppText color="caution" accessibilityLiveRegion="polite">
               {error}
@@ -145,6 +183,18 @@ export function SessionExercises({
                       variant="secondary"
                       disabled={blocked || !canTrain}
                       onPress={() => select(item.id)}
+                    />
+                    <Button
+                      label={`Edit workout targets for ${item.exercise.name}`}
+                      variant="secondary"
+                      disabled={blocked}
+                      onPress={() => openEditor('targets', item)}
+                    />
+                    <Button
+                      label={`Replace remaining ${item.exercise.name} work`}
+                      variant="secondary"
+                      disabled={blocked || !canTrain}
+                      onPress={() => openEditor('replace', item)}
                     />
                     <Button
                       label={`Do ${item.exercise.name} later`}
