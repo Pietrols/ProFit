@@ -443,3 +443,29 @@ phone clock moved backward. Prior undo receipts then fail the full revision chec
 legacy slot may become stable only through this explicit new performance; ordinary corrections
 keep its legacy variant and unknown historical targets. Saving commits before any rest timer or
 alert starts. Structural controls and sync cutover remain disabled until 5.8.5 is complete.
+
+## D46. Apply session adjustments against reviewed owned revisions
+Step 5.8.6 commands read the owned active session and complete effective item/result view in
+one transaction. Reject unavailable data, ended sessions, stale reviewed items and stale order
+snapshots. State changes preserve every result; skipped and removed work can be restored with
+its original identity. Reasons are optional text of at most 500 characters. A command makes
+its edit time later than the affected stored revisions even after a clock rollback.
+
+Reorder and Do later change independent display positions only. Reorder validates the reviewed
+order before writing changed positions, including virtual planned items that need an override.
+Selection is account/session-local view state; it never completes work or rewrites the plan.
+Choose the first outstanding slot of a selected active item, then fall back to the normal queue
+when that item has no pending work. Saved incomplete slots remain reviewable through correction.
+
+Set counts stay within 1 to 100. A local reduction removes only future tail slots and refuses
+any tail containing a live saved result, including incomplete work. Delete a saved result
+explicitly before omitting its slot. Late synced results beyond a reduced count remain eligible
+actuals under D43; receiving one does not silently expand targets. Added sets use the existing
+stable item/index namespace and never reuse an identity from another exercise.
+
+Add and Replace use a fresh device-generated item id and a reviewed exercise/target snapshot.
+Replacement atomically removes only the source's remaining work and adds a linked new item;
+no values, fields or performance times are transferred. New exercise defaults follow the
+existing library tracking rules. Targets remain editable for this workout. All related item
+writes and history invalidations commit together or roll back together. Plan rows and original
+session snapshots are never part of an adjustment write.
