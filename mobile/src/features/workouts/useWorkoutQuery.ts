@@ -19,8 +19,11 @@ export function useWorkoutQuery<T>(
     identity: string;
     data: T | null;
     error: string | null;
+    revision: number;
   } | null>(null);
   const refreshRef = useRef<(() => Promise<boolean>) | null>(null);
+  const revisionRef = useRef(0);
+  const currentRevision = useCallback(() => revisionRef.current, []);
   const refresh = useCallback(() => refreshRef.current?.() ?? Promise.resolve(false), []);
   const retry = useCallback(() => {
     void refresh();
@@ -36,11 +39,15 @@ export function useWorkoutQuery<T>(
           return current.status === 'signedIn' ? current.userId : null;
         },
         load: () => load(db, userId),
-        publish: (data) => setResult({ identity, data, error: null }),
+        publish: (data) => {
+          const revision = ++revisionRef.current;
+          setResult({ identity, data, error: null, revision });
+        },
         fail: (error) =>
           setResult((previous) => ({
             identity,
             data: previous?.identity === identity ? previous.data : null,
+            revision: previous?.identity === identity ? previous.revision : 0,
             error: error instanceof Error ? error.message : 'Could not read workouts.',
           })),
       });
@@ -62,6 +69,9 @@ export function useWorkoutQuery<T>(
 
   return {
     userId,
+    loaded: enabled && result?.identity === identity,
+    revision: result?.identity === identity ? result.revision : 0,
+    currentRevision,
     data: enabled && result?.identity === identity ? result.data : null,
     error: enabled && result?.identity === identity ? result.error : null,
     refresh,

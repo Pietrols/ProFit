@@ -2,12 +2,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMe } from '@/features/auth/AuthProvider';
 import { SyncBanner } from '@/features/sync/SyncBanner';
-import {
-  prefill,
-  sessionResults,
-  sessionTargets,
-  type WorkoutHistory,
-} from '@/features/workouts/logic';
+import { prefillFromSets, sessionResultsFromSets, sessionTargets } from '@/features/workouts/logic';
 import { SetForm } from '@/features/workouts/SetForm';
 import { TimerControls } from '@/features/workouts/TimerControls';
 import { SessionClock } from '@/features/workouts/SessionClock';
@@ -17,7 +12,8 @@ import {
   timerAfterLogs,
 } from '@/features/workouts/timerStorage';
 import { pauseTimer, resumeTimer, startTimer, type TimerState } from '@/features/workouts/timers';
-import { useWorkouts } from '@/features/workouts/useWorkouts';
+import { useWorkout } from '@/features/workouts/useWorkout';
+import type { WorkoutDetail } from '@/features/workouts/workoutDetail';
 import { useWorkoutAwake } from '@/features/workouts/useWorkoutAwake';
 import { useWorkoutAlerts } from '@/features/workouts/WorkoutAlerts';
 import type { SetValues } from '@/features/workouts/types';
@@ -32,8 +28,8 @@ import { Screen } from '@/ui/Screen';
 import { TextField } from '@/ui/TextField';
 export default function WorkoutScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const workouts = useWorkouts();
-  if (!workouts.data)
+  const workouts = useWorkout(id);
+  if (!workouts.loaded || (!workouts.data && workouts.error))
     return (
       <Screen title="Workout">
         <EmptyState
@@ -45,7 +41,7 @@ export default function WorkoutScreen() {
         />
       </Screen>
     );
-  const current = workouts.data.find((h) => h.session.id === id);
+  const current = workouts.data;
   if (!current || !workouts.userId)
     return (
       <Screen title="Workout">
@@ -72,8 +68,8 @@ function Workout({
   workouts,
   user,
 }: {
-  current: WorkoutHistory;
-  workouts: ReturnType<typeof useWorkouts>;
+  current: WorkoutDetail;
+  workouts: ReturnType<typeof useWorkout>;
   user: string;
 }) {
   const { session, logs } = current;
@@ -117,8 +113,8 @@ function Workout({
     };
   }, [user, session.id]);
   const summary = useMemo(
-    () => sessionResults(session, logs, workouts.data ?? []),
-    [session, logs, workouts.data],
+    () => sessionResultsFromSets(session, logs, current.previousSets),
+    [session, logs, current.previousSets],
   );
   const active = session.status === 'active';
   const next = summary.next;
@@ -130,14 +126,13 @@ function Workout({
   const initial = useMemo(
     () =>
       exercise
-        ? prefill(
+        ? prefillFromSets(
             exercise,
             sessionTargets(exercise, session.snapshot.difficulty, session.easierToday),
-            workouts.data ?? [],
-            session.startedAt,
+            current.previousSets,
           )
         : {},
-    [exercise, session.snapshot.difficulty, session.easierToday, session.startedAt, workouts.data],
+    [exercise, session.snapshot.difficulty, session.easierToday, current.previousSets],
   );
   async function saveTimer(value: TimerState | null) {
     ++timerVersion.current;
@@ -216,6 +211,11 @@ function Workout({
         </>
       ) : null}
       {error ? <AppText color="caution">{error}</AppText> : null}
+      {workouts.stale && !workouts.error ? (
+        <AppText color="text2" accessibilityLiveRegion="polite">
+          Refreshing saved workout.
+        </AppText>
+      ) : null}
       {awakeError && active ? <AppText color="caution">{awakeError}</AppText> : null}
       {active && !ready ? (
         error ? (
@@ -271,7 +271,7 @@ function Workout({
             exercise={exercise}
             initial={initial}
             units={units}
-            busy={busy || !ready}
+            busy={busy || !ready || workouts.stale || !!workouts.error}
             onLog={log}
           />
         </Card>
