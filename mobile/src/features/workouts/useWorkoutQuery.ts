@@ -3,7 +3,7 @@ import { useCallback, useRef, useState } from 'react';
 import type { Database } from '../../lib/db/database';
 import { useAuth, useAuthStore } from '../auth/AuthProvider';
 import { useSyncContext } from '../sync/SyncProvider';
-import { createWorkoutReader } from './workoutReader';
+import { createWorkoutReader, refreshAfterSync } from './workoutReader';
 
 export function useWorkoutQuery<T>(
   key: string,
@@ -53,12 +53,7 @@ export function useWorkoutQuery<T>(
       });
       refreshRef.current = reader.refresh;
       void reader.refresh();
-      let syncing = engine.getStatus().syncing;
-      const unsubscribe = engine.subscribe(() => {
-        const next = engine.getStatus().syncing;
-        if (syncing && !next) void reader.refresh();
-        syncing = next;
-      });
+      const unsubscribe = refreshAfterSync(engine, reader.refresh);
       return () => {
         reader.dispose();
         unsubscribe();

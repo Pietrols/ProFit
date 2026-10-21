@@ -1,5 +1,5 @@
 import { expect, it, vi } from 'vitest';
-import { createWorkoutReader } from '../workoutReader';
+import { createWorkoutReader, refreshAfterSync } from '../workoutReader';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -10,6 +10,37 @@ function deferred<T>() {
   });
   return { promise, resolve, reject };
 }
+
+it('refreshes once at sync completion, without rereading on start or pending-count updates', () => {
+  let syncing = false;
+  let listener: (() => void) | null = null;
+  const source = {
+    getStatus: () => ({ syncing }),
+    subscribe(callback: () => void) {
+      listener = callback;
+      return () => {
+        listener = null;
+      };
+    },
+  };
+  const refresh = vi.fn(async () => true);
+  const unsubscribe = refreshAfterSync(source, refresh);
+  const emit = (next: boolean) => {
+    syncing = next;
+    listener?.();
+  };
+  emit(false);
+  emit(true);
+  emit(true);
+  expect(refresh).not.toHaveBeenCalled();
+  emit(false);
+  emit(false);
+  expect(refresh).toHaveBeenCalledOnce();
+  unsubscribe();
+  emit(true);
+  emit(false);
+  expect(refresh).toHaveBeenCalledOnce();
+});
 
 it('does not let a slow pre-save read replace a newer post-save result', async () => {
   const before = deferred<string>();

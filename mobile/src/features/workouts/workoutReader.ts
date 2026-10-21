@@ -35,3 +35,15 @@ export function createWorkoutReader<T>({
     },
   };
 }
+
+export function refreshAfterSync(
+  source: { getStatus(): { syncing: boolean }; subscribe(listener: () => void): () => void },
+  refresh: () => Promise<boolean>,
+) {
+  let syncing = source.getStatus().syncing;
+  return source.subscribe(() => {
+    const next = source.getStatus().syncing;
+    if (syncing && !next) void refresh();
+    syncing = next;
+  });
+}

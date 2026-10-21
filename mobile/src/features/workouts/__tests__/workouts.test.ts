@@ -22,6 +22,7 @@ import {
   updateSession,
 } from '../workouts';
 import { at, other, sessionId, set, snapshot, user } from './fixtures';
+import { refreshHistoryIndex } from '../historyIndex';
 
 async function fixture(existing?: Database) {
   const db = existing ?? (await testDatabase());
@@ -249,19 +250,33 @@ describe('workouts on SQLite', () => {
       snapshot: snapshot(),
     });
     expect(await listSets(b, user, sessionId)).toHaveLength(1);
+    await refreshHistoryIndex(b, user);
+    expect(
+      await b.first('SELECT weight FROM workout_history_index WHERE user_id = ?', [user]),
+    ).toEqual({ weight: 45 });
+    await saveSet(b, user, { ...set(), values: { reps: 9, weight: 50 } }, at(3));
     await updateSession(b, user, sessionId, { notes: 'Edited on B', easierToday: false }, at(3));
     await eb.sync();
     await ea.sync();
     expect((await getSession(a, user, sessionId))!.notes).toBe('Edited on B');
+    await refreshHistoryIndex(a, user);
+    expect(
+      await a.first('SELECT weight, reps FROM workout_history_index WHERE user_id = ?', [user]),
+    ).toEqual({ weight: 50, reps: 9 });
     await deleteSession(a, user, sessionId, at(4));
     await ea.sync();
     await eb.sync();
     expect(await listSessions(b, user)).toEqual([]);
     expect(await listSets(b, user, sessionId)).toEqual([]);
+    await refreshHistoryIndex(b, user);
+    expect(await b.all('SELECT * FROM workout_history_index WHERE user_id = ?', [user])).toEqual(
+      [],
+    );
   });
   it('accepts a child before its session without displaying an orphan', async () => {
     const { db: a } = await fixture();
     await saveSet(a, user, set(), at(1));
+    await finishSession(a, user, sessionId, 'completed', at(2));
     const b = await testDatabase();
     const server = fakeSyncServer();
     const ea = createSyncEngine({
@@ -281,9 +296,17 @@ describe('workouts on SQLite', () => {
     await eb.setUser(user);
     await eb.sync();
     expect(await listSets(b, user, sessionId)).toEqual([]);
+    await refreshHistoryIndex(b, user);
+    expect(await b.all('SELECT * FROM workout_history_index WHERE user_id = ?', [user])).toEqual(
+      [],
+    );
     const max = Math.max(...[...server.rows.values()].map((r) => r.version));
     server.rows.set(sessionId, { ...stored, version: max + 1 });
     await eb.sync();
     expect(await listSets(b, user, sessionId)).toHaveLength(1);
+    await refreshHistoryIndex(b, user);
+    expect(
+      await b.first('SELECT weight FROM workout_history_index WHERE user_id = ?', [user]),
+    ).toEqual({ weight: 45 });
   });
 });

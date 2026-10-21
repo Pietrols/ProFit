@@ -71,6 +71,10 @@ describe('bounded workout reads', () => {
     for (const count of [50, 500, 2000]) {
       const { db, reads, driver } = await fixture(count, 20);
       await readWorkoutDetail(db, user, id(count - 1));
+      const coldSetReads = reads.filter((q) => q.sql.includes('FROM set_logs'));
+      expect(coldSetReads.reduce((n, q) => n + q.rows, 0)).toBe(count * 20);
+      expect(coldSetReads).toHaveLength(count / 25 + 1);
+      expect(coldSetReads.every((q) => q.rows <= 500)).toBe(true);
       reads.length = 0;
       const current = (await readWorkoutDetail(db, user, id(count - 1)))!;
       expect(reads).toHaveLength(5);
