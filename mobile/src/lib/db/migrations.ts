@@ -1,4 +1,5 @@
 import type { Migration } from './database';
+import { timeSqlV1 } from './timeSql';
 
 // The phone's schema, one step per version. Never edit a step that has shipped; add a new one.
 //
@@ -110,6 +111,14 @@ CREATE TABLE set_logs (
 );
 CREATE INDEX set_logs_user_dirty ON set_logs (user_id, dirty);
 CREATE INDEX set_logs_user_session ON set_logs (user_id, session_id);
+`,
+  },
+  {
+    version: 5,
+    sql: `
+CREATE INDEX workout_sessions_page ON workout_sessions (user_id, ${timeSqlV1('started_at')} DESC, id) WHERE deleted_at IS NULL;
+CREATE INDEX workout_sessions_active ON workout_sessions (user_id, status, ${timeSqlV1('started_at')} DESC, id) WHERE deleted_at IS NULL;
+CREATE INDEX workout_sessions_completion ON workout_sessions (user_id, plan_id, status, ${timeSqlV1('ended_at')} DESC, id) WHERE deleted_at IS NULL;
 `,
   },
 ];

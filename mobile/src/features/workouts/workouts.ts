@@ -6,14 +6,14 @@ import type { SessionInput, SetInput, SetLog, WorkoutSession } from './types';
 
 export { setLogId } from './identity';
 
-const SESSION_COLUMNS = `id, plan_id AS planId, day_id AS dayId, local_date AS localDate,
+export const SESSION_COLUMNS = `id, plan_id AS planId, day_id AS dayId, local_date AS localDate,
   started_at AS startedAt, ended_at AS endedAt, status, notes, easier_today AS easierToday,
   snapshot, updated_at AS updatedAt`;
-type SessionRow = Omit<WorkoutSession, 'snapshot' | 'easierToday'> & {
+export type SessionRow = Omit<WorkoutSession, 'snapshot' | 'easierToday'> & {
   snapshot: string;
   easierToday: number;
 };
-function readSession(row: SessionRow): WorkoutSession {
+export function readSession(row: SessionRow): WorkoutSession {
   const result = {
     ...row,
     snapshot: JSON.parse(row.snapshot) as WorkoutSession['snapshot'],

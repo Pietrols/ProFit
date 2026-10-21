@@ -189,7 +189,7 @@ describe('workouts on SQLite', () => {
       { name: 'Keep me', shape: 'cycle', difficulty: 'standard', active: true },
       at(0),
     );
-    expect(await migrate(db, migrations)).toBe(4);
+    expect(await migrate(db, migrations)).toBe(Math.max(...migrations.map((m) => m.version)));
     expect(await db.first('SELECT name, dirty FROM plans WHERE id = ?', [planId])).toEqual({
       name: 'Keep me',
       dirty: 1,
