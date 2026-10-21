@@ -5,10 +5,12 @@ import { parseInput } from '../lib/validation.js';
 import { currentUserId } from '../middleware/auth.js';
 import { COLLECTION_NAMES, type CollectionName } from '../sync/collections.js';
 import { MAX_BATCH, pull, push } from '../sync/service.js';
+import { requireSyncProtocol, SYNC_CAPABILITIES } from '../sync/protocol.js';
 
 // Each record is validated on its own inside push(), so one bad record is reported instead of
 // failing the whole batch. Here only the envelope is checked.
 const PushBody = z.strictObject({
+  protocol: z.union([z.literal(1), z.literal(2)]).optional(),
   changes: z.strictObject(
     Object.fromEntries(
       COLLECTION_NAMES.map((name) => [name, z.array(z.unknown()).max(MAX_BATCH).optional()]),
@@ -25,12 +27,18 @@ const PullQuery = z.object({
 export function syncRouter(db: Db, now: () => Date): Router {
   const router = Router();
 
+  router.get('/capabilities', (_req, res) => {
+    res.json(SYNC_CAPABILITIES);
+  });
+
   router.post('/push', async (req, res) => {
+    requireSyncProtocol(req.body?.protocol === undefined ? 1 : req.body.protocol);
     const { changes } = parseInput(PushBody, req.body);
     res.json(await push(db, currentUserId(res), changes, now()));
   });
 
   router.get('/pull', async (req, res) => {
+    requireSyncProtocol(req.query.protocol === undefined ? 1 : Number(req.query.protocol));
     const { since, limit } = parseInput(PullQuery, req.query);
     res.json(await pull(db, currentUserId(res), since, limit));
   });

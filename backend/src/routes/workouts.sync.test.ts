@@ -71,6 +71,43 @@ beforeEach(() => resetTables(database));
 afterAll(() => database.close());
 
 describe('workout sync', () => {
+  it('advertises transport compatibility and accepts protocol 2 with legacy result shapes', async () => {
+    const token = await signIn();
+    const auth = `Bearer ${token}`;
+    expect((await request(app).get('/sync/capabilities').set('Authorization', auth)).body).toEqual({
+      protocols: [1, 2],
+      minimumProtocol: 1,
+      features: [],
+    });
+    const changes = { workout_sessions: [session()], set_logs: [set()] };
+    const response = await request(app)
+      .post('/sync/push')
+      .set('Authorization', auth)
+      .send({ protocol: 2, changes });
+    expect(response.body.applied).toEqual([id(1), id(2)]);
+    const page = await request(app)
+      .get('/sync/pull')
+      .query({ protocol: 2 })
+      .set('Authorization', auth);
+    expect(page.body.changes).toMatchObject(changes);
+  });
+
+  it('rejects unsupported versions before applying any changes or returning a pull page', async () => {
+    const token = await signIn();
+    const auth = `Bearer ${token}`;
+    const denied = await request(app)
+      .post('/sync/push')
+      .set('Authorization', auth)
+      .send({ protocol: 3, changes: { workout_sessions: [session()] } });
+    expect(denied.status).toBe(426);
+    expect(denied.body.error.code).toBe('SYNC_UPGRADE_REQUIRED');
+    expect((await pull(token)).body.changes.workout_sessions).toEqual([]);
+    expect(
+      (await request(app).get('/sync/pull').query({ protocol: 3 }).set('Authorization', auth))
+        .status,
+    ).toBe(426);
+    expect((await request(app).get('/sync/capabilities')).status).toBe(401);
+  });
   it('round trips snapshots, selected values, completed state and retries', async () => {
     const token = await signIn();
     const changes = { workout_sessions: [session()], set_logs: [set()] };
