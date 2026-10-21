@@ -20,6 +20,7 @@ describe('migrate', () => {
       'plan_days',
       'plan_exercises',
       'plans',
+      'session_items',
       'set_logs',
       'sync_state',
       'weight_entries',

@@ -56,10 +56,12 @@ async function fixture() {
 it('adds a rebuild queue without changing populated canonical rows or pending sync edits', async () => {
   const db = await fixture();
   const sessions = await db.all('SELECT * FROM workout_sessions ORDER BY id');
-  const sets = await db.all('SELECT * FROM set_logs ORDER BY id');
+  const legacySetColumns = `id, user_id, session_id, exercise_position, set_index, logged_at,
+    log_fields, values_json, updated_at, deleted_at, dirty`;
+  const sets = await db.all(`SELECT ${legacySetColumns} FROM set_logs ORDER BY id`);
   await migrate(db, migrations);
   expect(await db.all('SELECT * FROM workout_sessions ORDER BY id')).toEqual(sessions);
-  expect(await db.all('SELECT * FROM set_logs ORDER BY id')).toEqual(sets);
+  expect(await db.all(`SELECT ${legacySetColumns} FROM set_logs ORDER BY id`)).toEqual(sets);
   expect(await db.all('SELECT * FROM workout_history_dirty')).toEqual([
     { user_id: user, session_id: sessionId },
   ]);

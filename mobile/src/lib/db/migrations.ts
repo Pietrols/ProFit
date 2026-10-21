@@ -2,6 +2,7 @@ import type { Migration } from './database';
 import { timeSqlV1 } from './timeSql';
 import { WORKOUT_HISTORY_V6 } from './workoutHistoryV6';
 import { WORKOUT_HISTORY_V7 } from './workoutHistoryV7';
+import { WORKOUT_STRUCTURE_V8 } from './workoutStructureV8';
 
 // The phone's schema, one step per version. Never edit a step that has shipped; add a new one.
 //
@@ -125,4 +126,5 @@ CREATE INDEX workout_sessions_completion ON workout_sessions (user_id, plan_id, 
   },
   { version: 6, sql: WORKOUT_HISTORY_V6 },
   { version: 7, sql: WORKOUT_HISTORY_V7 },
+  { version: 8, sql: WORKOUT_STRUCTURE_V8 },
 ];
