@@ -1,5 +1,7 @@
-import { completedSets, estimatedOneRepMax, type WorkoutHistory } from './logic';
-import type { SetLog } from './types';
+import { completedSets, estimatedOneRepMax, type ExerciseSet, type WorkoutHistory } from './logic';
+import { sessionInput, validateSession } from './model';
+import type { WorkoutResult } from './structureTypes';
+import type { WorkoutSession } from './types';
 
 export type ExerciseHistoryRow = {
   id: string;
@@ -14,17 +16,37 @@ export type ExerciseHistoryRow = {
   rest: number | null;
   eligibleWeight: number | null;
   oneRepMax: number | null;
-  log: SetLog;
+  log: WorkoutResult;
 };
 
 // Rebuildable comparison data. Canonical session/set validation stays in the existing logic.
 export function projectWorkoutHistory({ session, logs }: WorkoutHistory): ExerciseHistoryRow[] {
-  if (session.status !== 'completed' || session.endedAt === null) return [];
+  return projectPerformedHistory(
+    session,
+    completedSets(session, logs).map((log) => ({
+      exerciseId: session.snapshot.exercises[log.exercisePosition]!.exerciseId,
+      log,
+    })),
+  );
+}
+
+// Results have already passed the owned session/item/slot join. Keep both wire variants intact.
+export function projectPerformedHistory(
+  session: WorkoutSession & { deletedAt?: string | null },
+  results: readonly ExerciseSet[],
+): ExerciseHistoryRow[] {
+  if (
+    session.deletedAt ||
+    validateSession(sessionInput(session)) ||
+    session.status !== 'completed' ||
+    session.endedAt === null
+  )
+    return [];
   const completedMs = Date.parse(session.endedAt);
-  return completedSets(session, logs).map((log) => ({
+  return results.map(({ exerciseId, log }) => ({
     id: log.id,
     sessionId: session.id,
-    exerciseId: session.snapshot.exercises[log.exercisePosition]!.exerciseId,
+    exerciseId,
     completedMs,
     loggedMs: Date.parse(log.loggedAt),
     weight: log.values.weight ?? null,
@@ -34,6 +56,11 @@ export function projectWorkoutHistory({ session, logs }: WorkoutHistory): Exerci
     rest: log.values.rest ?? null,
     eligibleWeight: log.values.reps === 0 ? null : (log.values.weight ?? null),
     oneRepMax: estimatedOneRepMax(log.values.weight ?? 0, log.values.reps ?? 0),
-    log: { ...log, logFields: [...log.logFields], values: { ...log.values } },
+    log: {
+      ...log,
+      logFields: [...log.logFields],
+      values: { ...log.values },
+      ...('itemId' in log ? { targetsAtPerformance: { ...log.targetsAtPerformance } } : {}),
+    },
   }));
 }
