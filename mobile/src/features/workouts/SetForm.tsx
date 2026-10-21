@@ -29,9 +29,10 @@ export function SetForm({
   const [original] = useState(savedDraft?.original ?? initial);
   const [draft, setDraftState] = useState(() => savedDraft?.draft ?? setDraft(original, units));
   const draftRef = useRef(draft);
+  const submitting = useRef(false);
   const [error, setError] = useState<string | null>(null);
   function change(next: typeof draft) {
-    if (busy) return;
+    if (busy || submitting.current) return;
     draftRef.current = next;
     setDraftState(next);
     onDraftChange?.({ original, draft: next });
@@ -40,12 +41,15 @@ export function SetForm({
     change({ ...draftRef.current, [field]: value });
   }
   async function log() {
-    if (busy) return;
+    if (busy || submitting.current) return;
+    submitting.current = true;
     setError(null);
     try {
       await onLog(parseSetDraft(draftRef.current, exercise.logFields, units, original));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save this set.');
+    } finally {
+      submitting.current = false;
     }
   }
   return (

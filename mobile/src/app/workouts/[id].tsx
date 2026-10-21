@@ -6,7 +6,8 @@ import { prefillFromSets, sessionTargets } from '@/features/workouts/logic';
 import { structuredWorkoutResults } from '@/features/workouts/structuredResults';
 import { chooseWorkoutSlot } from '@/features/workouts/workoutSelection';
 import { SessionExercises } from '@/features/workouts/SessionExercises';
-import { SetForm } from '@/features/workouts/SetForm';
+import { DraftSetForm } from '@/features/workouts/DraftSetForm';
+import { draftResultRevision } from '@/features/workouts/draftRecord';
 import { TimerControls } from '@/features/workouts/TimerControls';
 import { SessionClock } from '@/features/workouts/SessionClock';
 import { LoggedSets } from '@/features/workouts/LoggedSets';
@@ -21,12 +22,7 @@ import type { StructuredWorkoutDetail } from '@/features/workouts/structuredDeta
 import { useWorkoutAwake } from '@/features/workouts/useWorkoutAwake';
 import { useWorkoutAlerts } from '@/features/workouts/WorkoutAlerts';
 import type { SetValues } from '@/features/workouts/types';
-import {
-  recordLabel,
-  setLabel,
-  volumeLabel,
-  type SetDraftEntry,
-} from '@/features/workouts/workoutForm';
+import { recordLabel, setLabel, volumeLabel } from '@/features/workouts/workoutForm';
 import { randomId } from '@/lib/randomId';
 import { kvStore } from '@/lib/storage/local';
 import { AppText } from '@/ui/AppText';
@@ -107,7 +103,6 @@ function Workout({
   const [correcting, setCorrecting] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState(() => new Map<string, SetDraftEntry>());
   useEffect(() => {
     let live = true;
     const version = ++timerVersion.current;
@@ -134,7 +129,8 @@ function Workout({
     [current, selectedItemId],
   );
   const next = selection.current;
-  const draftKey = next ? `${next.id}/${units}` : '';
+  const draftRevision = next ? draftResultRevision(current.resultRecords, next.id) : 'new';
+  const draftKey = next ? `${next.id}/${draftRevision}` : '';
   const changesBlocked =
     busy || correcting || adjusting || workouts.stale || !!workouts.error || !summary.available;
   const savedNext = next ? logs.find((log) => log.id === next.id) : null;
@@ -182,7 +178,8 @@ function Workout({
     void run(action).catch(() => {});
   };
   async function log(values: SetValues) {
-    if (!next || !nextItem || !exercise || savedNext || changesBlocked) return;
+    if (!next || !nextItem || !exercise || savedNext || changesBlocked || lock.current)
+      throw new Error('Refresh this set before logging it. Your draft is kept.');
     await run(async () => {
       const id = await workouts.log({
         item: nextItem,
@@ -190,11 +187,6 @@ function Workout({
         values,
         difficulty: session.snapshot.difficulty,
         easierToday: session.easierToday,
-      });
-      setDrafts((previous) => {
-        const remaining = new Map(previous);
-        remaining.delete(draftKey);
-        return remaining;
       });
       setLastSet(values.done === false ? null : id);
       try {
@@ -317,16 +309,19 @@ function Workout({
               or delete the saved result before logging a new performance.
             </AppText>
           ) : (
-            <SetForm
+            <DraftSetForm
               key={draftKey}
+              scope={{ user, session: session.id, item: next.itemId, slot: next.id }}
+              baseRevision={draftRevision}
               exercise={exercise}
               initial={initial}
               units={units}
               busy={changesBlocked || !ready}
               onLog={log}
-              savedDraft={drafts.get(draftKey)}
-              onDraftChange={(entry) =>
-                setDrafts((previous) => new Map(previous).set(draftKey, entry))
+              cleanupFailed={() =>
+                setError(
+                  'Set saved. Old draft cleanup failed. Saved results take precedence when reopening.',
+                )
               }
             />
           )}
