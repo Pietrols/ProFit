@@ -579,3 +579,25 @@ The unrelated local icon modification was excluded from every commit. No workout
 performance improvement is claimed by this tooling step. Step 5.8.3 is next: bounded reads,
 exact relevant history, shared invalidation and isolated clock rendering. The remaining
 corrections and the physical 5.7 phone gate remain open; Phase 6 has not started.
+
+## Step 5.8.3 checkpoint, 21 October 2026
+
+Implemented indexed overview and 25-row history-page queries, a two-query single-workout read,
+request/account guards, and shared Home/resume reads. The generated fixture contains 0, 50,
+500 and 2,000 sessions with up to 40,000 sets. Overview plus first page stays at three queries,
+at most 53 returned session rows and no set reads. Query plans use the new indexes without a
+temporary ordering tree. Tests cover pagination across tied instants/offsets, ownership,
+tombstones, active overflow and migration of populated unsynced data. The detail read returns
+one parent and its 20 fixture sets in two queries at both tested history sizes.
+
+The workout route no longer owns ticking state. SessionClock and TimerReadout own display
+refreshes, while results and prefills are memoized against their data. Display lifecycle tests
+cover 60 seconds of updates, ten minutes hidden, foreground catch-up, explicit pause and late
+callbacks after cleanup. Both package checks and all 333 mobile tests pass; web and Android
+JavaScript exports pass. CI passed through the display-clock lifecycle commit. Physical
+render/save latency and background notification results are still unmeasured.
+
+Step 5.8.3 remains unticked. The active workout hook still fetches the original broad history
+on focus/save; the next slice must replace that path with D40's exact relevant-history
+projection and aggregate reads. The new history query is data preparation for 5.8.8, not a
+claim that a history screen exists. Do not start 5.8.4 or Phase 6 from this checkpoint.

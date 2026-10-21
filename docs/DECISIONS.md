@@ -317,3 +317,29 @@ to mobile's TypeScript 6.0.3 instead of forcing an unsupported TypeScript 7 peer
 Keep the strict compiler settings and verify typecheck, build and database tests after this
 change. Reassess compiler and ESLint versions together when upgrading Expo's tooling.
 Reference: https://typescript-eslint.io/users/dependency-versions/ (checked 21 October 2026).
+
+## D40. Bounded workout reads and exact historical comparisons
+Home reads active session summaries and at most one latest completion for its plan, never set
+logs. Resume controls receive that same read. History uses 25-row keyset pages ordered by start
+instant descending and id ascending. SQLite expression indexes preserve Date.parse millisecond
+semantics, including offsets and fractional seconds; they do not rewrite dirty canonical rows.
+The versioned SQL expression is frozen because shipped migration indexes depend on it.
+
+Live display state belongs in clock/readout components. Session results and prefills depend on
+data revisions, not wall-clock ticks. Focused reads publish only for their current account and
+request version; sync completion refreshes once. These parts are implemented and tested.
+
+The remaining exercise-history read will use a rebuildable local projection of valid completed
+results, with numeric performance/completion instants and indexed exercise/metric columns.
+Canonical sessions and sets remain authoritative and retain their ids, timestamps and sync
+metadata. SQLite triggers transactionally mark changed sessions dirty after local or sync writes;
+projection reads repair those invalidations before returning comparisons. The projection is not
+a synced collection, and losing it must not lose a workout. Initial rebuilds and warm reads need
+separate query/row-count evidence. Do not claim phone timings from the Node fixture.
+
+Fetch exact latest values and metric bests for the requested exercises, cutoff and candidate
+loads, rather than clipping to the latest N workouts. Historical bests must respect completion
+cutoffs and loggedAt/id ordering, including equal instants. Return only the representatives
+needed for current-session calculations. Keep legacy pure-function entry points as equivalence
+oracles while introducing the bounded input path. This projection is approved design for the
+remainder of 5.8.3, not an implemented cache or a completed performance step.
