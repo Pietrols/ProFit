@@ -1,8 +1,11 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { AppText } from '@/ui/AppText';
 import { Button } from '@/ui/Button';
 import { TextField } from '@/ui/TextField';
 import type { SnapshotExercise, SetValues } from './types';
+import type { LogField } from '../plans/types';
+import { SetNumberField } from './SetNumberField';
+import { stepDraft, stepperSpec } from './stepDraft';
 import { fieldLabel, parseSetDraft, setDraft, type SetDraftEntry, type Units } from './workoutForm';
 export function SetForm({
   exercise,
@@ -25,15 +28,22 @@ export function SetForm({
 }) {
   const [original] = useState(savedDraft?.original ?? initial);
   const [draft, setDraftState] = useState(() => savedDraft?.draft ?? setDraft(original, units));
+  const draftRef = useRef(draft);
   const [error, setError] = useState<string | null>(null);
   function change(next: typeof draft) {
+    if (busy) return;
+    draftRef.current = next;
     setDraftState(next);
     onDraftChange?.({ original, draft: next });
   }
+  function changeField(field: LogField, value: string) {
+    change({ ...draftRef.current, [field]: value });
+  }
   async function log() {
+    if (busy) return;
     setError(null);
     try {
-      await onLog(parseSetDraft(draft, exercise.logFields, units, original));
+      await onLog(parseSetDraft(draftRef.current, exercise.logFields, units, original));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Could not save this set.');
     }
@@ -47,7 +57,27 @@ export function SetForm({
             label={draft.done === 'true' ? 'Done: yes' : 'Mark done'}
             variant="secondary"
             disabled={busy}
-            onPress={() => change({ ...draft, done: draft.done === 'true' ? 'false' : 'true' })}
+            onPress={() => changeField('done', draftRef.current.done === 'true' ? 'false' : 'true')}
+          />
+        ) : field === 'reps' || field === 'weight' ? (
+          <SetNumberField
+            key={`${field}/${units}`}
+            field={field}
+            units={units}
+            value={draft[field] ?? ''}
+            busy={busy}
+            change={(text) => changeField(field, text)}
+            adjust={(direction, increment) =>
+              changeField(
+                field,
+                stepDraft(
+                  draftRef.current[field] ?? '',
+                  direction,
+                  increment,
+                  stepperSpec(field, units),
+                ),
+              )
+            }
           />
         ) : (
           <TextField
@@ -57,7 +87,7 @@ export function SetForm({
             editable={!busy}
             keyboardType={field === 'notes' ? 'default' : 'decimal-pad'}
             multiline={field === 'notes'}
-            onChangeText={(value) => change({ ...draft, [field]: value })}
+            onChangeText={(value) => changeField(field, value)}
           />
         ),
       )}

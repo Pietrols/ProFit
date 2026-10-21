@@ -13,6 +13,7 @@ type Props<T> = {
   // Tapping the selected chip again clears the choice. Off for fields that always need a value.
   clearable?: boolean;
   hint?: string;
+  disabled?: boolean;
 };
 
 // A compact single choice for short options (units, days per week). Wraps onto more lines as needed.
@@ -23,6 +24,7 @@ export function ChipGroup<T extends string | number>({
   onChange,
   clearable = true,
   hint,
+  disabled = false,
 }: Props<T>) {
   const { colors, radius, space } = useAppTheme();
   return (
@@ -41,11 +43,13 @@ export function ChipGroup<T extends string | number>({
             <Pressable
               key={String(option.value)}
               accessibilityRole="radio"
-              accessibilityState={{ checked: selected }}
+              accessibilityState={{ checked: selected, disabled }}
+              disabled={disabled}
               onPress={() => onChange(selected && clearable ? null : option.value)}
               style={({ pressed }) => ({
                 minHeight: touchTarget - 4,
                 minWidth: touchTarget,
+                opacity: disabled ? 0.45 : 1,
                 paddingHorizontal: space.lg,
                 alignItems: 'center',
                 justifyContent: 'center',
