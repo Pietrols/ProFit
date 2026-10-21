@@ -11,6 +11,7 @@ import {
 import { SetForm } from '@/features/workouts/SetForm';
 import { TimerControls } from '@/features/workouts/TimerControls';
 import { SessionClock } from '@/features/workouts/SessionClock';
+import { LoggedSets } from '@/features/workouts/LoggedSets';
 import {
   loadWorkoutTimer,
   saveWorkoutTimer,
@@ -99,6 +100,7 @@ function Workout({
   const lock = useRef(false);
   const [confirm, setConfirm] = useState<'completed' | 'abandoned' | null>(null);
   const [lastSet, setLastSet] = useState<string | null>(null);
+  const [correcting, setCorrecting] = useState(false);
   useEffect(() => {
     let live = true;
     const version = ++timerVersion.current;
@@ -284,7 +286,7 @@ function Workout({
             exercise={exercise}
             initial={initial}
             units={units}
-            busy={busy || !ready || workouts.stale || !!workouts.error}
+            busy={busy || correcting || !ready || workouts.stale || !!workouts.error}
             onLog={log}
           />
         </Card>
@@ -328,6 +330,28 @@ function Workout({
           ) : null}
         </Card>
       )}
+      <LoggedSets
+        session={session}
+        logs={logs}
+        units={units}
+        busy={busy || (active && !ready) || workouts.stale || !!workouts.error}
+        actions={workouts}
+        execute={run}
+        editingChanged={setCorrecting}
+        changed={() => setLastSet(null)}
+        deleted={async (id) => {
+          if (savedTimer?.sourceSetId === id) {
+            try {
+              await saveTimer(null);
+            } catch {
+              setReady(false);
+              setError('Set deleted. Reset the saved timer before continuing.');
+            }
+          } else if (savedTimer) {
+            setError('Set deleted. The timer was kept. Use Clear timer if you no longer need it.');
+          }
+        }}
+      />
       <TextField
         label="Session notes"
         value={notes}
