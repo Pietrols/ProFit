@@ -6,6 +6,8 @@ import { timeSqlV1 } from '../../../lib/db/timeSql';
 import { readWorkoutOverview, readWorkoutPage } from '../workoutReads';
 import { setLogId } from '../identity';
 import { readWorkout } from '../workouts';
+import { readWorkoutDetail } from '../workoutDetail';
+import { prefillFromSets, sessionResultsFromSets } from '../logic';
 import { at, other, snapshot, user } from './fixtures';
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n + 100).padStart(12, '0')}`;
@@ -65,6 +67,34 @@ async function fixture(count: number, sets = 0, legacy = false) {
 }
 
 describe('bounded workout reads', () => {
+  it('keeps warm detail and exact comparison reads constant as history reaches 40,000 sets', async () => {
+    for (const count of [50, 500, 2000]) {
+      const { db, reads, driver } = await fixture(count, 20);
+      await readWorkoutDetail(db, user, id(count - 1));
+      reads.length = 0;
+      const current = (await readWorkoutDetail(db, user, id(count - 1)))!;
+      expect(reads).toHaveLength(5);
+      expect(reads.reduce((n, q) => n + q.rows, 0)).toBeLessThanOrEqual(102);
+      const exercise = current.session.snapshot.exercises[0]!;
+      expect(prefillFromSets(exercise, exercise, current.previousSets)).toEqual({
+        reps: 8,
+        weight: 45,
+      });
+      const summary = sessionResultsFromSets(current.session, current.logs, current.previousSets);
+      expect(summary.volumeKg).toBe(7200);
+      expect(summary.records).toEqual([]);
+      for (const query of reads.filter((q) => q.sql.startsWith('WITH previous'))) {
+        const plan = await db.all<{ detail: string }>(
+          `EXPLAIN QUERY PLAN ${query.sql}`,
+          query.params,
+        );
+        const details = plan.map((row) => row.detail).join('\n');
+        expect(details).not.toContain('MATERIALIZE previous');
+        expect(details).toContain('SEARCH workout_history_index USING INDEX');
+      }
+      driver.raw.close();
+    }
+  });
   it('reads only the requested owned session and its sets, without a second parent query', async () => {
     for (const count of [50, 2000]) {
       const { db, reads } = await fixture(count, 20);
