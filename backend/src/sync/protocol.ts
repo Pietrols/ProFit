@@ -6,11 +6,11 @@ export type SyncCapabilities = {
   features: readonly string[];
 };
 
-// The minimum stays at 1 until the structural-record compatibility slice is complete (D42).
+// Old clients must upgrade before consuming structural records or advancing their cursor (D42).
 export const SYNC_CAPABILITIES: SyncCapabilities = {
   protocols: [1, 2],
-  minimumProtocol: 1,
-  features: [],
+  minimumProtocol: 2,
+  features: ['workout_structure_v1'],
 };
 
 export function requireSyncProtocol(protocol: unknown, capabilities = SYNC_CAPABILITIES): void {

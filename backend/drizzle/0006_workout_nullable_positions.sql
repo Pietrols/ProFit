@@ -1,0 +1,1 @@
+ALTER TABLE "set_logs" ALTER COLUMN "exercise_position" DROP NOT NULL;

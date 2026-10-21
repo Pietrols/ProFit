@@ -1,5 +1,5 @@
 import { readTimer, type TimerState } from './timers';
-type Storage = {
+export type WorkoutTimerStorage = {
   getItem(key: string): Promise<string | null>;
   setItem(key: string, value: string): Promise<void>;
   removeItem(key: string): Promise<void>;
@@ -23,7 +23,7 @@ export function timerAfterLogs(
   return timer;
 }
 export async function loadWorkoutTimer(
-  store: Storage,
+  store: WorkoutTimerStorage,
   user: string,
   session: string,
 ): Promise<TimerState | null> {
@@ -40,7 +40,7 @@ export async function loadWorkoutTimer(
   return timer;
 }
 export async function saveWorkoutTimer(
-  store: Storage,
+  store: WorkoutTimerStorage,
   user: string,
   session: string,
   timer: TimerState | null,

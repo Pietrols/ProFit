@@ -724,3 +724,188 @@ Next within 5.8.5: owned item/result readers and effective legacy/stable views, 
 projection/catalog reads, complete sync mappings and compatibility fixtures, then the atomic
 minimum-version/feature cutover. Require read equivalence and pending-data preservation before
 ticking the step. Adaptation commands/UI remain in 5.8.6. Phase 6 has not started.
+
+## Step 5.8.5 reader and command checkpoint, 21 October 2026
+
+Step 5.8.5 remains unticked. D44 defines the effective read eligibility rules and D45 defines
+new-performance logging. The following work is committed in small, separate changes:
+
+- Shared revision resolution preserves numeric edit-time ordering, tombstone precedence and
+  deterministic ties. Resolve legacy/stable results together before filtering eligibility.
+  Timestamp parsing is reused within each read batch, without a global mutable cache.
+- Effective item views adapt the original routine without writing canonical item rows. They
+  retain removed/skipped/tombstoned context, reject replacement cycles and missing parents,
+  and report malformed overrides instead of silently restoring original work.
+- Owned SQLite reads return canonical records, unavailable ids and effective result views.
+  Added results keep null original positions. Results arriving before their items become
+  readable when the owned item arrives. Deleted parents hide late children.
+- Legacy and stable results share volume, sparse prefill and PR calculations. Original target
+  snapshots remain unchanged; legacy performance targets remain unknown. Progress counts current
+  target slots separately from extra actual work, retains its volume and blocks next-work
+  selection/record celebrations when current data is incomplete.
+- History rebuilding joins item/result rows in batches of at most 25 sessions, with no query per
+  session. Stable results enter and leave the exact exercise projection through existing dirty
+  triggers/catalog tags. Removed/reduced items retain valid actual results. Comparison queries
+  use the performed exercise identity, including after future fields change to notes-only.
+- The new structured detail reader prepares owned data and exact comparisons in one transaction.
+  Its small warm fixture uses six queries with one parent read and one result read. Relevant
+  exercise requests are chunked below SQLite's older 999-parameter limit.
+- Correction/delete/undo now preserve stable metadata and include every captured target in the
+  revision fingerprint. SQLite regressions cover added, removed and reduced occurrences, equal
+  edit-time metadata conflicts, cache rebuilding and unchanged performance/session times.
+  Correction forms use performance fields rather than a later item's field selection.
+- Finishing checks all live stable/legacy logging times, including explicitly incomplete sets,
+  and rejects incomplete reads. Session deletion tombstones owned items. Legacy saves cannot
+  overwrite stable metadata. New stable logging checks the reviewed item/settings, commits
+  atomically, refuses replacement of live saved results and safely reuses explicitly deleted
+  slots. Rollback restores both the canonical row and its derived invalidation.
+- Prepared sync mappings round-trip item snapshots, nullable positions, stable targets and
+  tombstones. Absent legacy target metadata stays SQL NULL, while existing JSON-list defaults
+  stay unchanged. These new collection mappings are not registered yet.
+
+Validation: all 440 mobile tests pass. Both packages pass format, lint and typecheck, and the
+backend build and six supplemental pure backend tests pass. PostgreSQL CI remains the full
+backend gate under rule 8. Web and Android JavaScript exports pass for the correction-component
+changes. These checks do not claim a visual inspection, APK or physical-phone result.
+
+The 40,000-set regressions exposed repeated item/identity validation and timestamp parsing;
+both were reduced in separate performance fixes. A later CI run timed out while one
+test combined fixture generation and both targeted cold repairs under five seconds. A local
+Node/SQLite profile measured about 1.09 seconds for seeding, 1.25 seconds for related preparation,
+21 milliseconds for the warm read and 1.09 seconds for the other exercise's preparation. These
+are single host measurements, not phone latency or p95 guarantees. Fixture setup now runs in a
+hook and the 50/500/2000-session cases run separately. All query/row-count assertions and the
+five-second test limit remain. CI passed the adjusted harness and subsequent correction tests.
+
+The app still uses its legacy logging/detail route. Stable logging, structured detail/progress
+and the prepared mappings are tested foundations, not exposed adaptation controls. The server
+still advertises minimum protocol 1 and no structural feature; the client required-feature list
+is still empty. Do not deploy or describe this checkpoint as the completed compatibility slice.
+
+Next within 5.8.5:
+
+1. Register client mappings with the mandatory workout_structure_v1 preflight. Prove failed
+   negotiation retains new and legacy dirty rows, tombstones and cursors before any upload.
+2. Adopt structured detail/progress and stable logging in the hook/screen and alert read port.
+   Keep incomplete saved results editable, preserve performance fields and pin an open editor
+   if its item becomes unavailable. Do not add the 5.8.6 adaptation controls in this slice.
+3. Complete backend item/result mappings, the nullable-position migration and D42's minimum-2
+   feature cutover. Reject old-client whole requests before processing records or pull pages.
+   Deployment remains server first, then app; do not reset local storage or sync cursors.
+4. Run mixed legacy/stable two-client compatibility, ownership, arrival-order and dirty-data
+   regressions, confirm full CI and tick 5.8.5 only in its completing commit. Then start 5.8.6.
+
+
+## Step 5.8.5 completion, 21 October 2026
+
+Stable item/slot storage, readers, logging and sync compatibility are connected. The original
+routine snapshot and every legacy set identity remain intact. Normal new performance captures
+its effective targets, chosen fields, original item link and logging time. Logging rechecks the
+reviewed item and difficulty revision in the write transaction; a live saved slot requires
+correction or explicit deletion rather than silent replacement.
+
+The workout route uses the owned structured detail reader and stable logging command. Valid
+incomplete results remain in Logged sets for correction but contribute no completion, volume
+or records. An open correction retains the reviewed exercise form if a later read becomes
+unavailable. Unreadable or orphaned structural records show an incomplete-data message and
+block new performance and finishing until they resolve. Already performed work remains
+attributed to its original exercise when current item state or targets change.
+
+Both sync registries now include session_items and the result union. Absent legacy metadata
+stays SQL NULL, never a fabricated target. PostgreSQL migration 0006 permits null original
+positions; its isolated populated-table regression preserves live legacy rows and tombstones.
+The server requires protocol 2 before validating a push envelope or returning a pull page and
+advertises workout_structure_v1. The client requires that feature before media work, push,
+acknowledgement or pull. Deploy the server before the app without clearing local data or
+resetting cursors. Old apps receive HTTP 426 and retain pending local work until upgraded.
+
+Added acceptance evidence:
+
+- Failed protocol-2 feature negotiation leaves seven mixed dirty records and a nonzero cursor
+  unchanged. After support returns, both variants and item/result tombstones reach another
+  phone with zero values and exact performance metadata preserved.
+- Two offline phones add independent occurrences of the same exercise. Both survive sync.
+  Concurrent display reorder and result edit/delete converge using existing latest-edit rules;
+  Undo restores the same slot and original performance time. The routine is unchanged.
+- PostgreSQL API regressions cover legacy/stable round trips, whole-request old-client rejection,
+  foreign ownership protection, partial-metadata rejection, stale tombstone revival and
+  child-before-item-before-session pagination through one cursor.
+- Rest-alert recovery reads stable sources, including added exercises with null original
+  positions. Value correction keeps the original timer; incomplete/deleted sources and ended
+  or unavailable workouts are ineligible. This is read-port coverage, not a physical alert test.
+- Legacy and structured warm detail comparisons are checked at 50, 500 and 2,000 workouts of
+  20 sets. Structured reads use six queries and return at most 102 rows for this fixture.
+  Cold preparation retains the 25-session/500-result batch assertions. Cache construction is
+  fixture setup for the warm checks; their default five-second timeout is unchanged. A local
+  CPU profile also showed first-use cache construction remains materially more expensive than
+  warm reads. No phone latency or p95 claim is made from this host.
+
+Validation: 449 mobile tests pass locally, both packages pass formatting/lint/typecheck,
+backend build and six supplemental pure backend tests pass, and all 125 backend tests pass
+in PostgreSQL CI, which is the
+backend gate under Build Plan rule 8. Both jobs passed for commit 67cc792 in CI run
+39672695150. Current web and Android JavaScript exports pass. These
+exports are not APK builds, visual interaction checks or proof of background notifications.
+
+PR #9 was already merged into rebuild before these later commits. The remaining work is in
+new draft PR #10: https://github.com/Pietrols/ProFit/pull/10. Each logical change has a separate
+commit and push; the generated Drizzle snapshot is kept in its migration commit.
+
+Next is 5.8.6: selection, do-later, skip/restore, add/remove/replace, independent display order
+and future set-count changes. Do not rewrite the routine or any performed identity. UI hierarchy,
+steppers, durable drafts, history screens and native acceptance remain in their ordered steps.
+Phase 6 has not started. The physical 5.7 gate remains open.
+
+
+## Step 5.8.6 completion, 21 October 2026
+
+The workout's expandable exercise overview now offers Train now, Do later, skip/restore,
+remove/restore, move up/down, add, replace, future set-count changes and target/field editing.
+The screen labels these actions For this workout. The exercise picker reuses the existing
+library search, custom exercises and row component; target editing reuses the plan editor's
+fields and numeric parser. No dependency was added.
+
+Selection chooses the first pending slot of the chosen active exercise. It falls back to the
+normal queue when that item has no pending work and keeps incomplete saved slots reviewable.
+Draft keys remain stable slot/unit keys, so changing selection within the mounted workout keeps
+the previous set draft. The add/replace editor stays in that screen rather than navigating away.
+Durable draft storage and restart/unit behavior remain in 5.8.7; this is not a persistence claim.
+
+D46 commands validate the owned active session, complete data, reviewed item and (for moves)
+reviewed order inside one transaction. They write only item overrides and their derived-history
+invalidations. Failures roll back the entire group. Source rows, set identities, performance
+metadata, the original snapshot and saved plan are retained. New additions and replacements
+have independent device ids; replacement links to the omitted source rather than transferring
+its values. No draft weight is copied from the source exercise to a replacement.
+
+Skip and remove confirm the omission of remaining work with an optional reason. Restore returns
+the same item. A local set-count reduction refuses a live saved tail slot, including incomplete
+work; the UI disables removal when that final slot is already saved. Valid late synced results
+remain actuals beyond current targets. Original completed/omitted targets and additional logged
+work are counted separately. An all-skipped workout says No sets logged rather than claiming
+that its original targets were met.
+
+Evidence:
+
+- Pure selection, item changes, move and addition/replacement tests cover boundaries, stale
+  revisions, unknown data, ended workouts, independent identities and input immutability.
+- Real SQLite tests verify ownership, atomic multi-item replacement, retry after a failure in
+  the second write, foreign-id collision rollback and unchanged original results/snapshots.
+- The integrated busy-gym regression selects rows, defers/skips bench work, adds a plank,
+  reduces its future set count, replaces remaining row work and finishes. It verifies six
+  original target slots, two original completions, four omissions and two added completions.
+  Historical target counts and original performance times remain intact; ended sessions reject
+  further adjustments. This exercises commands/read models, not rendered taps.
+- Both packages pass formatting, lint and typecheck. All 474 mobile tests and all 125 backend
+  tests pass in CI for c39dbe6, push run 39677546283 and PR run 39677552924. Backend build and
+  six supplemental pure tests also pass locally under the no-local-Postgres rule.
+- Fresh web and Android JavaScript exports pass after the controls are connected. No APK,
+  rendered interaction, real-phone notification or populated-phone latency result is claimed.
+
+Small commits preserve each tested change, including separate command, storage, parser,
+shared-form, screen and integrated-regression commits. Draft PR #10 contains these changes.
+
+Next is 5.8.7: current-set hierarchy, relevant timer and next-exercise preview, compact overview,
+unit-safe weight/reps steppers and durable draft recovery. History/comparison screens and the
+remaining native/visual acceptance stay in their ordered correction steps. Phase 6 has not
+started and the physical 5.7 gate remains open.

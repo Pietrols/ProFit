@@ -1,13 +1,16 @@
 import { LOG_FIELDS } from '../plans/types';
 import { setInput, validateSet, validTime } from './model';
-import type { SetLog, SetValues } from './types';
+import { validateStableSetRecord } from './structureModel';
+import type { WorkoutResult } from './structureTypes';
+import type { SetValues } from './types';
 
-export type SetRecord = SetLog & { deletedAt: string | null };
+export type SetRecord = WorkoutResult & { deletedAt: string | null };
 export type SetUndoReceipt = { before: SetRecord; deletedRevision: string };
 const copy = (record: SetRecord): SetRecord => ({
   ...record,
   logFields: [...record.logFields],
   values: { ...record.values },
+  ...('itemId' in record ? { targetsAtPerformance: { ...record.targetsAtPerformance } } : {}),
 });
 
 export function setRevision(record: SetRecord): string {
@@ -20,6 +23,19 @@ export function setRevision(record: SetRecord): string {
     record.logFields,
     record.updatedAt,
     record.deletedAt,
+    ...('itemId' in record
+      ? [
+          record.itemId,
+          record.side,
+          [
+            record.targetsAtPerformance.sets,
+            record.targetsAtPerformance.targetReps,
+            record.targetsAtPerformance.targetTimeSeconds,
+            record.targetsAtPerformance.targetDistanceMetres,
+            record.targetsAtPerformance.restSeconds,
+          ],
+        ]
+      : [null, null, null]),
     LOG_FIELDS.map((field) => record.values[field] ?? null),
   ]);
 }
@@ -57,7 +73,7 @@ export function correctSet(
     deletedAt: null,
     updatedAt: nextEditTime(current.updatedAt, now),
   };
-  const error = validateSet(setInput(next));
+  const error = 'itemId' in next ? validateStableSetRecord(next) : validateSet(setInput(next));
   if (error) throw new Error(error);
   return next;
 }

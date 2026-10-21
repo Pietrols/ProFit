@@ -7,7 +7,7 @@ import {
   workoutSnapshot,
 } from './workoutSchemas.js';
 
-// Contract schemas only. Registration waits for migrations, readers and the D42 cutover.
+// Legacy and stable wire variants share the minimum-protocol gate defined in D42.
 export const sessionItemRecord = z
   .strictObject({
     ...syncFields,

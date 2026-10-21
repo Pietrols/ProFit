@@ -1,9 +1,18 @@
 import type { Database, Sql, SqlValue } from '../../lib/db/database';
-import { projectWorkoutHistory, type ExerciseHistoryRow } from './historyProjection';
-import type { SetLog } from './types';
+import { projectPerformedHistory, type ExerciseHistoryRow } from './historyProjection';
+import { structureFromRows } from './structureReads';
+import { ITEM_COLUMNS, RESULT_COLUMNS, type ItemRow, type ResultRow } from './structureRows';
 import { readSession, SESSION_COLUMNS, type SessionRow } from './workouts';
 
-type StoredSet = Omit<SetLog, 'logFields' | 'values'> & { logFields: string; values: string };
+function groupBySession<T extends { sessionId: string }>(rows: readonly T[]) {
+  const groups = new Map<string, T[]>();
+  for (const row of rows) {
+    const group = groups.get(row.sessionId) ?? [];
+    group.push(row);
+    groups.set(row.sessionId, group);
+  }
+  return groups;
+}
 const placeholders = (count: number) => Array.from({ length: count }, () => '?').join(', ');
 const COLUMNS =
   'id, user_id, session_id, exercise_id, completed_ms, logged_ms, weight, reps, time, distance, rest, eligible_weight, one_rep_max, log_json';
@@ -37,14 +46,21 @@ async function writeRows(tx: Sql, user: string, rows: ExerciseHistoryRow[]) {
 
 async function refreshBatch(tx: Sql, user: string, exercises?: readonly string[]) {
   if (exercises?.length === 0) return { sessions: 0, results: 0 };
-  const dirty = await tx.all<{ session_id: string }>(
-    exercises
-      ? `SELECT DISTINCT d.session_id FROM workout_history_catalog c
+  const requested = exercises ? [...new Set(exercises)] : null;
+  let dirty: { session_id: string }[] = [];
+  // New items can expand the request beyond the original snapshot's 100 exercises.
+  for (let start = 0; start < (requested?.length ?? 1); start += 400) {
+    const batch = requested?.slice(start, start + 400);
+    dirty = await tx.all<{ session_id: string }>(
+      batch
+        ? `SELECT DISTINCT d.session_id FROM workout_history_catalog c
          JOIN workout_history_dirty d ON d.user_id = c.user_id AND d.session_id = c.session_id
-         WHERE c.user_id = ? AND c.exercise_id IN (${placeholders(exercises.length)}) ORDER BY d.session_id LIMIT 25`
-      : 'SELECT session_id FROM workout_history_dirty WHERE user_id = ? ORDER BY session_id LIMIT 25',
-    exercises ? [user, ...exercises] : [user],
-  );
+         WHERE c.user_id = ? AND c.exercise_id IN (${placeholders(batch.length)}) ORDER BY d.session_id LIMIT 25`
+        : 'SELECT session_id FROM workout_history_dirty WHERE user_id = ? ORDER BY session_id LIMIT 25',
+      batch ? [user, ...batch] : [user],
+    );
+    if (dirty.length) break;
+  }
   if (!dirty.length) return { sessions: 0, results: 0 };
   const ids = dirty.map((row) => row.session_id);
   const owned = `user_id = ? AND session_id IN (${placeholders(ids.length)})`;
@@ -57,27 +73,29 @@ async function refreshBatch(tx: Sql, user: string, exercises?: readonly string[]
     )
   ).map(readSession);
   const completedIds = sessions.map((session) => session.id);
-  const groups = new Map<string, SetLog[]>();
+  let resultGroups = new Map<string, ResultRow[]>();
+  let itemGroups = new Map<string, ItemRow[]>();
   if (completedIds.length) {
-    const stored = await tx.all<StoredSet>(
-      `SELECT id, session_id AS sessionId, exercise_position AS exercisePosition, set_index AS setIndex,
-       logged_at AS loggedAt, log_fields AS logFields, values_json AS [values], updated_at AS updatedAt
-       FROM set_logs WHERE user_id = ? AND session_id IN (${placeholders(completedIds.length)}) AND deleted_at IS NULL`,
+    const stored = await tx.all<ResultRow>(
+      `SELECT ${RESULT_COLUMNS} FROM set_logs WHERE user_id = ? AND session_id IN (${placeholders(completedIds.length)})`,
       [user, ...completedIds],
     );
-    for (const row of stored) {
-      const logs = groups.get(row.sessionId) ?? [];
-      logs.push({
-        ...row,
-        logFields: JSON.parse(row.logFields) as SetLog['logFields'],
-        values: JSON.parse(row.values) as SetLog['values'],
-      });
-      groups.set(row.sessionId, logs);
-    }
+    resultGroups = groupBySession(stored);
+    itemGroups = groupBySession(
+      await tx.all<ItemRow>(
+        `SELECT ${ITEM_COLUMNS} FROM session_items WHERE user_id = ? AND session_id IN (${placeholders(completedIds.length)})`,
+        [user, ...completedIds],
+      ),
+    );
   }
-  const projected = sessions.flatMap((session) =>
-    projectWorkoutHistory({ session, logs: groups.get(session.id) ?? [] }),
-  );
+  const projected = sessions.flatMap((session) => {
+    const { resultView } = structureFromRows(
+      session,
+      itemGroups.get(session.id) ?? [],
+      resultGroups.get(session.id) ?? [],
+    );
+    return projectPerformedHistory(session, resultView.results);
+  });
   await writeRows(tx, user, projected);
   await tx.run(
     `DELETE FROM workout_history_catalog WHERE ${owned}

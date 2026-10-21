@@ -1,6 +1,8 @@
 // The tables this phone syncs and how a row maps to the API's wire record. Mirrors
 // backend/src/sync/collections.ts; adding a synced feature means one entry here and one there.
 
+import { sessionItemsCollection, withWorkoutResultFields } from './workoutCollections';
+
 export type WireRecord = { id: string; updatedAt: string; deletedAt: string | null } & Record<
   string,
   unknown
@@ -10,7 +12,7 @@ export type Collection = {
   name: string; // the API's collection name, also the SQLite table name
   // Data columns besides the sync columns: SQLite column name and wire field name. json marks lists,
   // which SQLite keeps as JSON text and the API sends as arrays.
-  fields: { column: string; wire: string; json?: boolean; boolean?: boolean }[];
+  fields: { column: string; wire: string; json?: boolean; nullable?: boolean; boolean?: boolean }[];
 };
 
 export const weightEntriesCollection: Collection = {
@@ -92,7 +94,7 @@ export const workoutSessionsCollection: Collection = {
     { column: 'snapshot', wire: 'snapshot', json: true },
   ],
 };
-export const setLogsCollection: Collection = {
+const legacySetLogsCollection: Collection = {
   name: 'set_logs',
   fields: [
     { column: 'session_id', wire: 'sessionId' },
@@ -103,6 +105,8 @@ export const setLogsCollection: Collection = {
     { column: 'values_json', wire: 'values', json: true },
   ],
 };
+export const setLogsCollection = withWorkoutResultFields(legacySetLogsCollection);
+
 export const syncedCollections: Collection[] = [
   weightEntriesCollection,
   customExercisesCollection,
@@ -113,6 +117,7 @@ export const syncedCollections: Collection[] = [
   dailyHabitCollection,
   workoutSessionsCollection,
   setLogsCollection,
+  sessionItemsCollection,
 ];
 
 type Row = Record<string, unknown>;
@@ -146,8 +151,17 @@ export function fromWire(
     record.deletedAt,
     ...collection.fields.map((f) => {
       const value = record[f.wire] ?? null;
-      return (f.boolean ? (value ? 1 : 0) : f.json ? JSON.stringify(value ?? []) : value) as
-        string | number | null;
+      return (
+        f.boolean
+          ? value
+            ? 1
+            : 0
+          : f.json
+            ? f.nullable && value === null
+              ? null
+              : JSON.stringify(value ?? [])
+            : value
+      ) as string | number | null;
     }),
   ];
   return { columns, values };

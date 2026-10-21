@@ -1,6 +1,14 @@
 import type { Database, Sql } from '../../lib/db/database';
-import { setLogId } from './identity';
-import { setInput, validateSet, validTime } from './model';
+import { sessionItemsView } from './sessionItemsView';
+import { resultValidatorForItem } from './structureModel';
+import {
+  decodeItem,
+  decodeResult,
+  ITEM_COLUMNS,
+  RESULT_COLUMNS,
+  type ItemRow,
+  type ResultRow,
+} from './structureRows';
 import {
   correctSet,
   removeSet,
@@ -16,31 +24,33 @@ async function readRecord(tx: Sql, user: string, target: SetRecord): Promise<Set
   const session = await getSession(tx, user, target.sessionId);
   if (!session || session.status === 'abandoned')
     throw new Error('This session is no longer available for corrections.');
-  const row = await tx.first<
-    Omit<SetRecord, 'logFields' | 'values'> & { logFields: string; values: string }
-  >(
-    `SELECT id, session_id AS sessionId, exercise_position AS exercisePosition,
-     set_index AS setIndex, logged_at AS loggedAt, log_fields AS logFields,
-     values_json AS [values], updated_at AS updatedAt, deleted_at AS deletedAt
+  const row = await tx.first<ResultRow>(
+    `SELECT ${RESULT_COLUMNS}
      FROM set_logs WHERE id = ? AND session_id = ? AND user_id = ?`,
     [target.id, target.sessionId, user],
   );
   if (!row) throw new Error('This set is no longer available.');
-  const record: SetRecord = {
-    ...row,
-    logFields: JSON.parse(row.logFields) as SetRecord['logFields'],
-    values: JSON.parse(row.values) as SetValues,
-  };
-  if (
-    validateSet(setInput(record), session.snapshot) ||
-    record.id !== setLogId(record.sessionId, record.exercisePosition, record.setIndex) ||
-    !validTime(record.updatedAt) ||
-    (record.deletedAt !== null && !validTime(record.deletedAt)) ||
-    Date.parse(record.loggedAt) < Date.parse(session.startedAt) ||
-    (session.endedAt && Date.parse(record.loggedAt) > Date.parse(session.endedAt))
-  )
+  const record = decodeResult(row);
+  const rows = await tx.all<ItemRow>(
+    `SELECT ${ITEM_COLUMNS} FROM session_items WHERE session_id = ? AND user_id = ?`,
+    [session.id, user],
+  );
+  const decoded = rows.map((row) => ({ id: row.id, item: decodeItem(row) }));
+  const view = sessionItemsView(
+    session,
+    decoded.flatMap(({ item }) => (item ? [item] : [])),
+    decoded.filter(({ item }) => !item).map(({ id }) => id),
+  );
+  const item = record
+    ? view.items.find((item) =>
+        'itemId' in record
+          ? item.id === record.itemId
+          : item.origin === 'planned' && item.originalPosition === record.exercisePosition,
+      )
+    : null;
+  if (!record || !item || resultValidatorForItem(session, item)(record))
     throw new Error('This set no longer matches the saved session.');
-  return record;
+  return { ...record, deletedAt: record.deletedAt ?? null };
 }
 
 async function writeRecord(tx: Sql, user: string, record: SetRecord) {

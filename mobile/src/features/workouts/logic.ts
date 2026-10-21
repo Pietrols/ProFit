@@ -1,6 +1,9 @@
 import { scaleTargets, type Completion } from '../plans/logic';
 import type { Difficulty, Plan, PlanDay, PlanExercise, Targets } from '../plans/types';
 import { setLogId } from './identity';
+import { latestRecords } from './recordOrder';
+import { validateStableSetRecord } from './structureModel';
+import type { WorkoutResult } from './structureTypes';
 import {
   sessionInput,
   setInput,
@@ -13,19 +16,23 @@ import type { SetLog, SetValues, SnapshotExercise, WorkoutSession, WorkoutSnapsh
 
 type Stored<T> = T & { deletedAt?: string | null };
 export type WorkoutHistory = { session: Stored<WorkoutSession>; logs: readonly Stored<SetLog>[] };
-export type ExerciseSet = { exerciseId: string; log: Stored<SetLog> };
+export type ExerciseSet = { exerciseId: string; log: WorkoutResult };
 export type PersonalRecord = {
   metric: 'heaviestWeight' | 'repsAtWeight' | 'estimatedOneRepMax' | 'longestTime';
   value: number;
   previousBest: number | null;
   weightKg?: number;
 };
-const chronological = (a: SetLog, b: SetLog) =>
+const chronological = (a: Pick<SetLog, 'id' | 'loggedAt'>, b: Pick<SetLog, 'id' | 'loggedAt'>) =>
   Date.parse(a.loggedAt) - Date.parse(b.loggedAt) || a.id.localeCompare(b.id);
 const liveSession = (s: Stored<WorkoutSession>) =>
   !s.deletedAt && validateSession(sessionInput(s)) === null;
-const validLog = (s: Stored<SetLog>) =>
-  !s.deletedAt && validateSet(setInput(s)) === null && s.values.done !== false;
+const validLog = (s: WorkoutResult) =>
+  !s.deletedAt &&
+  ('itemId' in s
+    ? validateStableSetRecord(s) === null
+    : !('side' in s) && !('targetsAtPerformance' in s) && validateSet(setInput(s)) === null) &&
+  s.values.done !== false;
 
 export function sessionSnapshot(
   plan: Plan,
@@ -78,21 +85,7 @@ export function completedSets(
   logs: readonly Stored<SetLog>[],
 ): SetLog[] {
   if (!liveSession(session)) return [];
-  const latest = new Map<string, Stored<SetLog>>();
-  for (const log of logs) {
-    if (log.sessionId !== session.id || !validTime(log.updatedAt)) continue;
-    const previous = latest.get(log.id);
-    if (
-      !previous ||
-      Date.parse(log.updatedAt) > Date.parse(previous.updatedAt) ||
-      (Date.parse(log.updatedAt) === Date.parse(previous.updatedAt) &&
-        ((Boolean(log.deletedAt) && !previous.deletedAt) ||
-          (Boolean(log.deletedAt) === Boolean(previous.deletedAt) &&
-            JSON.stringify(log) > JSON.stringify(previous))))
-    )
-      latest.set(log.id, log);
-  }
-  return [...latest.values()]
+  return latestRecords(logs.filter((log) => log.sessionId === session.id))
     .filter(
       (log) =>
         validLog(log) &&
@@ -235,10 +228,13 @@ export function sessionVolume(
   session: Stored<WorkoutSession>,
   logs: readonly Stored<SetLog>[],
 ): number {
-  return completedSets(session, logs).reduce(
-    (total, log) => total + (log.values.weight ?? 0) * (log.values.reps ?? 0),
-    0,
-  );
+  return performedVolume(completedSets(session, logs));
+}
+
+export function performedVolume(logs: readonly WorkoutResult[]): number {
+  return logs
+    .filter(validLog)
+    .reduce((total, log) => total + (log.values.weight ?? 0) * (log.values.reps ?? 0), 0);
 }
 export function sessionResults(
   session: Stored<WorkoutSession>,
@@ -259,18 +255,28 @@ export function sessionResultsFromSets(
   logs: readonly Stored<SetLog>[],
   history: readonly ExerciseSet[],
 ) {
-  const completed = completedSets(session, logs).sort(chronological);
+  const completed = completedSets(session, logs).map((log) => ({
+    exerciseId: session.snapshot.exercises[log.exercisePosition]!.exerciseId,
+    log,
+  }));
+  return { ...workoutProgress(session, logs), ...performedResults(session, completed, history) };
+}
+
+// Callers resolve owned parent/slot eligibility before sharing these metric calculations.
+export function performedResults(
+  session: Pick<WorkoutSession, 'id' | 'status'>,
+  completed: readonly ExerciseSet[],
+  history: readonly ExerciseSet[],
+) {
   const earlier = history.filter((row) => row.log.sessionId !== session.id);
   const records: { setId: string; exerciseId: string; record: PersonalRecord }[] = [];
   if (session.status !== 'abandoned')
-    for (const log of completed) {
-      const candidate = {
-        exerciseId: session.snapshot.exercises[log.exercisePosition]!.exerciseId,
-        log,
-      };
+    for (const candidate of completed
+      .filter((row) => validLog(row.log))
+      .sort((a, b) => chronological(a.log, b.log))) {
       records.push(
         ...personalRecords(candidate, earlier).map((record) => ({
-          setId: log.id,
+          setId: candidate.log.id,
           exerciseId: candidate.exerciseId,
           record,
         })),
@@ -278,8 +284,7 @@ export function sessionResultsFromSets(
       earlier.push(candidate);
     }
   return {
-    ...workoutProgress(session, logs),
-    volumeKg: sessionVolume(session, logs),
+    volumeKg: performedVolume(completed.map((row) => row.log)),
     records,
   };
 }

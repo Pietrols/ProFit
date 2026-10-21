@@ -7,7 +7,11 @@ export type TargetForm = {
   distance: string;
   rest: string;
 };
-export function targetForm(exercise: PlanExerciseInput): TargetForm {
+export type TargetValues = Pick<
+  PlanExerciseInput,
+  'sets' | 'targetReps' | 'targetTimeSeconds' | 'targetDistanceMetres' | 'restSeconds'
+>;
+export function targetForm(exercise: TargetValues): TargetForm {
   return {
     sets: String(exercise.sets),
     reps: exercise.targetReps === null ? '' : String(exercise.targetReps),
@@ -16,17 +20,19 @@ export function targetForm(exercise: PlanExerciseInput): TargetForm {
     rest: String(exercise.restSeconds),
   };
 }
-export function formExercise(form: TargetForm, exercise: PlanExercise): PlanExerciseInput {
+export function formTargets(form: TargetForm): TargetValues {
   const number = (text: string) => (/^\d+(\.\d+)?$/.test(text.trim()) ? Number(text.trim()) : NaN);
   const optional = (text: string) => (text.trim() === '' ? null : number(text));
-  const value = {
-    ...exercise,
+  return {
     sets: number(form.sets),
     targetReps: optional(form.reps),
     targetTimeSeconds: optional(form.time),
     targetDistanceMetres: optional(form.distance),
     restSeconds: number(form.rest),
   };
+}
+export function formExercise(form: TargetForm, exercise: PlanExercise): PlanExerciseInput {
+  const value = { ...exercise, ...formTargets(form) };
   const error = validatePlanExercise(value);
   if (error) throw new Error(error);
   return value;

@@ -60,13 +60,48 @@ const set = () => ({
   logFields: ['reps', 'weight', 'RPE', 'notes'],
   values: { reps: 8, weight: 45, RPE: 7.5, notes: 'Smooth' },
 });
+function structuralRecords() {
+  const item = {
+    ...sync(4),
+    sessionId: id(1),
+    origin: 'added',
+    originalPosition: null,
+    replacesItemId: null,
+    position: 1,
+    state: 'active',
+    reason: null,
+    exercise: snapshot.exercises[0],
+  };
+  const stable = {
+    ...set(),
+    id: 'a3b5b5e6-aca0-5707-b8c2-3186eba06b4b',
+    exercisePosition: null,
+    itemId: item.id,
+    side: 'bilateral',
+    targetsAtPerformance: {
+      sets: 3,
+      targetReps: 8,
+      targetTimeSeconds: null,
+      targetDistanceMetres: null,
+      restSeconds: 0,
+    },
+    values: { weight: 0, reps: 8 },
+  };
+  return { item, stable };
+}
 async function signIn(email = 'workout@example.com') {
   return (await request(app).post('/auth/dev').send({ email })).body.session.accessToken as string;
 }
 const push = (token: string, changes: unknown) =>
-  request(app).post('/sync/push').set('Authorization', `Bearer ${token}`).send({ changes });
+  request(app)
+    .post('/sync/push')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ protocol: 2, changes });
 const pull = (token: string, since = 0, limit = 500) =>
-  request(app).get('/sync/pull').query({ since, limit }).set('Authorization', `Bearer ${token}`);
+  request(app)
+    .get('/sync/pull')
+    .query({ protocol: 2, since, limit })
+    .set('Authorization', `Bearer ${token}`);
 beforeEach(() => resetTables(database));
 afterAll(() => database.close());
 
@@ -76,8 +111,8 @@ describe('workout sync', () => {
     const auth = `Bearer ${token}`;
     expect((await request(app).get('/sync/capabilities').set('Authorization', auth)).body).toEqual({
       protocols: [1, 2],
-      minimumProtocol: 1,
-      features: [],
+      minimumProtocol: 2,
+      features: ['workout_structure_v1'],
     });
     const changes = { workout_sessions: [session()], set_logs: [set()] };
     const response = await request(app)
@@ -108,6 +143,107 @@ describe('workout sync', () => {
     ).toBe(426);
     expect((await request(app).get('/sync/capabilities')).status).toBe(401);
   });
+  it.each([undefined, 1])(
+    'rejects old protocol %s as a whole request without changing rows',
+    async (protocol) => {
+      const token = await signIn();
+      const changes = { workout_sessions: [session()], set_logs: [set()] };
+      await push(token, changes);
+      const before = (await pull(token)).body;
+      const denied = await request(app)
+        .post('/sync/push')
+        .set('Authorization', `Bearer ${token}`)
+        .send({
+          protocol,
+          changes: {
+            workout_sessions: [{ ...session(), notes: 'Must not apply', updatedAt: at(20) }],
+            set_logs: [{ ...set(), deletedAt: at(20), updatedAt: at(20) }],
+          },
+        });
+      expect(denied.status).toBe(426);
+      expect(denied.body.error.code).toBe('SYNC_UPGRADE_REQUIRED');
+      const deniedPull = await request(app)
+        .get('/sync/pull')
+        .set('Authorization', `Bearer ${token}`)
+        .query({ protocol, since: before.cursor });
+      expect(deniedPull.status).toBe(426);
+      expect(deniedPull.body).not.toHaveProperty('changes');
+      expect((await pull(token)).body).toEqual(before);
+    },
+  );
+
+  it('round trips nullable stable results and items alongside pending legacy changes and tombstones', async () => {
+    const token = await signIn();
+    const { item, stable } = structuralRecords();
+    const deleted = { ...set(), id: id(5), setIndex: 1, updatedAt: at(10), deletedAt: at(10) };
+    const changes = {
+      workout_sessions: [session()],
+      set_logs: [set(), stable, deleted],
+      session_items: [item],
+    };
+    const result = await push(token, changes);
+    expect(result.status).toBe(200);
+    expect(result.body.rejected).toEqual([]);
+    expect(result.body.applied).toHaveLength(5);
+    const received = (await pull(token)).body.changes;
+    expect(received.session_items).toEqual([item]);
+    expect(received.set_logs).toContainEqual(stable);
+    expect(received.set_logs).toContainEqual({
+      ...deleted,
+      itemId: null,
+      side: null,
+      targetsAtPerformance: null,
+    });
+    expect((await push(token, changes)).body.ignored).toHaveLength(5);
+  });
+
+  it('paginates child-before-item-before-session arrival through one cursor without dropping metadata', async () => {
+    const token = await signIn();
+    const { item, stable } = structuralRecords();
+    expect((await push(token, { set_logs: [stable] })).body.applied).toEqual([stable.id]);
+    expect((await push(token, { session_items: [item] })).body.applied).toEqual([item.id]);
+    await push(token, { workout_sessions: [session()] });
+    const first = (await pull(token, 0, 1)).body;
+    expect(first.changes.set_logs).toEqual([stable]);
+    expect(first.changes.session_items).toEqual([]);
+    const second = (await pull(token, first.cursor, 1)).body;
+    expect(second.changes.session_items).toEqual([item]);
+    const third = (await pull(token, second.cursor, 1)).body;
+    expect(third.changes.workout_sessions).toEqual([session()]);
+    expect([first.hasMore, second.hasMore, third.hasMore]).toEqual([true, true, false]);
+    expect(third.cursor).toBeGreaterThan(second.cursor);
+    expect(second.cursor).toBeGreaterThan(first.cursor);
+  });
+
+  it('isolates structural ownership, rejects partial result metadata and keeps tombstones authoritative', async () => {
+    const owner = await signIn();
+    const foreign = await signIn('foreign@example.com');
+    const { item, stable } = structuralRecords();
+    const changes = { session_items: [item], set_logs: [stable] };
+    await push(owner, changes);
+    expect(
+      (
+        await push(foreign, {
+          session_items: [{ ...item, position: 0, updatedAt: at(20) }],
+          set_logs: [{ ...stable, values: { weight: 100, reps: 8 }, updatedAt: at(20) }],
+        })
+      ).body.ignored,
+    ).toHaveLength(2);
+    const foreignPage = (await pull(foreign)).body.changes;
+    expect(foreignPage.session_items).toEqual([]);
+    expect(foreignPage.set_logs).toEqual([]);
+    const invalid = await push(owner, { set_logs: [{ ...stable, id: id(6), side: null }] });
+    expect(invalid.body.applied).toEqual([]);
+    expect(invalid.body.rejected).toMatchObject([{ collection: 'set_logs', id: id(6) }]);
+    const removed = { ...item, state: 'removed', updatedAt: at(20), deletedAt: at(20) };
+    const deleted = { ...stable, updatedAt: at(20), deletedAt: at(20) };
+    await push(owner, { session_items: [removed], set_logs: [deleted] });
+    expect((await push(owner, changes)).body.ignored).toHaveLength(2);
+    const received = (await pull(owner)).body.changes;
+    expect(received.session_items).toEqual([removed]);
+    expect(received.set_logs).toEqual([deleted]);
+  });
+
   it('round trips snapshots, selected values, completed state and retries', async () => {
     const token = await signIn();
     const changes = { workout_sessions: [session()], set_logs: [set()] };
@@ -167,7 +303,9 @@ describe('workout sync', () => {
     expect((await push(token, { set_logs: [set()] })).body.applied).toEqual([id(2)]);
     await push(token, { workout_sessions: [session()] });
     const first = (await pull(token, 0, 1)).body;
-    expect(first.changes.set_logs).toEqual([set()]);
+    expect(first.changes.set_logs).toEqual([
+      { ...set(), itemId: null, side: null, targetsAtPerformance: null },
+    ]);
     expect(first.hasMore).toBe(true);
     const second = (await pull(token, first.cursor, 1)).body;
     expect(second.changes.workout_sessions).toEqual([session()]);

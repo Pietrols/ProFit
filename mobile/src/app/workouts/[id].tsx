@@ -2,12 +2,10 @@ import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useMe } from '@/features/auth/AuthProvider';
 import { SyncBanner } from '@/features/sync/SyncBanner';
-import {
-  completedSets,
-  prefillFromSets,
-  sessionResultsFromSets,
-  sessionTargets,
-} from '@/features/workouts/logic';
+import { prefillFromSets, sessionTargets } from '@/features/workouts/logic';
+import { structuredWorkoutResults } from '@/features/workouts/structuredResults';
+import { chooseWorkoutSlot } from '@/features/workouts/workoutSelection';
+import { SessionExercises } from '@/features/workouts/SessionExercises';
 import { SetForm } from '@/features/workouts/SetForm';
 import { TimerControls } from '@/features/workouts/TimerControls';
 import { SessionClock } from '@/features/workouts/SessionClock';
@@ -19,7 +17,7 @@ import {
 } from '@/features/workouts/timerStorage';
 import { pauseTimer, resumeTimer, startTimer, type TimerState } from '@/features/workouts/timers';
 import { useWorkout } from '@/features/workouts/useWorkout';
-import type { WorkoutDetail } from '@/features/workouts/workoutDetail';
+import type { StructuredWorkoutDetail } from '@/features/workouts/structuredDetail';
 import { useWorkoutAwake } from '@/features/workouts/useWorkoutAwake';
 import { useWorkoutAlerts } from '@/features/workouts/WorkoutAlerts';
 import type { SetValues } from '@/features/workouts/types';
@@ -79,11 +77,12 @@ function Workout({
   workouts,
   user,
 }: {
-  current: WorkoutDetail;
+  current: StructuredWorkoutDetail;
   workouts: ReturnType<typeof useWorkout>;
   user: string;
 }) {
-  const { session, logs } = current;
+  const { session, itemView, resultView } = current;
+  const logs = useMemo(() => resultView.loggedResults.map((row) => row.log), [resultView]);
   const { me } = useMe();
   const units = me?.profile.unitSystem ?? 'metric';
   const { alerts, error: alertError, report, enable } = useWorkoutAlerts();
@@ -95,9 +94,9 @@ function Workout({
       timerAfterLogs(
         savedTimer,
         logs.map((log) => log.loggedAt),
-        completedSets(session, logs).map((log) => log.id),
+        resultView.results.map((row) => row.log.id),
       ),
-    [savedTimer, session, logs],
+    [savedTimer, resultView, logs],
   );
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -106,6 +105,8 @@ function Workout({
   const [confirm, setConfirm] = useState<'completed' | 'abandoned' | null>(null);
   const [lastSet, setLastSet] = useState<string | null>(null);
   const [correcting, setCorrecting] = useState(false);
+  const [adjusting, setAdjusting] = useState(false);
+  const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
   const [drafts, setDrafts] = useState(() => new Map<string, SetDraftEntry>());
   useEffect(() => {
     let live = true;
@@ -126,19 +127,23 @@ function Workout({
       live = false;
     };
   }, [user, session.id]);
-  const summary = useMemo(
-    () => sessionResultsFromSets(session, logs, current.previousSets),
-    [session, logs, current.previousSets],
-  );
+  const summary = useMemo(() => structuredWorkoutResults(current), [current]);
   const active = session.status === 'active';
-  const next = summary.next;
-  const draftKey = next ? `${next.exercisePosition}/${next.setIndex}/${units}` : '';
-  const changesBlocked = busy || correcting || workouts.stale || !!workouts.error;
+  const selection = useMemo(
+    () => chooseWorkoutSlot(current, selectedItemId),
+    [current, selectedItemId],
+  );
+  const next = selection.current;
+  const draftKey = next ? `${next.id}/${units}` : '';
+  const changesBlocked =
+    busy || correcting || adjusting || workouts.stale || !!workouts.error || !summary.available;
+  const savedNext = next ? logs.find((log) => log.id === next.id) : null;
   const awakeError = useWorkoutAwake(active);
   useEffect(() => {
     if (ready || !active) void alerts.update(user, session.id, active ? timer : null).catch(report);
   }, [alerts, user, session.id, active, ready, timer, report]);
-  const exercise = next ? session.snapshot.exercises[next.exercisePosition]! : null;
+  const nextItem = next ? itemView.items.find((item) => item.id === next.itemId) : null;
+  const exercise = nextItem?.exercise;
   const initial = useMemo(
     () =>
       exercise
@@ -177,28 +182,27 @@ function Workout({
     void run(action).catch(() => {});
   };
   async function log(values: SetValues) {
-    if (!next || !exercise) return;
+    if (!next || !nextItem || !exercise || savedNext || changesBlocked) return;
     await run(async () => {
       const id = await workouts.log({
-        sessionId: session.id,
-        exercisePosition: next!.exercisePosition,
-        setIndex: next!.setIndex,
-        loggedAt: new Date().toISOString(),
-        logFields: exercise!.logFields,
+        item: nextItem,
+        setIndex: next.setIndex,
         values,
+        difficulty: session.snapshot.difficulty,
+        easierToday: session.easierToday,
       });
       setDrafts((previous) => {
         const remaining = new Map(previous);
         remaining.delete(draftKey);
         return remaining;
       });
-      setLastSet(id);
+      setLastSet(values.done === false ? null : id);
       try {
         await saveTimer(
-          exercise!.restSeconds
+          values.done !== false && exercise.restSeconds
             ? {
                 ...startTimer(
-                  { mode: 'rest', seconds: exercise!.restSeconds },
+                  { mode: 'rest', seconds: exercise.restSeconds },
                   Date.now(),
                   randomId(),
                 ),
@@ -229,7 +233,11 @@ function Workout({
         <AppText variant="label">{active ? 'In progress' : session.status}</AppText>
         <SessionClock startedAt={session.startedAt} endedAt={session.endedAt} />
         <AppText>
-          {summary.completed} / {summary.total} sets logged
+          {summary.completed} / {summary.total} current target sets logged
+        </AppText>
+        <AppText color="text2">
+          Original routine: {summary.originalCompleted} / {summary.originalTotal} sets logged.
+          Omitted: {summary.originalOmitted}. Additional logged sets: {summary.addedCompleted}.
         </AppText>
       </Card>
       {workouts.error ? (
@@ -237,6 +245,15 @@ function Workout({
           <AppText color="caution">{workouts.error}</AppText>
           <Button label="Retry workout read" variant="secondary" onPress={workouts.retry} />
         </>
+      ) : null}
+      {!summary.available ? (
+        <Card>
+          <AppText color="caution">
+            Some saved workout data is unavailable. Totals may be incomplete. Refresh before logging
+            another set or finishing.
+          </AppText>
+          <Button label="Refresh workout data" variant="secondary" onPress={workouts.retry} />
+        </Card>
       ) : null}
       {error ? <AppText color="caution">{error}</AppText> : null}
       {workouts.stale && !workouts.error ? (
@@ -294,26 +311,84 @@ function Workout({
         <Card>
           <AppText variant="title">{exercise.name}</AppText>
           <AppText color="text2">{setLabel(next.setIndex, exercise.sets)}</AppText>
-          <SetForm
-            key={draftKey}
-            exercise={exercise}
-            initial={initial}
-            units={units}
-            busy={busy || correcting || !ready || workouts.stale || !!workouts.error}
-            onLog={log}
-            savedDraft={drafts.get(draftKey)}
-            onDraftChange={(entry) =>
-              setDrafts((previous) => new Map(previous).set(draftKey, entry))
-            }
-          />
+          {savedNext ? (
+            <AppText color="caution">
+              This set has an incomplete saved result. Use Edit in Logged sets below to review it,
+              or delete the saved result before logging a new performance.
+            </AppText>
+          ) : (
+            <SetForm
+              key={draftKey}
+              exercise={exercise}
+              initial={initial}
+              units={units}
+              busy={changesBlocked || !ready}
+              onLog={log}
+              savedDraft={drafts.get(draftKey)}
+              onDraftChange={(entry) =>
+                setDrafts((previous) => new Map(previous).set(draftKey, entry))
+              }
+            />
+          )}
         </Card>
-      ) : active ? (
+      ) : active && summary.available ? (
         <Card>
           <AppText variant="title">
-            {session.snapshot.restDay ? 'Rest day' : 'All planned sets logged'}
+            {session.snapshot.restDay ? 'Rest day' : 'No pending sets'}
           </AppText>
-          <AppText>Finish when you are ready.</AppText>
+          <AppText>
+            {summary.actualCompleted === 0
+              ? 'No sets logged. Review any omitted work before finishing.'
+              : 'Review your logged sets and finish when you are ready.'}
+          </AppText>
         </Card>
+      ) : null}
+      {active ? (
+        <SessionExercises
+          detail={current}
+          selected={next?.itemId ?? null}
+          busy={busy || correcting || workouts.stale || !!workouts.error || !summary.available}
+          select={(itemId) => {
+            setSelectedItemId(itemId);
+            setLastSet(null);
+          }}
+          change={(item, change) =>
+            run(async () => {
+              await workouts.adjust({ kind: 'change', item, change });
+              if (
+                change.kind === 'state' &&
+                change.state !== 'active' &&
+                item.id === selectedItemId
+              )
+                setSelectedItemId(null);
+              setLastSet(null);
+            })
+          }
+          move={(item, direction) =>
+            run(async () => {
+              await workouts.adjust({ kind: 'move', item, order: itemView.items, direction });
+              if (direction === 'later') setSelectedItemId(null);
+              setLastSet(null);
+            })
+          }
+          edit={(mode, item, id, exercise) =>
+            run(async () => {
+              if (mode === 'add') await workouts.adjust({ kind: 'add', id, exercise });
+              else if (mode === 'replace' && item)
+                await workouts.adjust({ kind: 'replace', item, id, exercise });
+              else if (mode === 'targets' && item)
+                await workouts.adjust({
+                  kind: 'change',
+                  item,
+                  change: { kind: 'targets', targets: exercise },
+                });
+              else throw new Error('Choose an available session exercise.');
+              if (mode !== 'targets') setSelectedItemId(id);
+              setLastSet(null);
+            })
+          }
+          editingChanged={setAdjusting}
+        />
       ) : null}
       {summary.records
         .filter((r) => !active || r.setId === lastSet)
@@ -350,8 +425,9 @@ function Workout({
       <LoggedSets
         session={session}
         logs={logs}
+        items={itemView.items}
         units={units}
-        busy={busy || (active && !ready) || workouts.stale || !!workouts.error}
+        busy={busy || adjusting || (active && !ready) || workouts.stale || !!workouts.error}
         actions={workouts}
         execute={run}
         editingChanged={setCorrecting}
@@ -393,7 +469,7 @@ function Workout({
               <AppText>
                 {confirm === 'abandoned'
                   ? 'Abandon this session? Saved sets are kept, but the plan will not advance.'
-                  : `Finish with ${summary.completed} of ${summary.total} sets logged?`}
+                  : `Finish with ${summary.completed} of ${summary.total} current target sets logged? Original sets omitted: ${summary.originalOmitted}.`}
               </AppText>
               <Button
                 label={confirm === 'abandoned' ? 'Confirm abandon' : 'Confirm finish'}

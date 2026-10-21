@@ -13,9 +13,7 @@ import { useSyncContext, useSyncStatus } from '../sync/SyncProvider';
 import { kvStore } from '@/lib/storage/local';
 import { createRestAlerts } from './restAlerts';
 import { restPort, enableRestAlerts } from './notificationPort';
-import { loadWorkoutTimer, timerAfterLogs } from './timerStorage';
-import { readWorkout } from './workouts';
-import { completedSets } from './logic';
+import { readWorkoutTimer } from './workoutTimerRead';
 
 const Context = createContext<{
   alerts: ReturnType<typeof createRestAlerts>;
@@ -35,22 +33,12 @@ export function WorkoutAlerts({ children }: { children: ReactNode }) {
   }, []);
   useEffect(() => {
     const read = async (user: string, session: string) => {
-      let timer;
       try {
-        timer = await loadWorkoutTimer(kvStore, user, session);
+        return await readWorkoutTimer(db, kvStore, user, session);
       } catch (e) {
         report(e);
         return null;
       }
-      const saved = await db.transaction((tx) => readWorkout(tx, user, session));
-      if (saved?.session.status !== 'active') return null;
-      const logs = completedSets(saved.session, saved.logs);
-      // A committed replacement or source deletion invalidates the old alert after a crash.
-      return timerAfterLogs(
-        timer,
-        logs.map((log) => log.loggedAt),
-        logs.map((log) => log.id),
-      );
     };
     const refresh = () => {
       const state = auth.getSnapshot();

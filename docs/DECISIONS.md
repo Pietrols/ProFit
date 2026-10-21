@@ -403,10 +403,69 @@ for history. The first stable variant is bilateral. Per-side wire semantics and 
 compatibility gate are finalized in 5.8.10. Commit schema fixtures before migrations, preserve
 pending legacy rows/tombstones, and complete indexed read compatibility before enabling writes.
 
-Storage is staged while this feature remains disabled. SQLite migration 8 permits a null
-original position and restores its indexes/invalidation triggers after copying legacy columns.
-PostgreSQL migration 0005 adds only the item table and nullable metadata columns. Drop its
-exercise_position NOT NULL constraint when switching result serialization to the union, before
-the D42 cutover. Until that complete slice, no structural collection/feature is advertised or
-written through app controls. Do not mistake the additive storage checkpoint for completed
-reader/sync compatibility.
+Storage preparation used SQLite migration 8 to permit a null original position and restore
+indexes/invalidation triggers after copying legacy columns. PostgreSQL migration 0005 added
+only the item table and nullable metadata columns. Migration 0006 drops exercise_position's
+NOT NULL constraint before the union serializer is registered. The completed 5.8.5 cutover
+advertises workout_structure_v1 with minimum protocol 2 and requires it on the client before
+sync. Normal workout logging now writes stable performances through the owned item/slot store.
+Exercise adaptation controls are implemented in 5.8.6. Deploy server first, then app; preserve local
+rows, tombstones and cursors throughout the upgrade.
+
+## D44. Resolve structural records before counting performed work
+The effective read model first scopes records to an owned session, then resolves revisions by
+the existing numeric edit-time/tombstone/tie rules. Legacy and stable results share one identity
+space; resolve them together before choosing a decoder so an older variant cannot reappear.
+The original snapshot supplies deterministic planned views without writing canonical rows.
+Malformed stored overrides block the affected planned view rather than silently restoring its
+old active state. Report unavailable record ids so the UI can show incomplete data and block
+structural commands until it is refreshed or repaired.
+
+Performed results remain attached to valid removed/skipped/tombstoned items and retain their
+performance targets. A missing or invalid owned parent keeps a result unavailable until that
+parent arrives. Replacement links must resolve within the same owned session, including cycle
+checks. Future work selection excludes unavailable, skipped and removed items; totals for
+performed work still include their valid actual results. Preserve the legacy pure entry points
+as equivalence oracles and reuse their metric calculations for both variants. Storage readers
+return owned canonical data and issues; they do not fabricate positional ids for added items.
+
+## D45. Log a new performance against the reviewed item revision
+New stable logging reads the owned active session, effective item and existing slot in one
+transaction. Compare the reviewed item revision, difficulty and easier-today setting before
+capturing targets. A reorder can require a refresh but cannot send a draft to another item.
+Reject skipped, removed, tombstoned, unavailable or out-of-range work before any write.
+
+A live saved slot, including an explicitly incomplete result, is corrected through the existing
+edit flow. Logging does not silently replace it or move its original performance time. A deleted
+slot can be explicitly performed again with the same deterministic id, a fresh performance time
+and newly captured effective targets. That new edit must sort after the deletion even if the
+phone clock moved backward. Prior undo receipts then fail the full revision check. A deleted
+legacy slot may become stable only through this explicit new performance; ordinary corrections
+keep its legacy variant and unknown historical targets. Saving commits before any rest timer or
+alert starts. Structural controls and sync cutover remain disabled until 5.8.5 is complete.
+
+## D46. Apply session adjustments against reviewed owned revisions
+Step 5.8.6 commands read the owned active session and complete effective item/result view in
+one transaction. Reject unavailable data, ended sessions, stale reviewed items and stale order
+snapshots. State changes preserve every result; skipped and removed work can be restored with
+its original identity. Reasons are optional text of at most 500 characters. A command makes
+its edit time later than the affected stored revisions even after a clock rollback.
+
+Reorder and Do later change independent display positions only. Reorder validates the reviewed
+order before writing changed positions, including virtual planned items that need an override.
+Selection is account/session-local view state; it never completes work or rewrites the plan.
+Choose the first outstanding slot of a selected active item, then fall back to the normal queue
+when that item has no pending work. Saved incomplete slots remain reviewable through correction.
+
+Set counts stay within 1 to 100. A local reduction removes only future tail slots and refuses
+any tail containing a live saved result, including incomplete work. Delete a saved result
+explicitly before omitting its slot. Late synced results beyond a reduced count remain eligible
+actuals under D43; receiving one does not silently expand targets. Added sets use the existing
+stable item/index namespace and never reuse an identity from another exercise.
+
+Add and Replace use a fresh device-generated item id and a reviewed exercise/target snapshot.
+Replacement atomically removes only the source's remaining work and adds a linked new item;
+no values, fields or performance times are transferred. New exercise defaults follow the
+existing library tracking rules. Targets remain editable for this workout. All related item
+writes and history invalidations commit together or roll back together. Plan rows and original
+session snapshots are never part of an adjustment write.

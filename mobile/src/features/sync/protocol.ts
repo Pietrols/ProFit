@@ -2,8 +2,8 @@ import type { ApiClient } from '../../lib/api/client';
 import { ApiError } from '../../lib/api/errors';
 
 export const SYNC_PROTOCOL = 2;
-// Structural writes remain disabled until their complete compatibility slice ships (D42).
-export const REQUIRED_SYNC_FEATURES: readonly string[] = [];
+// Check before any upload, acknowledgement or pull can consume structural records (D42).
+export const REQUIRED_SYNC_FEATURES: readonly string[] = ['workout_structure_v1'];
 const serverUpgrade = () =>
   new ApiError(
     426,

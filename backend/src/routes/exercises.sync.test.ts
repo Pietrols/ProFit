@@ -59,6 +59,7 @@ describe('custom exercises and favourites', () => {
       .post('/sync/push')
       .set('Authorization', `Bearer ${token}`)
       .send({
+        protocol: 2,
         changes: {
           custom_exercises: [exercise()],
           exercise_favourites: [favourite('Barbell_Squat')],
@@ -66,7 +67,10 @@ describe('custom exercises and favourites', () => {
       });
     expect(push.body).toMatchObject({ applied: [exercise().id, favourite('x').id], rejected: [] });
 
-    const pull = await request(app).get('/sync/pull').set('Authorization', `Bearer ${token}`);
+    const pull = await request(app)
+      .get('/sync/pull')
+      .query({ protocol: 2 })
+      .set('Authorization', `Bearer ${token}`);
     expect(pull.body.changes.custom_exercises).toEqual([exercise()]);
     expect(pull.body.changes.exercise_favourites).toEqual([favourite('Barbell_Squat')]);
   });
@@ -84,7 +88,10 @@ describe('custom exercises and favourites', () => {
     const res = await request(app)
       .post('/sync/push')
       .set('Authorization', `Bearer ${token}`)
-      .send({ changes: { custom_exercises: bad.slice(0, 5), exercise_favourites: bad.slice(5) } });
+      .send({
+        protocol: 2,
+        changes: { custom_exercises: bad.slice(0, 5), exercise_favourites: bad.slice(5) },
+      });
     expect(res.body.applied).toEqual([]);
     expect(res.body.rejected.map((r: { id: string }) => r.id)).toEqual(bad.map((b) => b.id));
   });

@@ -2,7 +2,7 @@ import { expect, it, vi } from 'vitest';
 import type { Database } from '../../../lib/db/database';
 import { testDatabase } from '../../../lib/db/__tests__/nodeDriver';
 import { projectWorkoutHistory } from '../historyProjection';
-import { readExerciseHistory } from '../historyQueries';
+import { readExerciseHistory, readPerformedExerciseHistory } from '../historyQueries';
 import { setLogId } from '../identity';
 import {
   prefill,
@@ -10,7 +10,13 @@ import {
   sessionResults,
   sessionResultsFromSets,
   type WorkoutHistory,
+  performedResults,
 } from '../logic';
+import { sessionItemsView } from '../sessionItemsView';
+import { sessionSlotId } from '../structureIdentity';
+import { capturePerformanceTargets } from '../structureTargets';
+import type { SessionItem, StableSetLog } from '../structureTypes';
+import { workoutResultsView } from '../workoutResultsView';
 import type { SetLog, SetValues, WorkoutSession } from '../types';
 import { at, other, session, user } from './fixtures';
 
@@ -171,4 +177,53 @@ it('looks up reps at each candidate load, including zero, rather than returning 
     [log(current, 0, 11, { weight: 0, reps: 6 }), log(current, 1, 12, { weight: 25, reps: 11 })],
     history,
   );
+});
+
+it('compares an added actual against its own exercise even after future fields become notes-only', async () => {
+  const db = await testDatabase();
+  const past = workout(1, 0, 5);
+  past.snapshot.exercises[0]!.exerciseId = 'Added_row';
+  await index(db, [{ session: past, logs: [log(past, 0, 1, { weight: 50, reps: 8 })] }]);
+  const current = workout(99, 10, null);
+  const item: SessionItem = {
+    ...sessionItemsView(current, []).items[0]!,
+    id: other,
+    origin: 'added',
+    originalPosition: null,
+    replacesItemId: null,
+    exercise: { ...past.snapshot.exercises[0]!, logFields: ['notes'] },
+  };
+  const actual: StableSetLog = {
+    ...log(current, 0, 11, { weight: 60, reps: 8 }),
+    id: sessionSlotId(item, 0),
+    itemId: item.id,
+    exercisePosition: null,
+    side: 'bilateral',
+    targetsAtPerformance: capturePerformanceTargets(item.exercise, 'standard', false),
+  };
+  const { results } = workoutResultsView(current, sessionItemsView(current, [item]), [actual]);
+  const prepared = await readPerformedExerciseHistory(db, user, current, [item.exercise], results);
+  expect(prepared).toHaveLength(1);
+  const summary = performedResults(current, results, prepared);
+  expect(summary.volumeKg).toBe(480);
+  expect(
+    summary.records.find((row) => row.record.metric === 'heaviestWeight')!.record.previousBest,
+  ).toBe(50);
+});
+
+it('bounds SQLite parameters for large effective exercise lists without losing requests', async () => {
+  const db = await testDatabase();
+  const current = workout(99, 10, null);
+  const exercises = Array.from({ length: 600 }, (_, index) => ({
+    ...current.snapshot.exercises[0]!,
+    exerciseId: `Exercise_${index}`,
+    targetReps: null,
+    targetTimeSeconds: null,
+    targetDistanceMetres: null,
+  }));
+  const read = vi.spyOn(db, 'all');
+  expect(await readPerformedExerciseHistory(db, user, current, exercises, [])).toEqual([]);
+  const requests = read.mock.calls.flatMap(([, params]) => params!.slice(3));
+  expect(requests).toHaveLength(600 * 4 * 2);
+  expect(read.mock.calls.every(([, params]) => params!.length <= 999)).toBe(true);
 });

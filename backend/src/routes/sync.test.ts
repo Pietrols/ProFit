@@ -44,11 +44,11 @@ const pushAs = (token: string, records: unknown[]) =>
   request(app)
     .post('/sync/push')
     .set('Authorization', `Bearer ${token}`)
-    .send({ changes: { weight_entries: records } });
+    .send({ protocol: 2, changes: { weight_entries: records } });
 const pullAs = (token: string, since = 0, limit?: number) =>
   request(app)
     .get('/sync/pull')
-    .query(limit ? { since, limit } : { since })
+    .query(limit ? { protocol: 2, since, limit } : { protocol: 2, since })
     .set('Authorization', `Bearer ${token}`);
 
 beforeEach(async () => {
@@ -181,6 +181,7 @@ describe('sync', () => {
         daily_habit: [],
         workout_sessions: [],
         set_logs: [],
+        session_items: [],
       },
       cursor,
       hasMore: false,
@@ -203,7 +204,7 @@ describe('sync', () => {
     const unknown = await request(app)
       .post('/sync/push')
       .set('Authorization', `Bearer ${token}`)
-      .send({ changes: { secrets: [] } });
+      .send({ protocol: 2, changes: { secrets: [] } });
     expect(unknown.status).toBe(400);
     const tooMany = await pushAs(
       token,
