@@ -682,3 +682,45 @@ the native timer/permission matrix and real Android check remain in 5.8.11 and 5
 
 Step 5.8.5 is next. Preserve the legacy result path and extend cache invalidation/catalog
 coverage before structural session adaptation is enabled. Phase 6 has not started.
+
+## Step 5.8.5 partial checkpoint, 21 October 2026
+
+This step remains unticked. D42 defines staged sync negotiation; D43 and
+WORKOUT_STRUCTURE_CONTRACT.md define the exact additive item/result shape and deterministic
+slot identities. The schema fixtures were committed before migrations. Existing planned slot
+ids remain unchanged after display reordering, and added/replacement occurrences have distinct
+namespaces. Pure target capture records difficulty/easier-adjusted targets without inventing
+historical targets or guessing a weight. Stable record validators check identity, selected
+values, captured slot bounds and session times while retaining performed work after an item
+is skipped, removed, tombstoned or reduced.
+
+The authenticated capabilities endpoint and client preflight are implemented. Negotiation runs
+before media upload, push or pull. Tests cover old/missing/malformed capability responses,
+feature requirements, whole-request unsupported versions, unchanged dirty rows/cursors on
+failure, successful retry and sign-out during negotiation. During preparation the server still
+accepts protocols 1 and 2 with minimum 1 and no structural feature. This preserves old-client
+sync while no new collection or result variant is exposed.
+
+SQLite migration 8 adds session_items and rebuilds set_logs to permit a null original position,
+with nullable result metadata. It copies the legacy columns exactly and restores the set
+indexes/dirty triggers. Item triggers transactionally queue history invalidations and retain
+old/new exercise catalog tags. Populated fixtures preserve active/completed sessions, dirty
+and clean sets, tombstones, repeated exercise occurrences and the existing dirty queue. Tests
+also cover migration retry, integrity_check, transactional rollback and repeated upserts.
+
+PostgreSQL migration 0005 adds the item table and nullable metadata columns. Its generated
+Drizzle snapshot accounts for most lines in that isolated migration commit. The legacy
+exercise_position constraint remains unchanged until result serialization is switched to the
+tested union in a later migration/cutover slice. No structural records are registered for
+sync or created through app controls at this checkpoint.
+
+All 389 mobile tests pass. Both packages pass format, lint and typecheck; the backend build,
+six supplemental pure backend contract tests and full PostgreSQL CI pass. The full database
+suite remains the gate under rule 8. The SQLite and PostgreSQL migration commits both have
+green CI. Earlier workout UI changes also passed web/Android JavaScript exports; these storage
+changes do not claim an APK, visual check or physical-phone test.
+
+Next within 5.8.5: owned item/result readers and effective legacy/stable views, updated history
+projection/catalog reads, complete sync mappings and compatibility fixtures, then the atomic
+minimum-version/feature cutover. Require read equivalence and pending-data preservation before
+ticking the step. Adaptation commands/UI remain in 5.8.6. Phase 6 has not started.

@@ -402,3 +402,11 @@ to added exercises. Capture effective targets only on new performance; do not ma
 for history. The first stable variant is bilateral. Per-side wire semantics and their client
 compatibility gate are finalized in 5.8.10. Commit schema fixtures before migrations, preserve
 pending legacy rows/tombstones, and complete indexed read compatibility before enabling writes.
+
+Storage is staged while this feature remains disabled. SQLite migration 8 permits a null
+original position and restores its indexes/invalidation triggers after copying legacy columns.
+PostgreSQL migration 0005 adds only the item table and nullable metadata columns. Drop its
+exercise_position NOT NULL constraint when switching result serialization to the union, before
+the D42 cutover. Until that complete slice, no structural collection/feature is advertised or
+written through app controls. Do not mistake the additive storage checkpoint for completed
+reader/sync compatibility.
