@@ -4,7 +4,6 @@ import {
   exerciseId,
   exerciseTargetFields,
   isoTime,
-  LOG_FIELDS,
   name,
   syncFields,
 } from './wireFields.js';
@@ -60,6 +59,16 @@ export const setValues = z.strictObject({
   notes: z.string().max(2000).optional(),
   done: z.boolean().optional(),
 });
+type SetData = { values: z.infer<typeof setValues>; logFields: readonly string[] };
+export const valuesMatchFields = (set: SetData) =>
+  Object.keys(set.values).every((key) => set.logFields.includes(key));
+export const hasSetResult = (set: Pick<SetData, 'values'>) =>
+  Object.values(set.values).some(
+    (value) =>
+      typeof value === 'number' ||
+      value === true ||
+      (typeof value === 'string' && value.trim().length > 0),
+  );
 export const setLogRecord = z
   .strictObject({
     ...syncFields,
@@ -70,18 +79,5 @@ export const setLogRecord = z
     logFields: exerciseTargetFields.logFields,
     values: setValues,
   })
-  .refine(
-    (s) =>
-      Object.keys(s.values).every((key) =>
-        s.logFields.includes(key as (typeof LOG_FIELDS)[number]),
-      ),
-    'values must use selected fields',
-  )
-  .refine(
-    (s) =>
-      Object.values(s.values).some(
-        (v) =>
-          typeof v === 'number' || v === true || (typeof v === 'string' && v.trim().length > 0),
-      ),
-    'enter a result or mark done',
-  );
+  .refine(valuesMatchFields, 'values must use selected fields')
+  .refine(hasSetResult, 'enter a result or mark done');
