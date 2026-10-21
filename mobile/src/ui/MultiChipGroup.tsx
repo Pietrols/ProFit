@@ -10,6 +10,7 @@ type Props<T> = {
   onToggle: (value: T) => void;
   hint?: string;
   error?: string | null;
+  disabled?: boolean;
 };
 
 // Several choices from short options (muscles). Each chip turns on and off; the caller decides limits.
@@ -20,6 +21,7 @@ export function MultiChipGroup<T extends string>({
   onToggle,
   hint,
   error,
+  disabled = false,
 }: Props<T>) {
   const { colors, radius, space } = useAppTheme();
   return (
@@ -37,10 +39,12 @@ export function MultiChipGroup<T extends string>({
             <Pressable
               key={option.value}
               accessibilityRole="checkbox"
-              accessibilityState={{ checked: selected }}
+              accessibilityState={{ checked: selected, disabled }}
+              disabled={disabled}
               onPress={() => onToggle(option.value)}
               style={({ pressed }) => ({
                 minHeight: touchTarget - 4,
+                opacity: disabled ? 0.45 : 1,
                 paddingHorizontal: space.lg,
                 alignItems: 'center',
                 justifyContent: 'center',

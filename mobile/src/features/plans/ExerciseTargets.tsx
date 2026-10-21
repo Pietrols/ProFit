@@ -2,10 +2,9 @@ import { useState } from 'react';
 import { AppText } from '@/ui/AppText';
 import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
-import { MultiChipGroup } from '@/ui/MultiChipGroup';
-import { TextField } from '@/ui/TextField';
 import { formExercise, targetForm } from './exerciseForm';
-import { LOG_FIELDS, type LogField, type PlanExercise, type PlanExerciseInput } from './types';
+import { ExerciseTargetFields } from './ExerciseTargetFields';
+import type { LogField, PlanExercise, PlanExerciseInput } from './types';
 export function ExerciseTargets({
   exercise,
   name,
@@ -35,49 +34,12 @@ export function ExerciseTargets({
   return (
     <Card>
       <AppText variant="title">{name}</AppText>
-      <TextField
-        label="Sets"
-        value={form.sets}
-        keyboardType="number-pad"
-        onChangeText={(sets) => setForm({ ...form, sets })}
-      />
-      <TextField
-        label="Target reps (optional)"
-        value={form.reps}
-        keyboardType="number-pad"
-        onChangeText={(reps) => setForm({ ...form, reps })}
-      />
-      <TextField
-        label="Target time in seconds (optional)"
-        value={form.time}
-        keyboardType="number-pad"
-        onChangeText={(time) => setForm({ ...form, time })}
-      />
-      <TextField
-        label="Target distance in metres (optional)"
-        value={form.distance}
-        keyboardType="decimal-pad"
-        onChangeText={(distance) => setForm({ ...form, distance })}
-      />
-      <TextField
-        label="Rest seconds"
-        value={form.rest}
-        keyboardType="number-pad"
-        onChangeText={(rest) => setForm({ ...form, rest })}
-      />
-      <MultiChipGroup
-        label="Log each set"
-        options={LOG_FIELDS.map((value) => ({
-          value,
-          label: value === 'RPE' ? 'Effort (RPE)' : value[0]!.toUpperCase() + value.slice(1),
-        }))}
-        values={fields}
-        onToggle={(field) =>
-          setFields((prev) =>
-            prev.includes(field) ? prev.filter((f) => f !== field) : [...prev, field],
-          )
-        }
-        hint="Choose the fields you want to fill in during a session."
+      <ExerciseTargetFields
+        form={form}
+        setForm={setForm}
+        fields={fields}
+        setFields={setFields}
+        busy={busy}
       />
       {error ? (
         <AppText color="caution" accessibilityLiveRegion="polite">
