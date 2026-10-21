@@ -11,7 +11,7 @@ import { prefillFromSets, sessionResultsFromSets } from '../logic';
 import { at, other, snapshot, user } from './fixtures';
 
 const id = (n: number) => `00000000-0000-4000-8000-${String(n + 100).padStart(12, '0')}`;
-async function fixture(count: number, sets = 0, legacy = false) {
+async function fixture(count: number, sets = 0, legacy = false, mixed = false) {
   const driver = nodeDriver();
   const reads: { sql: string; params: SqlValue[]; rows: number }[] = [];
   const traced: Driver = {
@@ -36,6 +36,10 @@ async function fixture(count: number, sets = 0, legacy = false) {
   for (let n = 0; n < count; n += 1) {
     const start = at(n).toISOString();
     const active = n === count - 1;
+    const saved =
+      mixed && n % 2 === 0
+        ? { ...original, exercises: [{ ...original.exercises[0]!, exerciseId: 'Other_exercise' }] }
+        : original;
     insert.run(
       id(n),
       user,
@@ -45,7 +49,7 @@ async function fixture(count: number, sets = 0, legacy = false) {
       start,
       active ? null : at(n + 1).toISOString(),
       active ? 'active' : 'completed',
-      JSON.stringify(original),
+      JSON.stringify(saved),
       start,
     );
     for (let slot = 0; slot < sets; slot += 1) {
@@ -67,6 +71,25 @@ async function fixture(count: number, sets = 0, legacy = false) {
 }
 
 describe('bounded workout reads', () => {
+  it('prepares only related workouts on first use and leaves unrelated history queued', async () => {
+    const { db, reads, driver } = await fixture(2000, 20, false, true);
+    await readWorkoutDetail(db, user, id(1999));
+    const coldSetReads = reads.filter((q) => q.sql.includes('FROM set_logs'));
+    expect(coldSetReads.reduce((n, q) => n + q.rows, 0)).toBe(20000);
+    expect(
+      await db.first(
+        "SELECT COUNT(*) AS n FROM workout_history_index WHERE exercise_id = 'Other_exercise'",
+      ),
+    ).toEqual({ n: 0 });
+    expect(await db.first('SELECT COUNT(*) AS n FROM workout_history_dirty')).toEqual({ n: 1000 });
+    reads.length = 0;
+    await readWorkoutDetail(db, user, id(1999));
+    expect(reads).toHaveLength(5);
+    expect(reads.filter((q) => q.sql.includes('FROM set_logs')).map((q) => q.rows)).toEqual([20]);
+    await readWorkoutDetail(db, user, id(1998));
+    expect(await db.first('SELECT COUNT(*) AS n FROM workout_history_dirty')).toEqual({ n: 0 });
+    driver.raw.close();
+  });
   it('keeps warm detail and exact comparison reads constant as history reaches 40,000 sets', async () => {
     for (const count of [50, 500, 2000]) {
       const { db, reads, driver } = await fixture(count, 20);

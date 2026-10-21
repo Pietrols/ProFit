@@ -193,7 +193,7 @@ export async function readWorkout(db: Sql, userId: string, sessionId: string) {
   if (!session) return null;
   return { session, logs: await readSessionSets(db, userId, session) };
 }
-async function readSessionSets(
+export async function readSessionSets(
   db: Sql,
   userId: string,
   session: WorkoutSession,
