@@ -98,10 +98,14 @@ describe('bounded workout reads', () => {
       expect(await db.first('SELECT COUNT(*) AS n FROM workout_history_dirty')).toEqual({ n: 0 });
     });
   });
-  it.each([50, 500, 2000])(
-    'keeps warm detail and exact comparisons bounded with %i sessions of 20 sets',
-    async (count) => {
-      const { db, reads, driver } = await fixture(count, 20);
+  describe.each([50, 500, 2000])('detail with %i sessions of 20 sets', (count) => {
+    let populated: Awaited<ReturnType<typeof fixture>>;
+    beforeAll(async () => {
+      populated = await fixture(count, 20);
+    });
+    afterAll(() => populated?.driver.raw.close());
+    it('keeps warm detail and exact comparisons bounded', async () => {
+      const { db, reads } = populated;
       await readWorkoutDetail(db, user, id(count - 1));
       const coldSetReads = reads.filter((q) => q.sql.includes('FROM set_logs'));
       expect(coldSetReads.reduce((n, q) => n + q.rows, 0)).toBe(count * 20);
@@ -128,9 +132,8 @@ describe('bounded workout reads', () => {
         expect(details).not.toContain('MATERIALIZE previous');
         expect(details).toContain('SEARCH workout_history_index USING INDEX');
       }
-      driver.raw.close();
-    },
-  );
+    });
+  });
   it('reads only the requested owned session and its sets, without a second parent query', async () => {
     for (const count of [50, 2000]) {
       const { db, reads } = await fixture(count, 20);
