@@ -12,7 +12,7 @@ const number = (v: unknown, min: number, max: number): v is number =>
 const integer = (v: unknown, min: number, max: number) =>
   number(v, min, max) && Number.isInteger(v);
 const name = (v: unknown) => typeof v === 'string' && v.trim().length > 0 && v.trim().length <= 80;
-const uuid = (v: unknown) =>
+export const validUuid = (v: unknown): v is string =>
   typeof v === 'string' &&
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
 const date = (v: unknown) =>
@@ -87,8 +87,8 @@ export function validateSession(value: unknown): string | null {
       'easierToday',
       'snapshot',
     ]) ||
-    !uuid(value.planId) ||
-    !uuid(value.dayId) ||
+    !validUuid(value.planId) ||
+    !validUuid(value.dayId) ||
     !date(value.localDate) ||
     !validTime(value.startedAt) ||
     !['active', 'completed', 'abandoned'].includes(String(value.status)) ||
@@ -116,7 +116,7 @@ export function validateSet(value: unknown, snapshot?: WorkoutSnapshot): string 
       'logFields',
       'values',
     ]) ||
-    !uuid(value.sessionId) ||
+    !validUuid(value.sessionId) ||
     !integer(value.exercisePosition, 0, 99) ||
     !integer(value.setIndex, 0, 99) ||
     !validTime(value.loggedAt) ||
