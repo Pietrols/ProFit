@@ -147,8 +147,16 @@ export function prefill(
   history: readonly WorkoutHistory[],
   before: string,
 ): SetValues {
-  const previous = historySets(history, before)
-    .filter((s) => s.exerciseId === exercise.exerciseId)
+  return prefillFromSets(exercise, targets, historySets(history, before));
+}
+// These rows have already been scoped to the owner and eligible completion cutoff.
+export function prefillFromSets(
+  exercise: SnapshotExercise,
+  targets: Targets,
+  history: readonly ExerciseSet[],
+): SetValues {
+  const previous = history
+    .filter((s) => s.exerciseId === exercise.exerciseId && validLog(s.log))
     .sort((a, b) => chronological(b.log, a.log));
   const result: SetValues = {};
   const preferred = {
@@ -237,11 +245,22 @@ export function sessionResults(
   logs: readonly Stored<SetLog>[],
   history: readonly WorkoutHistory[],
 ) {
-  const completed = completedSets(session, logs).sort(chronological);
-  const earlier = historySets(
-    history.filter((h) => h.session.id !== session.id),
-    session.startedAt,
+  return sessionResultsFromSets(
+    session,
+    logs,
+    historySets(
+      history.filter((h) => h.session.id !== session.id),
+      session.startedAt,
+    ),
   );
+}
+export function sessionResultsFromSets(
+  session: Stored<WorkoutSession>,
+  logs: readonly Stored<SetLog>[],
+  history: readonly ExerciseSet[],
+) {
+  const completed = completedSets(session, logs).sort(chronological);
+  const earlier = history.filter((row) => row.log.sessionId !== session.id);
   const records: { setId: string; exerciseId: string; record: PersonalRecord }[] = [];
   if (session.status !== 'abandoned')
     for (const log of completed) {

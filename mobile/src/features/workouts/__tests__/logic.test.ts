@@ -7,6 +7,9 @@ import {
   lastCompletion,
   personalRecords,
   prefill,
+  prefillFromSets,
+  sessionResults,
+  sessionResultsFromSets,
   sessionSnapshot,
   sessionSummary,
   sessionTargets,
@@ -58,6 +61,30 @@ const exerciseSet = (log: SetLog, exerciseId = 'Barbell_Bench_Press'): ExerciseS
   log,
 });
 const historical = (s: WorkoutSession, logs: SetLog[]): WorkoutHistory => ({ session: s, logs });
+
+it('accepts prepared historical results without changing prefills, records or input rows', () => {
+  const past = workout(10, 0);
+  const current = workout(20, 20);
+  const logs = [
+    logged(past, 0, { reps: 8, weight: 50 }, 1),
+    logged(past, 1, { reps: 5, weight: 55 }, 2),
+  ];
+  const history = [historical(past, logs)];
+  const prepared = logs.map((log) => exerciseSet(log));
+  const before = JSON.stringify(prepared);
+  const actual = [
+    logged(current, 0, { reps: 8, weight: 60 }, 21),
+    logged(current, 1, { reps: 10, weight: 60 }, 22),
+  ];
+  expect(sessionResultsFromSets(current, actual, prepared)).toEqual(
+    sessionResults(current, actual, history),
+  );
+  const exercise = current.snapshot.exercises[0]!;
+  expect(prefillFromSets(exercise, exercise, prepared)).toEqual(
+    prefill(exercise, exercise, history, current.startedAt),
+  );
+  expect(JSON.stringify(prepared)).toBe(before);
+});
 
 describe('workout snapshots and targets', () => {
   const plan: Plan = {
