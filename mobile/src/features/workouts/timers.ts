@@ -11,6 +11,7 @@ export type TimerState = {
   accumulatedMs: number;
   runningSince: number | null;
   generation: string;
+  sourceSetId?: string;
 };
 export type TimerView = {
   elapsedMs: number;
@@ -67,8 +68,15 @@ export function readTimer(value: unknown): TimerState | null {
     (value.runningSince !== null && !time(value.runningSince)) ||
     typeof value.generation !== 'string' ||
     !value.generation ||
+    (value.sourceSetId !== undefined &&
+      ((value.config as TimerConfig).mode !== 'rest' ||
+        typeof value.sourceSetId !== 'string' ||
+        !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
+          value.sourceSetId,
+        ))) ||
     Object.keys(value).some(
-      (key) => !['config', 'accumulatedMs', 'runningSince', 'generation'].includes(key),
+      (key) =>
+        !['config', 'accumulatedMs', 'runningSince', 'generation', 'sourceSetId'].includes(key),
     )
   )
     return null;
@@ -82,6 +90,7 @@ export function readTimer(value: unknown): TimerState | null {
     accumulatedMs: value.accumulatedMs,
     runningSince: value.runningSince as number | null,
     generation: value.generation,
+    ...(value.sourceSetId === undefined ? {} : { sourceSetId: value.sourceSetId as string }),
   };
 }
 export function startTimer(config: TimerConfig, now: number, generation: string): TimerState {

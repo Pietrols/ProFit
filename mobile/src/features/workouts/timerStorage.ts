@@ -10,7 +10,10 @@ const key = (user: string, session: string) =>
 export function timerAfterLogs(
   timer: TimerState | null,
   loggedAt: readonly string[],
+  eligibleSetIds?: readonly string[],
 ): TimerState | null {
+  if (timer?.sourceSetId && eligibleSetIds && !eligibleSetIds.includes(timer.sourceSetId))
+    return null;
   if (
     timer?.runningSince !== null &&
     timer &&
