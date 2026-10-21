@@ -1,7 +1,8 @@
 import type { Sql, SqlValue } from '../../lib/db/database';
 import { completedSets, personalRecords, type ExerciseSet } from './logic';
-import { prefillHistoryRequests } from './historyRequests';
-import type { SetLog, WorkoutSession } from './types';
+import { prefillRequestsForExercises } from './historyRequests';
+import type { WorkoutResult } from './structureTypes';
+import type { SetLog, SnapshotExercise, WorkoutSession } from './types';
 
 type Row = { exercise_id: string; log_json: string };
 const previous = `previous AS NOT MATERIALIZED (
@@ -17,17 +18,38 @@ export async function readExerciseHistory(
   session: WorkoutSession,
   logs: readonly SetLog[],
 ): Promise<ExerciseSet[]> {
+  return readPerformedExerciseHistory(
+    db,
+    user,
+    session,
+    session.snapshot.exercises,
+    completedSets(session, logs).map((log) => ({
+      exerciseId: session.snapshot.exercises[log.exercisePosition]!.exerciseId,
+      log,
+    })),
+  );
+}
+
+// Current item targets and resolved actuals are independent of the original routine's order.
+export async function readPerformedExerciseHistory(
+  db: Sql,
+  user: string,
+  session: WorkoutSession,
+  exercises: readonly SnapshotExercise[],
+  actuals: readonly ExerciseSet[],
+): Promise<ExerciseSet[]> {
   const base: SqlValue[] = [user, session.id, Date.parse(session.startedAt)];
   const found = new Map<string, ExerciseSet>();
   const collect = (rows: Row[]) => {
     for (const row of rows) {
-      const log = JSON.parse(row.log_json) as SetLog;
+      const log = JSON.parse(row.log_json) as WorkoutResult;
       found.set(log.id, { exerciseId: row.exercise_id, log });
     }
   };
-  const requested = prefillHistoryRequests(session);
-  if (requested.length) {
-    const values = requested.map(() => '(?, ?)').join(', ');
+  const requested = prefillRequestsForExercises(exercises);
+  for (let start = 0; start < requested.length; start += 200) {
+    const batch = requested.slice(start, start + 200);
+    const values = batch.map(() => '(?, ?)').join(', ');
     collect(
       await db.all<Row>(
         `WITH ${previous}, requested(exercise_id, field) AS (VALUES ${values}),
@@ -36,23 +58,14 @@ export async function readExerciseHistory(
           WHEN 'time' THEN h.time WHEN 'distance' THEN h.distance END IS NOT NULL
         ORDER BY h.logged_ms DESC, h.id DESC LIMIT 1) AS id FROM requested r)
       SELECT exercise_id, log_json FROM previous WHERE id IN (SELECT id FROM wanted)`,
-        [...base, ...requested.flatMap((r) => [r.exerciseId, r.field])],
+        [...base, ...batch.flatMap((r) => [r.exerciseId, r.field])],
       ),
     );
   }
-  const candidates = completedSets(session, logs)
-    .filter(
-      (log) =>
-        personalRecords(
-          {
-            exerciseId: session.snapshot.exercises[log.exercisePosition]!.exerciseId,
-            log,
-          },
-          [],
-        ).length > 0,
-    )
-    .map((log) => [
-      session.snapshot.exercises[log.exercisePosition]!.exerciseId,
+  const candidates = actuals
+    .filter((candidate) => personalRecords(candidate, []).length > 0)
+    .map(({ exerciseId, log }) => [
+      exerciseId,
       Date.parse(log.loggedAt),
       log.id,
       log.values.weight ?? null,
