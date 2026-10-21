@@ -3,6 +3,7 @@ import { randomId } from '../../lib/randomId';
 import { setLogId } from './identity';
 import { sessionInput, setInput, validateSession, validateSet } from './model';
 import { getSession, readSession, SESSION_COLUMNS, type SessionRow } from './sessionReads';
+import { readSessionStructure } from './structureReads';
 import type { SessionInput, SetInput, SetLog, WorkoutSession } from './types';
 
 export { setLogId } from './identity';
@@ -108,8 +109,10 @@ export async function finishSession(
     if (session.status !== 'active') throw new Error('This session has already ended.');
     const endedAt = now.toISOString();
     check(validateSession({ ...sessionInput(session), status, endedAt }));
-    const logs = await readSessionSets(tx, userId, session);
-    if (logs.some((set) => Date.parse(set.loggedAt) > now.getTime()))
+    const { resultRecords: logs, resultView } = await readSessionStructure(tx, userId, session);
+    if (!resultView.available)
+      throw new Error('Some workout data is unavailable. Refresh before finishing.');
+    if (logs.some((set) => !set.deletedAt && Date.parse(set.loggedAt) > now.getTime()))
       throw new Error('The end time must follow your logged sets.');
     await tx.run(
       'UPDATE workout_sessions SET status = ?, ended_at = ?, updated_at = ?, dirty = 1 WHERE id = ? AND user_id = ?',
@@ -140,7 +143,8 @@ export async function saveSet(
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, 1)
       ON CONFLICT(id) DO UPDATE SET logged_at = excluded.logged_at, log_fields = excluded.log_fields,
         values_json = excluded.values_json, updated_at = excluded.updated_at, deleted_at = NULL, dirty = 1
-      WHERE set_logs.user_id = excluded.user_id AND set_logs.session_id = excluded.session_id`,
+      WHERE set_logs.user_id = excluded.user_id AND set_logs.session_id = excluded.session_id
+        AND set_logs.item_id IS NULL AND set_logs.side IS NULL AND set_logs.targets_at_performance IS NULL`,
       [
         id,
         userId,
@@ -207,6 +211,10 @@ export async function deleteSet(db: Sql, userId: string, id: string, now: Date) 
 export async function deleteSession(db: Database, userId: string, id: string, now: Date) {
   await db.transaction(async (tx) => {
     const at = now.toISOString();
+    await tx.run(
+      'UPDATE session_items SET deleted_at = ?, updated_at = ?, dirty = 1 WHERE session_id = ? AND user_id = ? AND deleted_at IS NULL',
+      [at, at, id, userId],
+    );
     await tx.run(
       'UPDATE set_logs SET deleted_at = ?, updated_at = ?, dirty = 1 WHERE session_id = ? AND user_id = ? AND deleted_at IS NULL',
       [at, at, id, userId],
