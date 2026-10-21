@@ -117,7 +117,7 @@ ESLint, Prettier and their required development configuration are approved.
   and require both checks in backend/mobile CI.
 - [x] 5.8.3 Bound workout/history queries, remove duplicate reads, isolate timer rendering and
   verify exact relevant exercise-history calculations without all-history work per tick/save.
-- [ ] 5.8.4 Add logged-set edit, delete and undo with stable identity, original performance time,
+- [x] 5.8.4 Add logged-set edit, delete and undo with stable identity, original performance time,
   conflict handling and recalculated totals/records.
 - [ ] 5.8.5 Add stable session-item/slot contracts and backward-compatible migrations/sync,
   preserving legacy histories, dirty edits and tombstones before structural session changes.

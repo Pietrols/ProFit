@@ -641,3 +641,44 @@ background alert or visual acceptance result is claimed. Those remain in 5.8.12 
 Step 5.8.4 is next. Before enabling structural adaptation in 5.8.5/5.8.6, extend the catalog and
 projection to the new stable item/slot contracts and add compatibility fixtures; they currently
 interpret the original Phase 5 snapshot format. History navigation itself remains in 5.8.8.
+
+## Step 5.8.4 implementation checkpoint, 21 October 2026
+
+Logged sets now have an editor, delete action and one-level Undo in the workout detail route,
+for active and completed sessions. Completed-session navigation remains in 5.8.8. Abandoned
+sessions remain readable without correction actions. The editor pins the original result and
+display units while a draft is open. A failed save keeps the editor and its entered values.
+The current-set form stays mounted while editing; session-local, slot/unit-keyed drafts also
+survive the current-slot change caused by deleting and undoing an earlier set. Durable draft
+recovery across leaving the route or restarting the app remains in 5.8.7.
+
+Transactional commands implement D41. Corrections preserve id, slot, log fields, loggedAt and
+session start/end. A full revision fingerprint catches stale values even at equal timestamps.
+Deletion produces a tombstone and an exact-revision undo receipt. A newer result or deletion
+blocks stale undo. The comparison view offers keeping the saved result or explicitly applying
+the proposed values to the newly read revision; a second intervening change is checked again.
+The existing post-commit read barrier blocks another mutation if the saved result cannot be
+refreshed. It does not report a committed write as a failed save.
+
+History invalidation uses the existing canonical-row triggers. Corrected values recalculate
+volume and records through the same bounded detail reader. Editing clears the live PR
+acknowledgement and does not start another timer. New automatic rests carry a local source
+set id; deleting that source clears rest, and restart reconciliation cancels an existing
+request whose source is gone. Manual and legacy unlinked timers remain available with an
+explicit clear action. Undo does not start a rest timer.
+
+Validation: 371 mobile tests pass, including real SQLite correction/delete/undo, failed-write
+rollback, unchanged performance/session times, zero versus missing values and exact cache
+invalidation. A two-client fake-server regression corrects 80 to 60 kg offline, verifies 480 kg
+volume after sync, deletes and restores the same result, then refuses stale undo after a newer
+70 kg result arrives. The alert-port regression verifies source deletion cancels the request
+without rescheduling after edit. These are simulated clients and ports, not physical phones.
+
+Both packages pass format, lint and typecheck; the backend build and web/Android JavaScript
+exports pass. PostgreSQL tests use CI under rule 8. The completing commit's green CI is the
+gate. No visual interaction check is claimed: the available Playwright runtime had no browser,
+and its browser download returned invalid archives. Visual acceptance remains in 5.8.12;
+the native timer/permission matrix and real Android check remain in 5.8.11 and 5.7.
+
+Step 5.8.5 is next. Preserve the legacy result path and extend cache invalidation/catalog
+coverage before structural session adaptation is enabled. Phase 6 has not started.
