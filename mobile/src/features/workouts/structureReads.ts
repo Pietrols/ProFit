@@ -11,7 +11,7 @@ import {
 import type { SessionItem, WorkoutResult } from './structureTypes';
 import type { WorkoutSession } from './types';
 import { workoutResultsView } from './workoutResultsView';
-import { getSession } from './workouts';
+import { getSession } from './sessionReads';
 
 // The caller must read this owned parent in the same transaction, as below.
 export async function readSessionStructure(tx: Sql, user: string, session: WorkoutSession) {
