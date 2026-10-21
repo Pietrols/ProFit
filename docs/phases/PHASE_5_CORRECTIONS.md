@@ -909,3 +909,79 @@ Next is 5.8.7: current-set hierarchy, relevant timer and next-exercise preview, 
 unit-safe weight/reps steppers and durable draft recovery. History/comparison screens and the
 remaining native/visual acceptance stay in their ordered correction steps. Phase 6 has not
 started and the physical 5.7 gate remains open.
+
+## Step 5.8.7 implementation checkpoint, 21 October 2026
+
+PR #10 was merged into rebuild before this session. The new logging-flow changes are in
+draft PR #11: https://github.com/Pietrols/ProFit/pull/11. Step 5.8.7 remains unticked because
+its small-screen, keyboard and accessibility product checks have not been run. Do not proceed
+to 5.8.8 or treat this checkpoint as the phase's Done-when result.
+
+### Implemented behavior
+
+- The current exercise, set number, progress, active timer and logging form precede the session
+  clock and timer configuration. The active timer remains visible after the last pending set.
+  Clock ticks stay inside their readout components. Timer settings remain collapsible.
+- Separate previews show the next pending set and next exercise occurrence, wrapping to earlier
+  deferred work. Skipped, removed, completed and unavailable work is excluded appropriately.
+- The exercise overview is collapsed initially. Each occurrence has an ordinal, status,
+  Train-now action and expandable adjustments. Choosing another exercise scrolls to its current
+  set card. Display order never becomes a draft or performance identity.
+- Reps and weight retain direct text entry and gain minus/plus controls. Defaults are one rep,
+  2.5 kg or 5 lb; a visible weight-step control exposes other increments. Decimal-digit integer
+  arithmetic prevents drift. Blank, zero, malformed text, comma decimals and upper bounds are
+  handled explicitly. Buttons provide increment/unit labels and disabled accessibility state.
+- New-set and correction drafts use the existing local key-value port, backed by SQLite on
+  native devices. Account/session/item/slot keys isolate inputs. Display units, exact canonical
+  prefills and raw custom-field text are preserved. Changing profile units, easier-today or
+  receiving fresh workout data does not reinterpret an existing draft. Only selected fields
+  are submitted. New drafts use the current unit preference.
+- Writes are serialized across form remounts. Recovery completes before editing is enabled;
+  failed reads do not overwrite storage. Failed writes keep the latest text in memory with a
+  retry action. The UI distinguishes saving, saved and failed persistence. A forced shutdown
+  before an outstanding write completes can only recover the last durable version.
+- Result revision checks include corrections and tombstones. If performance commits before
+  draft cleanup, the saved slot takes precedence after restart and cannot be logged twice.
+  Explicit deletion starts a fresh draft revision instead of reviving obsolete input.
+- Unreadable drafts have Retry and a separate confirmed discard action for that slot. The
+  warning states that unsaved input is lost and saved results are kept. A synchronous submit
+  guard prevents rapid duplicate form submissions. Keyboard taps on controls are handled by
+  the scroll container rather than consumed only to dismiss the keyboard.
+
+### Automated evidence
+
+- Both packages pass formatting, lint and typecheck. All 496 mobile tests pass locally across
+  77 files. Backend build and six supplemental pure tests pass locally; full database tests use
+  CI under BUILD_PLAN rule 8 because this environment has no local Postgres.
+- Code head 9f59c74 passes push run 39682622518 and PR run 39682628742. Backend CI runs all 125
+  tests against PostgreSQL. New tests cover decimal bounds/drift, scoped recovery, ordered
+  writes, storage errors, next-exercise previews and a combined database/draft scenario.
+- That combined scenario selects another exercise, reorders work, changes easier-today,
+  recovers the original units and entered values, commits performance, simulates a crash
+  before cleanup, rejects duplicate logging and verifies deletion changes the draft revision.
+  These are storage and logic checks, not rendered interaction checks.
+- Fresh web and Android JavaScript exports pass. These are neither an APK nor a phone test.
+  No runtime dependency was added. Eleven small tested implementation/test commits were
+  pushed before this documentation checkpoint; no merged history was rewritten.
+
+### Remaining product acceptance for 5.8.7
+
+1. On 320-pixel and 390-pixel widths, in light/dark themes and large text, verify the current
+   set, timer and Log-set action are usable without scrolling through configuration. Check
+   long exercise names and every chosen logging field without overlap or truncated controls.
+2. With the native numeric keyboard open, type a weight, tap minus/plus rapidly, choose an
+   increment and log. Each control must act on the first tap. Check blank/zero/comma/invalid
+   input, busy controls, validation errors and an incomplete saved set's correction path.
+3. Enter distinct bench and row drafts. Select/defer/reorder/skip/restore work, edit a saved
+   result, change units/easier-today and receive sync. Return to each draft and verify its
+   text, labels and intended slot. Kill/reopen offline after Saved-on-this-phone appears.
+4. With a screen reader, verify numeric input labels, increment/unit announcements, disabled
+   state, expanded/collapsed actions and distinguishable duplicate exercise occurrences.
+   Check focus and the return to the current card after selecting another exercise.
+5. Switch accounts while recovery is pending. No prior-account draft may flash or be saved
+   under the new account. Exercise disk read/write errors and confirmed unreadable-draft
+   discard through the rendered UI, preserving other slots and every saved result.
+
+No browser executable or native device was available for these checks in this environment.
+Keep their acceptance status open. History, rest-day shortcuts, plate/per-side logging and
+notification/exact-alarm checks remain in their ordered steps. Phase 6 has not started.

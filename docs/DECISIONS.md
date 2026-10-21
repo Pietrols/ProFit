@@ -488,3 +488,7 @@ an unread draft. Compare the slot's saved-result revision, including deletions, 
 A newer logged or deleted result supersedes an older draft even if a crash prevented cleanup.
 No draft is synced or counted as performance. Physical keyboard and small-screen acceptance
 remain required; storage tests cannot establish those results.
+
+If recovery cannot read a draft, offer Retry and a separate confirmed discard of that slot's
+draft. Never replace unreadable data merely because a read failed. Discard explains that unsaved
+input will be lost and saved results are kept. Other slots and accounts are unaffected.
