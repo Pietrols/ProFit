@@ -43,9 +43,12 @@ async function signIn(email = 'peter@example.com') {
   return (await request(app).post('/auth/dev').send({ email })).body.session.accessToken as string;
 }
 const push = (token: string, changes: unknown) =>
-  request(app).post('/sync/push').set('Authorization', `Bearer ${token}`).send({ changes });
+  request(app)
+    .post('/sync/push')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ protocol: 2, changes });
 const pull = (token: string) =>
-  request(app).get('/sync/pull').set('Authorization', `Bearer ${token}`);
+  request(app).get('/sync/pull').query({ protocol: 2 }).set('Authorization', `Bearer ${token}`);
 beforeEach(() => resetTables(database));
 afterAll(() => database.close());
 describe('plans sync', () => {
@@ -114,7 +117,7 @@ describe('plans sync', () => {
     const seen: string[] = [];
     for (let i = 0; i < 4; i++) {
       const page = await request(app)
-        .get(`/sync/pull?since=${cursor}&limit=1`)
+        .get(`/sync/pull?protocol=2&since=${cursor}&limit=1`)
         .set('Authorization', `Bearer ${token}`);
       const rows = Object.values(page.body.changes).flat() as { id: string }[];
       expect(rows).toHaveLength(1);

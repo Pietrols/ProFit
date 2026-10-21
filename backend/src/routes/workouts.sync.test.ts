@@ -64,9 +64,15 @@ async function signIn(email = 'workout@example.com') {
   return (await request(app).post('/auth/dev').send({ email })).body.session.accessToken as string;
 }
 const push = (token: string, changes: unknown) =>
-  request(app).post('/sync/push').set('Authorization', `Bearer ${token}`).send({ changes });
+  request(app)
+    .post('/sync/push')
+    .set('Authorization', `Bearer ${token}`)
+    .send({ protocol: 2, changes });
 const pull = (token: string, since = 0, limit = 500) =>
-  request(app).get('/sync/pull').query({ since, limit }).set('Authorization', `Bearer ${token}`);
+  request(app)
+    .get('/sync/pull')
+    .query({ protocol: 2, since, limit })
+    .set('Authorization', `Bearer ${token}`);
 beforeEach(() => resetTables(database));
 afterAll(() => database.close());
 
