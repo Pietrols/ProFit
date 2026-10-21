@@ -7,7 +7,7 @@ import { SetConflict, type SetConflictState } from './SetConflict';
 import { SetForm } from './SetForm';
 import { SetConflictError, type SetRecord, type SetUndoReceipt } from './setChanges';
 import type { SessionItem, WorkoutResult } from './structureTypes';
-import type { SetValues, WorkoutSession } from './types';
+import type { SetValues, SnapshotExercise, WorkoutSession } from './types';
 import type { useWorkout } from './useWorkout';
 import { setLabel, type Units } from './workoutForm';
 
@@ -34,7 +34,11 @@ export function LoggedSets({
   changed: () => void;
   deleted: (id: string) => Promise<void>;
 }) {
-  const [editing, setEditing] = useState<{ record: SetRecord; units: Units } | null>(null);
+  const [editing, setEditing] = useState<{
+    record: SetRecord;
+    units: Units;
+    exercise: SnapshotExercise;
+  } | null>(null);
   const [undo, setUndo] = useState<{ receipt: SetUndoReceipt; units: Units } | null>(null);
   const [conflict, setConflict] = useState<SetConflictState | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -106,7 +110,8 @@ export function LoggedSets({
         }
       : null;
   }
-  const exercise = editing ? displayExercise(editing.record) : null;
+  // Keep the reviewed form available even if a later sync makes its item unreadable.
+  const exercise = editing?.exercise;
   return (
     <>
       <AppText variant="title">Logged sets</AppText>
@@ -171,7 +176,7 @@ export function LoggedSets({
                   variant="secondary"
                   disabled={blocked}
                   onPress={() => {
-                    setEditing({ record: target, units });
+                    setEditing({ record: target, units, exercise: item });
                     setMessage(null);
                     editingChanged(true);
                     changed();

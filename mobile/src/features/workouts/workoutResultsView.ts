@@ -13,6 +13,7 @@ export type ResolvedWorkoutResult = {
 };
 export type WorkoutResultsView = {
   results: ResolvedWorkoutResult[];
+  loggedResults: ResolvedWorkoutResult[];
   unavailableResultIds: string[];
   available: boolean;
 };
@@ -24,7 +25,7 @@ export function workoutResultsView(
   unavailableIds: readonly string[] = [],
 ): WorkoutResultsView {
   if (!validUuid(session.id) || session.deletedAt || validateSession(sessionInput(session)))
-    return { results: [], unavailableResultIds: [], available: false };
+    return { results: [], loggedResults: [], unavailableResultIds: [], available: false };
   const items = new Map(itemView.items.map((item) => [item.id, item]));
   const originals = new Map(
     itemView.items
@@ -37,7 +38,7 @@ export function workoutResultsView(
   const scoped = records.filter((result) => result.sessionId === session.id);
   const revisions = resolveRecordRevisions(scoped);
   const unavailable = new Set([...unavailableIds, ...revisions.unavailableIds]);
-  const results: ResolvedWorkoutResult[] = [];
+  const loggedResults: ResolvedWorkoutResult[] = [];
   // Both variants share this identity space. Never resolve them in separate passes.
   for (const log of revisions.latest) {
     if (unavailable.has(log.id) || log.deletedAt) continue;
@@ -69,21 +70,22 @@ export function workoutResultsView(
       }
       itemId = originalId;
     }
-    if (log.values.done === false) continue;
     const copy = { ...log, logFields: [...log.logFields], values: { ...log.values } };
     if ('itemId' in copy) copy.targetsAtPerformance = { ...copy.targetsAtPerformance };
-    results.push({
+    loggedResults.push({
       itemId,
       exerciseId: items.get(itemId)!.exercise.exerciseId,
       targetsAtPerformance: targets,
       log: copy,
     });
   }
+  loggedResults.sort(
+    (a, b) =>
+      Date.parse(a.log.loggedAt) - Date.parse(b.log.loggedAt) || a.log.id.localeCompare(b.log.id),
+  );
   return {
-    results: results.sort(
-      (a, b) =>
-        Date.parse(a.log.loggedAt) - Date.parse(b.log.loggedAt) || a.log.id.localeCompare(b.log.id),
-    ),
+    results: loggedResults.filter((result) => result.log.values.done !== false),
+    loggedResults,
     unavailableResultIds: [...unavailable].sort(),
     available: itemView.available && unavailable.size === 0,
   };

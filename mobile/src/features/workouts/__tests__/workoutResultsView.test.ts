@@ -91,6 +91,9 @@ it('resolves legacy and stable revisions together before deletion or eligibility
   };
   const hidden = workoutResultsView(parent(), view, [legacy(), incomplete]);
   expect(hidden.results).toEqual([]);
+  expect(hidden.loggedResults.map((row) => row.log)).toEqual([incomplete]);
+  hidden.loggedResults[0]!.log.values.weight = 999;
+  expect(incomplete.values.weight).toBe(45);
   expect(hidden.available).toBe(true);
   expect(workoutResultsView(parent(), view, [newer, legacy()]).results[0]!.log).toEqual(newer);
 });
@@ -105,6 +108,7 @@ it('reports invalid time, identity, partial metadata and unreadable data without
   ]) {
     const result = workoutResultsView(parent(), view, [log]);
     expect(result.available).toBe(false);
+    expect(result.loggedResults).toEqual([]);
     expect(result.unavailableResultIds).toEqual([log.id]);
   }
   expect(workoutResultsView(parent(), view, [{ ...legacy(), sessionId: other }]).results).toEqual(
