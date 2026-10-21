@@ -409,7 +409,7 @@ only the item table and nullable metadata columns. Migration 0006 drops exercise
 NOT NULL constraint before the union serializer is registered. The completed 5.8.5 cutover
 advertises workout_structure_v1 with minimum protocol 2 and requires it on the client before
 sync. Normal workout logging now writes stable performances through the owned item/slot store.
-Exercise adaptation controls still wait for 5.8.6. Deploy server first, then app; preserve local
+Exercise adaptation controls are implemented in 5.8.6. Deploy server first, then app; preserve local
 rows, tombstones and cursors throughout the upgrade.
 
 ## D44. Resolve structural records before counting performed work

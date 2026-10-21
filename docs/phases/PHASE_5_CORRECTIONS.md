@@ -855,3 +855,57 @@ Next is 5.8.6: selection, do-later, skip/restore, add/remove/replace, independen
 and future set-count changes. Do not rewrite the routine or any performed identity. UI hierarchy,
 steppers, durable drafts, history screens and native acceptance remain in their ordered steps.
 Phase 6 has not started. The physical 5.7 gate remains open.
+
+
+## Step 5.8.6 completion, 21 October 2026
+
+The workout's expandable exercise overview now offers Train now, Do later, skip/restore,
+remove/restore, move up/down, add, replace, future set-count changes and target/field editing.
+The screen labels these actions For this workout. The exercise picker reuses the existing
+library search, custom exercises and row component; target editing reuses the plan editor's
+fields and numeric parser. No dependency was added.
+
+Selection chooses the first pending slot of the chosen active exercise. It falls back to the
+normal queue when that item has no pending work and keeps incomplete saved slots reviewable.
+Draft keys remain stable slot/unit keys, so changing selection within the mounted workout keeps
+the previous set draft. The add/replace editor stays in that screen rather than navigating away.
+Durable draft storage and restart/unit behavior remain in 5.8.7; this is not a persistence claim.
+
+D46 commands validate the owned active session, complete data, reviewed item and (for moves)
+reviewed order inside one transaction. They write only item overrides and their derived-history
+invalidations. Failures roll back the entire group. Source rows, set identities, performance
+metadata, the original snapshot and saved plan are retained. New additions and replacements
+have independent device ids; replacement links to the omitted source rather than transferring
+its values. No draft weight is copied from the source exercise to a replacement.
+
+Skip and remove confirm the omission of remaining work with an optional reason. Restore returns
+the same item. A local set-count reduction refuses a live saved tail slot, including incomplete
+work; the UI disables removal when that final slot is already saved. Valid late synced results
+remain actuals beyond current targets. Original completed/omitted targets and additional logged
+work are counted separately. An all-skipped workout says No sets logged rather than claiming
+that its original targets were met.
+
+Evidence:
+
+- Pure selection, item changes, move and addition/replacement tests cover boundaries, stale
+  revisions, unknown data, ended workouts, independent identities and input immutability.
+- Real SQLite tests verify ownership, atomic multi-item replacement, retry after a failure in
+  the second write, foreign-id collision rollback and unchanged original results/snapshots.
+- The integrated busy-gym regression selects rows, defers/skips bench work, adds a plank,
+  reduces its future set count, replaces remaining row work and finishes. It verifies six
+  original target slots, two original completions, four omissions and two added completions.
+  Historical target counts and original performance times remain intact; ended sessions reject
+  further adjustments. This exercises commands/read models, not rendered taps.
+- Both packages pass formatting, lint and typecheck. All 474 mobile tests and all 125 backend
+  tests pass in CI for c39dbe6, push run 39677546283 and PR run 39677552924. Backend build and
+  six supplemental pure tests also pass locally under the no-local-Postgres rule.
+- Fresh web and Android JavaScript exports pass after the controls are connected. No APK,
+  rendered interaction, real-phone notification or populated-phone latency result is claimed.
+
+Small commits preserve each tested change, including separate command, storage, parser,
+shared-form, screen and integrated-regression commits. Draft PR #10 contains these changes.
+
+Next is 5.8.7: current-set hierarchy, relevant timer and next-exercise preview, compact overview,
+unit-safe weight/reps steppers and durable draft recovery. History/comparison screens and the
+remaining native/visual acceptance stay in their ordered correction steps. Phase 6 has not
+started and the physical 5.7 gate remains open.

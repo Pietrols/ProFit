@@ -121,7 +121,7 @@ ESLint, Prettier and their required development configuration are approved.
   conflict handling and recalculated totals/records.
 - [x] 5.8.5 Add stable session-item/slot contracts and backward-compatible migrations/sync,
   preserving legacy histories, dirty edits and tombstones before structural session changes.
-- [ ] 5.8.6 Add select, do-later, skip/restore, add/remove/replace, reorder and set-count changes.
+- [x] 5.8.6 Add select, do-later, skip/restore, add/remove/replace, reorder and set-count changes.
   Keep the original routine and performed results intact.
 - [ ] 5.8.7 Put the current set and relevant timer first, show next/overview, add unit-safe steppers,
   and preserve drafts across selection, reads and restarts.
