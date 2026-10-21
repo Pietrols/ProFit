@@ -1,7 +1,10 @@
 import { expect, it, vi } from 'vitest';
 import type { Database } from '../../../lib/db/database';
 import { testDatabase } from '../../../lib/db/__tests__/nodeDriver';
-import { at, session, sessionId, set, user } from '../../workouts/__tests__/fixtures';
+import { at, other, session, sessionId, set, user } from '../../workouts/__tests__/fixtures';
+import { logStableSet } from '../../workouts/stableLogging';
+import { correctLoggedSet, removeLoggedSet, undoLoggedSet } from '../../workouts/setCorrections';
+import { performedVolume } from '../../workouts/logic';
 import { setLogId } from '../../workouts/identity';
 import { sessionItemsView } from '../../workouts/sessionItemsView';
 import { sessionSlotId } from '../../workouts/structureIdentity';
@@ -38,6 +41,20 @@ async function canonicalRows(db: Database) {
 it('retains mixed dirty records and the cursor before feature negotiation, then syncs them to a second phone', async () => {
   const db = await testDatabase();
   const server = fakeSyncServer();
+  // This persisted cursor represents earlier activity in the shared server sequence.
+  await server.clientFor(other).post('/sync/push', {
+    protocol: 2,
+    changes: {
+      weight_entries: Array.from({ length: 25 }, (_, index) => ({
+        id: `00000000-0000-4000-8000-${String(index + 100).padStart(12, '0')}`,
+        date: `2026-10-${String(index + 1).padStart(2, '0')}`,
+        weightKg: 80,
+        note: null,
+        updatedAt: at(0).toISOString(),
+        deletedAt: null,
+      })),
+    },
+  });
   const api = server.clientFor(user);
   const parent = { ...session(), id: sessionId, updatedAt: at(0).toISOString(), deletedAt: null };
   const original = sessionItemsView(parent, []).items[0]!;
@@ -114,7 +131,10 @@ it('retains mixed dirty records and the cursor before feature negotiation, then 
   api.get = originalGet;
   await engine.sync();
   expect(engine.getStatus()).toMatchObject({ pending: 0, problem: null });
-  expect(server.rows.size).toBe(7);
+  expect([...server.rows.values()].filter((row) => row.userId === user)).toHaveLength(7);
+  expect(await db.first('SELECT cursor FROM sync_state WHERE user_id = ?', [user])).toEqual({
+    cursor: 32,
+  });
   const second = await testDatabase();
   const otherEngine = createSyncEngine({
     db: second,
@@ -131,4 +151,86 @@ it('retains mixed dirty records and the cursor before feature negotiation, then 
   expect(received.resultRecords.find((log) => log.id === stable.id)).toEqual(stable);
   expect(received.resultRecords.find((log) => log.id === legacy.id)).toEqual(legacy);
   expect(received.itemRecords.find((item) => item.id === removed.id)).toEqual(removed);
+});
+
+it('merges two offline additions, concurrent display order and result delete/undo without changing slot identity', async () => {
+  const server = fakeSyncServer();
+  const a = await testDatabase();
+  const b = await testDatabase();
+  const engines = [a, b].map((db) =>
+    createSyncEngine({ db, api: server.clientFor(user), collections: syncedCollections }),
+  );
+  for (const engine of engines) await engine.setUser(user);
+  const parent = { ...session(), id: sessionId, updatedAt: at(0).toISOString(), deletedAt: null };
+  await seed(a, workoutSessionsCollection, parent);
+  await engines[0]!.sync();
+  await engines[1]!.sync();
+  server.state.online = false;
+  const original = sessionItemsView(parent, []).items[0]!;
+  const ids = ['00000000-0000-4000-8000-000000000004', '00000000-0000-4000-8000-000000000005'];
+  const results: string[] = [];
+  for (const [index, db] of [a, b].entries()) {
+    const item: SessionItem = {
+      ...original,
+      id: ids[index]!,
+      origin: 'added',
+      originalPosition: null,
+      replacesItemId: null,
+      position: 1,
+    };
+    await seed(db, sessionItemsCollection, item);
+    results.push(
+      await logStableSet(
+        db,
+        user,
+        {
+          item,
+          setIndex: 0,
+          values: { weight: (index + 1) * 10, reps: 8 },
+          difficulty: 'standard',
+          easierToday: false,
+        },
+        at(index + 1),
+      ),
+    );
+    await engines[index]!.noteLocalChange();
+    expect(engines[index]!.getStatus()).toMatchObject({ pending: 2, offline: true });
+  }
+  expect(results[0]).not.toBe(results[1]);
+  server.state.online = true;
+  await engines[0]!.sync();
+  await engines[1]!.sync();
+  await engines[0]!.sync();
+  const before = (await readStructuredWorkout(a, user, sessionId))!;
+  expect(before.resultView.results.map((row) => row.log.id)).toEqual(results);
+  expect(before.session.snapshot).toEqual(parent.snapshot);
+  expect(performedVolume(before.resultView.results.map((row) => row.log))).toBe(240);
+  const target = { ...before.resultView.results[1]!.log, deletedAt: null };
+  server.state.online = false;
+  for (const [index, db] of [a, b].entries())
+    await db.run('UPDATE session_items SET position = ?, updated_at = ?, dirty = 1 WHERE id = ?', [
+      index === 0 ? 9 : 0,
+      at(10 + index).toISOString(),
+      ids[0]!,
+    ]);
+  await correctLoggedSet(a, user, target, { weight: 70, reps: 8 }, at(11));
+  const receipt = await removeLoggedSet(b, user, target, at(12));
+  server.state.online = true;
+  await engines[0]!.sync();
+  await engines[1]!.sync();
+  await engines[0]!.sync();
+  const deleted = (await readStructuredWorkout(a, user, sessionId))!;
+  expect(deleted.itemView.items.find((item) => item.id === ids[0])!.position).toBe(0);
+  expect(deleted.resultView.results.map((row) => row.log.id)).toEqual([results[0]]);
+  expect(performedVolume(deleted.resultView.results.map((row) => row.log))).toBe(80);
+  await undoLoggedSet(b, user, receipt, at(15));
+  await engines[1]!.sync();
+  await engines[0]!.sync();
+  for (const db of [a, b]) {
+    const restored = (await readStructuredWorkout(db, user, sessionId))!;
+    expect(restored.resultView.results.map((row) => row.log.id)).toEqual(results);
+    expect(restored.resultView.results[1]!.log.loggedAt).toBe(at(2).toISOString());
+    expect(performedVolume(restored.resultView.results.map((row) => row.log))).toBe(240);
+    expect(restored.session.snapshot).toEqual(parent.snapshot);
+  }
 });
