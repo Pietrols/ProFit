@@ -181,6 +181,7 @@ describe('sync', () => {
         daily_habit: [],
         workout_sessions: [],
         set_logs: [],
+        session_items: [],
       },
       cursor,
       hasMore: false,
