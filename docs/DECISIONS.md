@@ -410,3 +410,20 @@ exercise_position NOT NULL constraint when switching result serialization to the
 the D42 cutover. Until that complete slice, no structural collection/feature is advertised or
 written through app controls. Do not mistake the additive storage checkpoint for completed
 reader/sync compatibility.
+
+## D44. Resolve structural records before counting performed work
+The effective read model first scopes records to an owned session, then resolves revisions by
+the existing numeric edit-time/tombstone/tie rules. Legacy and stable results share one identity
+space; resolve them together before choosing a decoder so an older variant cannot reappear.
+The original snapshot supplies deterministic planned views without writing canonical rows.
+Malformed stored overrides block the affected planned view rather than silently restoring its
+old active state. Report unavailable record ids so the UI can show incomplete data and block
+structural commands until it is refreshed or repaired.
+
+Performed results remain attached to valid removed/skipped/tombstoned items and retain their
+performance targets. A missing or invalid owned parent keeps a result unavailable until that
+parent arrives. Replacement links must resolve within the same owned session, including cycle
+checks. Future work selection excludes unavailable, skipped and removed items; totals for
+performed work still include their valid actual results. Preserve the legacy pure entry points
+as equivalence oracles and reuse their metric calculations for both variants. Storage readers
+return owned canonical data and issues; they do not fabricate positional ids for added items.
