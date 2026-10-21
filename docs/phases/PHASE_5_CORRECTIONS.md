@@ -724,3 +724,73 @@ Next within 5.8.5: owned item/result readers and effective legacy/stable views, 
 projection/catalog reads, complete sync mappings and compatibility fixtures, then the atomic
 minimum-version/feature cutover. Require read equivalence and pending-data preservation before
 ticking the step. Adaptation commands/UI remain in 5.8.6. Phase 6 has not started.
+
+## Step 5.8.5 reader and command checkpoint, 21 October 2026
+
+Step 5.8.5 remains unticked. D44 defines the effective read eligibility rules and D45 defines
+new-performance logging. The following work is committed in small, separate changes:
+
+- Shared revision resolution preserves numeric edit-time ordering, tombstone precedence and
+  deterministic ties. Resolve legacy/stable results together before filtering eligibility.
+  Timestamp parsing is reused within each read batch, without a global mutable cache.
+- Effective item views adapt the original routine without writing canonical item rows. They
+  retain removed/skipped/tombstoned context, reject replacement cycles and missing parents,
+  and report malformed overrides instead of silently restoring original work.
+- Owned SQLite reads return canonical records, unavailable ids and effective result views.
+  Added results keep null original positions. Results arriving before their items become
+  readable when the owned item arrives. Deleted parents hide late children.
+- Legacy and stable results share volume, sparse prefill and PR calculations. Original target
+  snapshots remain unchanged; legacy performance targets remain unknown. Progress counts current
+  target slots separately from extra actual work, retains its volume and blocks next-work
+  selection/record celebrations when current data is incomplete.
+- History rebuilding joins item/result rows in batches of at most 25 sessions, with no query per
+  session. Stable results enter and leave the exact exercise projection through existing dirty
+  triggers/catalog tags. Removed/reduced items retain valid actual results. Comparison queries
+  use the performed exercise identity, including after future fields change to notes-only.
+- The new structured detail reader prepares owned data and exact comparisons in one transaction.
+  Its small warm fixture uses six queries with one parent read and one result read. Relevant
+  exercise requests are chunked below SQLite's older 999-parameter limit.
+- Correction/delete/undo now preserve stable metadata and include every captured target in the
+  revision fingerprint. SQLite regressions cover added, removed and reduced occurrences, equal
+  edit-time metadata conflicts, cache rebuilding and unchanged performance/session times.
+  Correction forms use performance fields rather than a later item's field selection.
+- Finishing checks all live stable/legacy logging times, including explicitly incomplete sets,
+  and rejects incomplete reads. Session deletion tombstones owned items. Legacy saves cannot
+  overwrite stable metadata. New stable logging checks the reviewed item/settings, commits
+  atomically, refuses replacement of live saved results and safely reuses explicitly deleted
+  slots. Rollback restores both the canonical row and its derived invalidation.
+- Prepared sync mappings round-trip item snapshots, nullable positions, stable targets and
+  tombstones. Absent legacy target metadata stays SQL NULL, while existing JSON-list defaults
+  stay unchanged. These new collection mappings are not registered yet.
+
+Validation: all 440 mobile tests pass. Both packages pass format, lint and typecheck, and the
+backend build and six supplemental pure backend tests pass. PostgreSQL CI remains the full
+backend gate under rule 8. Web and Android JavaScript exports pass for the correction-component
+changes. These checks do not claim a visual inspection, APK or physical-phone result.
+
+The 40,000-set regressions exposed repeated item/identity validation and timestamp parsing;
+both were reduced in separate performance fixes. A later CI run timed out while one
+test combined fixture generation and both targeted cold repairs under five seconds. A local
+Node/SQLite profile measured about 1.09 seconds for seeding, 1.25 seconds for related preparation,
+21 milliseconds for the warm read and 1.09 seconds for the other exercise's preparation. These
+are single host measurements, not phone latency or p95 guarantees. Fixture setup now runs in a
+hook and the 50/500/2000-session cases run separately. All query/row-count assertions and the
+five-second test limit remain. CI passed the adjusted harness and subsequent correction tests.
+
+The app still uses its legacy logging/detail route. Stable logging, structured detail/progress
+and the prepared mappings are tested foundations, not exposed adaptation controls. The server
+still advertises minimum protocol 1 and no structural feature; the client required-feature list
+is still empty. Do not deploy or describe this checkpoint as the completed compatibility slice.
+
+Next within 5.8.5:
+
+1. Register client mappings with the mandatory workout_structure_v1 preflight. Prove failed
+   negotiation retains new and legacy dirty rows, tombstones and cursors before any upload.
+2. Adopt structured detail/progress and stable logging in the hook/screen and alert read port.
+   Keep incomplete saved results editable, preserve performance fields and pin an open editor
+   if its item becomes unavailable. Do not add the 5.8.6 adaptation controls in this slice.
+3. Complete backend item/result mappings, the nullable-position migration and D42's minimum-2
+   feature cutover. Reject old-client whole requests before processing records or pull pages.
+   Deployment remains server first, then app; do not reset local storage or sync cursors.
+4. Run mixed legacy/stable two-client compatibility, ownership, arrival-order and dirty-data
+   regressions, confirm full CI and tick 5.8.5 only in its completing commit. Then start 5.8.6.
