@@ -389,3 +389,16 @@ must upgrade to resume sync. Upgrading preserves their pending legacy edits; do 
 storage, change canonical identities or reset sync cursors as a shortcut. An old server's missing
 capability endpoint similarly blocks the new client's sync and keeps every pending edit. D17's
 ordinary invalid-record rejection policy and D21's latest-edit merge policy are unchanged.
+
+## D43. Stable items and deterministic slots
+The exact additive contract is in `docs/phases/WORKOUT_STRUCTURE_CONTRACT.md`. A synced item is
+one exercise occurrence, independently ordered and linked to the unchanged original routine.
+Slots are immutable item/index pairs with deterministic ids, so a separate synced slot table is
+unnecessary for this phase's exercise-order and set-count operations. Planned slot ids preserve
+the legacy namespace; added/replacement slots use their random item id as namespace.
+
+Extend set_logs with a strict legacy/stable variant rather than assigning fake display positions
+to added exercises. Capture effective targets only on new performance; do not manufacture them
+for history. The first stable variant is bilateral. Per-side wire semantics and their client
+compatibility gate are finalized in 5.8.10. Commit schema fixtures before migrations, preserve
+pending legacy rows/tombstones, and complete indexed read compatibility before enabling writes.
