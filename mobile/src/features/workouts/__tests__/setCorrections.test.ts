@@ -1,7 +1,12 @@
 import { expect, it } from 'vitest';
 import { testDatabase } from '../../../lib/db/__tests__/nodeDriver';
 import { saveDay, savePlan } from '../../plans/plans';
+import { syncedCollections } from '../../sync/collections';
+import { createSyncEngine } from '../../sync/engine';
+import { fakeSyncServer } from '../../sync/__tests__/fakeSyncServer';
 import { refreshHistoryIndex } from '../historyIndex';
+import { sessionResultsFromSets } from '../logic';
+import { readWorkoutDetail } from '../workoutDetail';
 import { correctLoggedSet, removeLoggedSet, undoLoggedSet } from '../setCorrections';
 import { SetConflictError, type SetRecord } from '../setChanges';
 import {
@@ -125,4 +130,83 @@ it('does not revive children of deleted or abandoned sessions or invalid slots',
     'available',
   );
   await expect(undoLoggedSet(db, user, receipt, at(5))).rejects.toThrow('available');
+});
+
+it('syncs corrections, deletion and undo to another SQLite phone and blocks undo over an arrived edit', async () => {
+  const { db: a, target } = await fixture();
+  const b = await testDatabase();
+  const server = fakeSyncServer();
+  const phone = (db: typeof a) =>
+    createSyncEngine({ db, api: server.clientFor(user), collections: syncedCollections });
+  const first = phone(a);
+  const second = phone(b);
+  await first.setUser(user);
+  await second.setUser(user);
+  await finishSession(a, user, sessionId, 'completed', at(2));
+  const ended = (await getSession(a, user, sessionId))!.endedAt;
+  await first.sync();
+  await second.sync();
+  const saved = async (db: typeof a): Promise<SetRecord> => ({
+    ...(await listSets(db, user, sessionId))[0]!,
+    deletedAt: null,
+  });
+  const results = async (db: typeof a) => {
+    const detail = (await readWorkoutDetail(db, user, sessionId))!;
+    return sessionResultsFromSets(detail.session, detail.logs, detail.previousSets);
+  };
+  server.state.online = false;
+  await correctLoggedSet(b, user, await saved(b), { weight: 60, reps: 8 }, at(3));
+  await second.sync();
+  expect((await saved(a)).values.weight).toBe(80);
+  expect((await results(b)).volumeKg).toBe(480);
+  server.state.online = true;
+  await second.sync();
+  await first.sync();
+  expect((await saved(a)).values.weight).toBe(60);
+  expect((await results(a)).records).toContainEqual({
+    exerciseId: 'Barbell_Bench_Press',
+    setId: target.id,
+    record: { metric: 'heaviestWeight', value: 60, previousBest: null },
+  });
+  const receipt = await removeLoggedSet(a, user, await saved(a), at(4));
+  await first.sync();
+  await second.sync();
+  expect(await results(b)).toMatchObject({ completed: 0, volumeKg: 0, records: [] });
+  await undoLoggedSet(b, user, receipt, at(5));
+  await second.sync();
+  await first.sync();
+  expect(await saved(a)).toMatchObject({
+    id: target.id,
+    loggedAt: target.loggedAt,
+    values: { weight: 60, reps: 8 },
+  });
+  expect((await results(a)).volumeKg).toBe(480);
+  const offlineDraft = await saved(b);
+  const oldUndo = await removeLoggedSet(a, user, await saved(a), at(6));
+  await first.sync();
+  // The other phone edits its local copy before receiving that deletion.
+  await correctLoggedSet(b, user, offlineDraft, { weight: 70, reps: 8 }, at(7));
+  await second.sync();
+  await first.sync();
+  await expect(undoLoggedSet(a, user, oldUndo, at(8))).rejects.toThrow(SetConflictError);
+  expect((await saved(a)).values.weight).toBe(70);
+  expect((await results(a)).volumeKg).toBe(560);
+  for (const db of [a, b]) {
+    expect(await db.first('SELECT COUNT(*) AS n FROM set_logs')).toEqual({ n: 1 });
+    expect((await getSession(db, user, sessionId))!.endedAt).toBe(ended);
+  }
+});
+
+it('rolls back a failed correction without changing the result or clean history projection', async () => {
+  const { db, target } = await fixture();
+  await finishSession(db, user, sessionId, 'completed', at(2));
+  await refreshHistoryIndex(db, user);
+  await db.exec(`CREATE TEMP TRIGGER reject_correction BEFORE UPDATE ON set_logs
+    BEGIN SELECT RAISE(ABORT, 'storage unavailable'); END;`);
+  await expect(correctLoggedSet(db, user, target, { weight: 60 }, at(3))).rejects.toThrow(
+    'storage unavailable',
+  );
+  expect((await listSets(db, user, sessionId))[0]!.values.weight).toBe(80);
+  expect(await db.first('SELECT weight FROM workout_history_index')).toEqual({ weight: 80 });
+  expect(await db.all('SELECT * FROM workout_history_dirty')).toEqual([]);
 });
