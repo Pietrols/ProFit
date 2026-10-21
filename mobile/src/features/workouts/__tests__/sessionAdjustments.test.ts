@@ -97,3 +97,97 @@ it('rolls back item rows and history invalidation on failure, then safely retrie
   await adjustSession(db, user, sessionId, command, at(2));
   expect((await readStructuredWorkout(db, user, sessionId))!.itemRecords).toHaveLength(1);
 });
+
+it('rolls back both halves of a replacement before retrying without touching performed work', async () => {
+  const { db, item } = await fixture();
+  const before = await db.all('SELECT * FROM set_logs');
+  const command = {
+    kind: 'replace' as const,
+    item,
+    id: other,
+    exercise: { ...item.exercise, exerciseId: 'New_row', name: 'Row' },
+  };
+  await db.run('DELETE FROM workout_history_dirty');
+  const failing: Database = {
+    ...db,
+    transaction: (action) =>
+      db.transaction((tx) =>
+        action({
+          ...tx,
+          run: async (sql, params) => {
+            const written = await tx.run(sql, params);
+            if (sql.startsWith('INSERT INTO session_items') && params?.[0] === other)
+              throw new Error('Replacement write failed');
+            return written;
+          },
+        }),
+      ),
+  };
+  await expect(adjustSession(failing, user, sessionId, command, at(2))).rejects.toThrow(
+    'Replacement',
+  );
+  expect(await db.all('SELECT * FROM session_items')).toEqual([]);
+  expect(await db.all('SELECT * FROM workout_history_dirty')).toEqual([]);
+  await adjustSession(db, user, sessionId, command, at(2));
+  const saved = (await readStructuredWorkout(db, user, sessionId))!;
+  expect(saved.itemView.items.map((row) => [row.id, row.state, row.origin])).toEqual([
+    [item.id, 'removed', 'planned'],
+    [other, 'active', 'replacement'],
+  ]);
+  expect(saved.resultView.available).toBe(true);
+  expect(saved.resultView.results).toHaveLength(1);
+  expect(await db.all('SELECT * FROM set_logs')).toEqual(before);
+});
+
+it('does not steal a foreign item id or leave the replacement source omitted after a collision', async () => {
+  const { db, item } = await fixture();
+  await db.run(
+    `INSERT INTO session_items VALUES (?, ?, ?, 'added', NULL, NULL, 0, 'active', NULL, ?, ?, NULL, 1)`,
+    [other, other, other, JSON.stringify(item.exercise), item.updatedAt],
+  );
+  await db.run('DELETE FROM workout_history_dirty');
+  const before = await db.all('SELECT * FROM session_items');
+  await expect(
+    adjustSession(
+      db,
+      user,
+      sessionId,
+      { kind: 'replace', item, id: other, exercise: item.exercise },
+      at(2),
+    ),
+  ).rejects.toThrow('unavailable');
+  expect(await db.all('SELECT * FROM session_items')).toEqual(before);
+  expect(await db.all('SELECT * FROM workout_history_dirty')).toEqual([]);
+  expect((await readStructuredWorkout(db, user, sessionId))!.itemView.items[0]!.state).toBe(
+    'active',
+  );
+});
+
+it('adds and reorders an exercise without changing the snapshot or any logged result', async () => {
+  const { db, item, detail } = await fixture();
+  const before = await db.all('SELECT * FROM set_logs');
+  await adjustSession(
+    db,
+    user,
+    sessionId,
+    { kind: 'add', id: other, exercise: item.exercise },
+    at(2),
+  );
+  const added = (await readStructuredWorkout(db, user, sessionId))!;
+  await adjustSession(
+    db,
+    user,
+    sessionId,
+    {
+      kind: 'move',
+      item: added.itemView.items[0]!,
+      order: added.itemView.items,
+      direction: 'later',
+    },
+    at(3),
+  );
+  const moved = (await readStructuredWorkout(db, user, sessionId))!;
+  expect(moved.itemView.items.map((row) => row.id)).toEqual([other, item.id]);
+  expect(moved.session).toEqual(detail.session);
+  expect(await db.all('SELECT * FROM set_logs')).toEqual(before);
+});
