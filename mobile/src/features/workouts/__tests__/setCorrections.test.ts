@@ -9,6 +9,9 @@ import { sessionResultsFromSets } from '../logic';
 import { readWorkoutDetail } from '../workoutDetail';
 import { correctLoggedSet, removeLoggedSet, undoLoggedSet } from '../setCorrections';
 import { SetConflictError, type SetRecord } from '../setChanges';
+import { sessionSlotId } from '../structureIdentity';
+import { readStructuredWorkout } from '../structureReads';
+import type { SessionItem } from '../structureTypes';
 import {
   deleteSession,
   finishSession,
@@ -49,6 +52,125 @@ async function fixture() {
   const target: SetRecord = { ...(await listSets(db, user, sessionId))[0]!, deletedAt: null };
   return { db, target };
 }
+
+async function stableFixture() {
+  const { db } = await fixture();
+  const session = (await getSession(db, user, sessionId))!;
+  const exercise = session.snapshot.exercises[0]!;
+  const item: SessionItem = {
+    id: other,
+    sessionId,
+    origin: 'added',
+    originalPosition: null,
+    replacesItemId: null,
+    position: 1,
+    state: 'removed',
+    reason: 'Bench was busy',
+    exercise: { ...exercise, exerciseId: 'Added_row', sets: 1, logFields: ['notes'] },
+    updatedAt: at(2).toISOString(),
+    deletedAt: at(2).toISOString(),
+  };
+  await db.run(
+    `INSERT INTO session_items VALUES (?, ?, ?, 'added', NULL, NULL, 1, 'removed', ?, ?, ?, ?, 1)`,
+    [
+      item.id,
+      user,
+      sessionId,
+      item.reason,
+      JSON.stringify(item.exercise),
+      item.updatedAt,
+      item.deletedAt,
+    ],
+  );
+  const id = sessionSlotId(item, 2);
+  await db.run(
+    `INSERT INTO set_logs (id, user_id, session_id, exercise_position, set_index, logged_at, log_fields,
+    values_json, updated_at, dirty, item_id, side, targets_at_performance) VALUES (?, ?, ?, NULL, 2, ?, ?, ?, ?, 1, ?, 'bilateral', ?)`,
+    [
+      id,
+      user,
+      sessionId,
+      at(1).toISOString(),
+      JSON.stringify(exercise.logFields),
+      '{"weight":80,"reps":8}',
+      at(1).toISOString(),
+      item.id,
+      JSON.stringify({
+        sets: 3,
+        targetReps: 8,
+        targetTimeSeconds: null,
+        targetDistanceMetres: null,
+        restSeconds: 60,
+      }),
+    ],
+  );
+  const detail = (await readStructuredWorkout(db, user, sessionId))!;
+  const target: SetRecord = {
+    ...detail.resultRecords.find((log) => log.id === id)!,
+    deletedAt: null,
+  };
+  return { db, target };
+}
+
+it('corrects, deletes and undoes a removed added exercise while retaining its original slot and targets', async () => {
+  const { db, target } = await stableFixture();
+  await finishSession(db, user, sessionId, 'completed', at(3));
+  const before = await getSession(db, user, sessionId);
+  const next = await correctLoggedSet(db, user, target, { weight: 60, reps: 8 }, at(4));
+  expect(next).toEqual({
+    ...target,
+    values: { weight: 60, reps: 8 },
+    updatedAt: at(4).toISOString(),
+  });
+  await refreshHistoryIndex(db, user);
+  expect(
+    await db.first(
+      "SELECT weight, reps FROM workout_history_index WHERE exercise_id = 'Added_row'",
+    ),
+  ).toEqual({ weight: 60, reps: 8 });
+  const receipt = await removeLoggedSet(db, user, next, at(5));
+  await refreshHistoryIndex(db, user);
+  expect(
+    await db.first("SELECT id FROM workout_history_index WHERE exercise_id = 'Added_row'"),
+  ).toBeNull();
+  expect(await undoLoggedSet(db, user, receipt, at(6))).toEqual({
+    ...next,
+    updatedAt: at(6).toISOString(),
+  });
+  await refreshHistoryIndex(db, user);
+  expect(
+    await db.first("SELECT weight FROM workout_history_index WHERE exercise_id = 'Added_row'"),
+  ).toEqual({ weight: 60 });
+  expect(await getSession(db, user, sessionId)).toEqual(before);
+  expect(await db.first('SELECT COUNT(*) AS n FROM set_logs WHERE id = ?', [target.id])).toEqual({
+    n: 1,
+  });
+});
+
+it('rejects stable corrections and undo when another revision changes captured targets at equal edit time', async () => {
+  const { db, target } = await stableFixture();
+  if (!('itemId' in target)) throw new Error('Expected a stable fixture.');
+  const targets = { ...target.targetsAtPerformance, restSeconds: 90 };
+  await db.run('UPDATE set_logs SET targets_at_performance = ? WHERE id = ?', [
+    JSON.stringify(targets),
+    target.id,
+  ]);
+  await expect(correctLoggedSet(db, user, target, { weight: 60 }, at(3))).rejects.toThrow(
+    SetConflictError,
+  );
+  const current: SetRecord = { ...target, targetsAtPerformance: targets };
+  const receipt = await removeLoggedSet(db, user, current, at(4));
+  await db.run('UPDATE set_logs SET targets_at_performance = ? WHERE id = ?', [
+    JSON.stringify(target.targetsAtPerformance),
+    target.id,
+  ]);
+  await expect(undoLoggedSet(db, user, receipt, at(5))).rejects.toThrow(SetConflictError);
+  expect(
+    (await db.first<{ values_json: string }>('SELECT values_json FROM set_logs WHERE id = ?', [
+      target.id,
+    ]))!.values_json,
+  ).toBe('{"weight":80,"reps":8}');
+});
 
 it('corrects a completed result and rebuilds history without moving performance or session time', async () => {
   const { db, target } = await fixture();
