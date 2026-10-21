@@ -601,3 +601,43 @@ Step 5.8.3 remains unticked. The active workout hook still fetches the original 
 on focus/save; the next slice must replace that path with D40's exact relevant-history
 projection and aggregate reads. The new history query is data preparation for 5.8.8, not a
 claim that a history screen exists. Do not start 5.8.4 or Phase 6 from this checkpoint.
+
+## Step 5.8.3 implementation, 21 October 2026
+
+The broad active-workout hook is removed. The screen now reads one owned session, its results
+and exact historical representatives. Prefills and PRs use indexed latest/best lookups with
+completion cutoffs, original performance instants, id tie ordering and the candidate's actual
+load. Tests compare this path with the full-history functions, including sparse/zero values,
+overlapping completions, foreign exercises/accounts and a larger same-instant result that must
+not hide an earlier eligible best. Notes-only results perform no comparison query.
+
+SQLite migrations 6 and 7 add only rebuildable local history data and an exercise-id catalog.
+Canonical workouts, unsynced edits and tombstones are preserved. Triggers queue invalidations
+inside local/sync transactions. Explicit ON CONFLICT DO NOTHING keeps these triggers compatible
+with the existing canonical upserts. Repairs process at most 25 sessions per transaction and
+insert at most 50 projection rows per statement. Failure rolls back the batch and leaves it
+retryable. Comparison reads check freshness and consume their canonical snapshot atomically.
+Catalog selection leaves unrelated workouts unprepared until needed; retained old exercise
+tags ensure snapshot changes/deletions cannot leave stale indexed results visible.
+
+At 50, 500 and 2,000 sessions, the 20-set fixture's warm detail/comparison read uses five queries
+and at most 102 returned rows, independent of its history size. The first preparation reads
+40,000 fixture sets in bounded batches, at most 500 per source query. With half the workouts
+unrelated, opening the requested exercise reads only 20,000 sets and leaves the other 1,000
+workouts queued. Later reads fetch only the current 20 canonical set rows plus the required
+representatives. These deterministic row/query checks are not phone latency measurements.
+
+Home and resume controls share the overview; focused queries refresh once at sync completion,
+not at both start and finish. Clock state remains in the two small display components, with
+no workout-root clock state. A committed write requires a newer successful read before another
+set can be logged; read failures preserve the committed write and expose a retry message.
+Simulated SQLite clients verify sync corrections, deletion and children arriving before parents.
+
+Both package format/lint/typechecks and the backend build pass. All 357 mobile tests pass.
+Web and Android JavaScript exports pass; backend database tests use CI's PostgreSQL service
+under rule 8. The completing commit's CI result is the gate. No APK, real-phone timing,
+background alert or visual acceptance result is claimed. Those remain in 5.8.12 and 5.7.
+
+Step 5.8.4 is next. Before enabling structural adaptation in 5.8.5/5.8.6, extend the catalog and
+projection to the new stable item/slot contracts and add compatibility fixtures; they currently
+interpret the original Phase 5 snapshot format. History navigation itself remains in 5.8.8.

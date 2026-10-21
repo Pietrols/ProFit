@@ -115,7 +115,7 @@ ESLint, Prettier and their required development configuration are approved.
 - [x] 5.8.1 Audit the source and commit the correction design, acceptance matrix and execution order.
 - [x] 5.8.2 Install/configure approved lint and formatting tools, make small formatting-only commits,
   and require both checks in backend/mobile CI.
-- [ ] 5.8.3 Bound workout/history queries, remove duplicate reads, isolate timer rendering and
+- [x] 5.8.3 Bound workout/history queries, remove duplicate reads, isolate timer rendering and
   verify exact relevant exercise-history calculations without all-history work per tick/save.
 - [ ] 5.8.4 Add logged-set edit, delete and undo with stable identity, original performance time,
   conflict handling and recalculated totals/records.

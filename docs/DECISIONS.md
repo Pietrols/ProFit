@@ -341,5 +341,5 @@ Fetch exact latest values and metric bests for the requested exercises, cutoff a
 loads, rather than clipping to the latest N workouts. Historical bests must respect completion
 cutoffs and loggedAt/id ordering, including equal instants. Return only the representatives
 needed for current-session calculations. Keep legacy pure-function entry points as equivalence
-oracles while introducing the bounded input path. This projection is approved design for the
-remainder of 5.8.3, not an implemented cache or a completed performance step.
+oracles while introducing the bounded input path. This contract was approved before the cache
+code. Its implementation and verification are recorded in PHASE_5_CORRECTIONS.md.
