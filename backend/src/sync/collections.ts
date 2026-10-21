@@ -8,16 +8,13 @@ import {
   planExercises,
   plans,
   setLogs,
+  sessionItems,
   weightEntries,
   workoutSessions,
 } from '../db/schema.js';
+import { sessionItemRecord, workoutSetRecord } from './workoutStructure.js';
 import { calendarDate, exerciseId, exerciseTargetFields, name, syncFields } from './wireFields.js';
-import {
-  setLogRecord,
-  setValues,
-  workoutSessionRecord,
-  workoutSnapshot,
-} from './workoutSchemas.js';
+import { workoutSessionRecord, workoutSnapshot } from './workoutSchemas.js';
 export { setLogRecord, workoutSessionRecord, workoutSnapshot } from './workoutSchemas.js';
 export { LOG_FIELDS } from './wireFields.js';
 
@@ -178,7 +175,7 @@ export const collections = {
   }),
   set_logs: define({
     table: setLogs,
-    schema: setLogRecord,
+    schema: workoutSetRecord,
     toRow: (r) => ({
       sessionId: r.sessionId,
       exercisePosition: r.exercisePosition,
@@ -186,15 +183,47 @@ export const collections = {
       loggedAt: new Date(r.loggedAt),
       logFields: r.logFields,
       values: r.values,
+      itemId: r.itemId ?? null,
+      side: r.side ?? null,
+      targetsAtPerformance: r.targetsAtPerformance ?? null,
     }),
-    toWire: (row: typeof setLogs.$inferSelect) => ({
+    toWire: (row: typeof setLogs.$inferSelect) =>
+      workoutSetRecord.parse({
+        ...syncWire(row),
+        sessionId: row.sessionId,
+        exercisePosition: row.exercisePosition,
+        setIndex: row.setIndex,
+        loggedAt: row.loggedAt.toISOString(),
+        logFields: row.logFields,
+        values: row.values,
+        itemId: row.itemId,
+        side: row.side,
+        targetsAtPerformance: row.targetsAtPerformance,
+      }),
+  }),
+  session_items: define({
+    table: sessionItems,
+    schema: sessionItemRecord,
+    toRow: (r) => ({
+      sessionId: r.sessionId,
+      origin: r.origin,
+      originalPosition: r.originalPosition,
+      replacesItemId: r.replacesItemId,
+      position: r.position,
+      state: r.state,
+      reason: r.reason,
+      exercise: r.exercise,
+    }),
+    toWire: (row: typeof sessionItems.$inferSelect) => ({
       ...syncWire(row),
       sessionId: row.sessionId,
-      exercisePosition: row.exercisePosition,
-      setIndex: row.setIndex,
-      loggedAt: row.loggedAt.toISOString(),
-      logFields: row.logFields as z.infer<typeof setLogRecord>['logFields'],
-      values: row.values as z.infer<typeof setValues>,
+      origin: row.origin as z.infer<typeof sessionItemRecord>['origin'],
+      originalPosition: row.originalPosition,
+      replacesItemId: row.replacesItemId,
+      position: row.position,
+      state: row.state as z.infer<typeof sessionItemRecord>['state'],
+      reason: row.reason,
+      exercise: row.exercise as z.infer<typeof workoutSnapshot>['exercises'][number],
     }),
   }),
   plans: define({

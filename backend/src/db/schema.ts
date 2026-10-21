@@ -239,7 +239,7 @@ export const setLogs = pgTable(
   {
     ...syncColumns,
     sessionId: uuid('session_id').notNull(),
-    exercisePosition: integer('exercise_position').notNull(),
+    exercisePosition: integer('exercise_position'),
     setIndex: integer('set_index').notNull(),
     loggedAt: timestamp('logged_at', { withTimezone: true }).notNull(),
     logFields: text('log_fields').array().notNull(),
