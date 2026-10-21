@@ -2,7 +2,12 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../auth/AuthProvider';
 import { useSyncContext, useSyncStatus } from '../sync/SyncProvider';
-import { deleteCustomExercise, listCustomExercises, saveCustomExercise, type CustomExerciseInput } from './customExercises';
+import {
+  deleteCustomExercise,
+  listCustomExercises,
+  saveCustomExercise,
+  type CustomExerciseInput,
+} from './customExercises';
 import { listFavouriteIds, setFavourite } from './favourites';
 import { builtInExercises } from './library';
 import type { Exercise } from './types';
@@ -33,7 +38,9 @@ export function useExerciseLibrary() {
         setFavourites(favs);
         setError(null);
       },
-      (e: unknown) => current && setError(e instanceof Error ? e.message : 'Could not read the exercise library.'),
+      (e: unknown) =>
+        current &&
+        setError(e instanceof Error ? e.message : 'Could not read the exercise library.'),
     );
     return () => {
       current = false;
@@ -81,5 +88,14 @@ export function useExerciseLibrary() {
     [db, engine, userId, reload],
   );
 
-  return { exercises, favourites, error, find, toggleFavourite, saveCustom, deleteCustom, retry: reload };
+  return {
+    exercises,
+    favourites,
+    error,
+    find,
+    toggleFavourite,
+    saveCustom,
+    deleteCustom,
+    retry: reload,
+  };
 }

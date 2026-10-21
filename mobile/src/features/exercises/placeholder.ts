@@ -8,7 +8,10 @@ export type PlaceholderIcon = 'barbell' | 'body' | 'pulse' | 'flash' | 'resize';
 
 const BODY: ReadonlySet<Equipment> = new Set(['body only', 'exercise ball', 'foam roll']);
 
-export function placeholderFor(x: Pick<Exercise, 'category' | 'equipment' | 'primary'>): { icon: PlaceholderIcon; label: string } {
+export function placeholderFor(x: Pick<Exercise, 'category' | 'equipment' | 'primary'>): {
+  icon: PlaceholderIcon;
+  label: string;
+} {
   let icon: PlaceholderIcon;
   if (x.category === 'cardio') icon = 'pulse';
   else if (x.category === 'stretching') icon = 'resize';

@@ -42,7 +42,12 @@ function queryWords(query: string): string[] {
 }
 
 // Everything a word may match, with and without spaces so "pushup" finds "Push-Up".
-function haystack(x: Exercise): { text: string; compact: string; name: string; nameCompact: string } {
+function haystack(x: Exercise): {
+  text: string;
+  compact: string;
+  name: string;
+  nameCompact: string;
+} {
   const name = normalise(x.name);
   const extras = [
     ...x.primary,
@@ -56,9 +61,14 @@ function haystack(x: Exercise): { text: string; compact: string; name: string; n
   return { text, compact: text.replace(/ /g, ''), name, nameCompact: name.replace(/ /g, '') };
 }
 
-const contains = (h: { text: string; compact: string }, word: string) => h.text.includes(word) || h.compact.includes(word);
+const contains = (h: { text: string; compact: string }, word: string) =>
+  h.text.includes(word) || h.compact.includes(word);
 
-export function matchesFilters(x: Exercise, filters: Filters, favourites: ReadonlySet<string>): boolean {
+export function matchesFilters(
+  x: Exercise,
+  filters: Filters,
+  favourites: ReadonlySet<string>,
+): boolean {
   if (filters.category && x.category !== filters.category) return false;
   if (filters.equipment && x.equipment !== filters.equipment) return false;
   if (filters.muscle && !x.primary.includes(filters.muscle)) return false;
@@ -72,7 +82,12 @@ const UNRANKED = 10_000;
 // common exercises by popularity, then names starting with the query, then the user's own, then
 // shorter names (the plainer match), then A to Z. With no query: the user's own and common
 // exercises first.
-export function searchExercises(exercises: Exercise[], query: string, filters: Filters = {}, favourites: ReadonlySet<string> = new Set()): Exercise[] {
+export function searchExercises(
+  exercises: Exercise[],
+  query: string,
+  filters: Filters = {},
+  favourites: ReadonlySet<string> = new Set(),
+): Exercise[] {
   const words = queryWords(query);
   const phrase = words.join(' ');
   const scored: { x: Exercise; rank: number[] }[] = [];
@@ -81,19 +96,30 @@ export function searchExercises(exercises: Exercise[], query: string, filters: F
     if (!matchesFilters(x, filters, favourites)) continue;
     const h = haystack(x);
     if (!words.every((w) => contains(h, w))) continue;
-    const startsWith = phrase && (h.name.startsWith(phrase) || h.nameCompact.startsWith(phrase.replace(/ /g, ''))) ? 0 : 1;
-    const allInName = words.length && words.every((w) => h.name.includes(w) || h.nameCompact.includes(w)) ? 0 : 1;
+    const startsWith =
+      phrase && (h.name.startsWith(phrase) || h.nameCompact.startsWith(phrase.replace(/ /g, '')))
+        ? 0
+        : 1;
+    const allInName =
+      words.length && words.every((w) => h.name.includes(w) || h.nameCompact.includes(w)) ? 0 : 1;
     scored.push({
       x,
       rank: words.length
-        ? [allInName, x.popularity ?? UNRANKED, startsWith, x.origin === 'custom' ? 0 : 1, x.name.length]
+        ? [
+            allInName,
+            x.popularity ?? UNRANKED,
+            startsWith,
+            x.origin === 'custom' ? 0 : 1,
+            x.name.length,
+          ]
         : [x.origin === 'custom' ? 0 : 1, x.popularity ?? UNRANKED],
     });
   }
 
   return scored
     .sort((a, b) => {
-      for (let i = 0; i < a.rank.length; i += 1) if (a.rank[i] !== b.rank[i]) return a.rank[i]! - b.rank[i]!;
+      for (let i = 0; i < a.rank.length; i += 1)
+        if (a.rank[i] !== b.rank[i]) return a.rank[i]! - b.rank[i]!;
       return a.x.name.localeCompare(b.x.name, 'en');
     })
     .map((s) => s.x);
