@@ -36,6 +36,13 @@
       "when": 1791541469382,
       "tag": "0004_calm_lockheed",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1792589327051,
+      "tag": "0005_workout_structure",
+      "breakpoints": true
     }
   ]
 }

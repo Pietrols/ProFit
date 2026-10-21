@@ -244,6 +244,26 @@ export const setLogs = pgTable(
     loggedAt: timestamp('logged_at', { withTimezone: true }).notNull(),
     logFields: text('log_fields').array().notNull(),
     values: jsonb('values').notNull(),
+    itemId: uuid('item_id'),
+    side: text('side'),
+    targetsAtPerformance: jsonb('targets_at_performance'),
   },
   (t) => [index('set_logs_user_version_idx').on(t.userId, t.version)],
+);
+
+// One exercise occurrence. Display order does not determine a performed result's identity.
+export const sessionItems = pgTable(
+  'session_items',
+  {
+    ...syncColumns,
+    sessionId: uuid('session_id').notNull(),
+    origin: text('origin').notNull(),
+    originalPosition: integer('original_position'),
+    replacesItemId: uuid('replaces_item_id'),
+    position: integer('position').notNull(),
+    state: text('state').notNull(),
+    reason: text('reason'),
+    exercise: jsonb('exercise').notNull(),
+  },
+  (t) => [index('session_items_user_version_idx').on(t.userId, t.version)],
 );
