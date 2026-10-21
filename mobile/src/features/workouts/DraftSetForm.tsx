@@ -40,6 +40,8 @@ export function DraftSetForm({
   const [status, setStatus] = useState<'loading' | 'saving' | 'saved' | 'failed'>('loading');
   const [error, setError] = useState<string | null>(null);
   const [attempt, retry] = useState(0);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [discarding, setDiscarding] = useState(false);
   const persist = useCallback(
     async (value: DraftRecord) => {
       const writing = ++version.current;
@@ -94,6 +96,20 @@ export function DraftSetForm({
     latest.current = value;
     void persist(value);
   }
+  async function discardUnreadable() {
+    if (discarding || busy) return;
+    setDiscarding(true);
+    try {
+      await drafts.clear(context.scope);
+      setConfirmDiscard(false);
+      setError(null);
+      retry((value) => value + 1);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not discard the saved draft.');
+    } finally {
+      setDiscarding(false);
+    }
+  }
   if (!record)
     return (
       <>
@@ -104,12 +120,40 @@ export function DraftSetForm({
           <Button
             label="Retry draft recovery"
             variant="secondary"
-            disabled={busy}
+            disabled={busy || discarding}
             onPress={() => {
               setError(null);
               retry((value) => value + 1);
             }}
           />
+        ) : null}
+        {error ? (
+          confirmDiscard ? (
+            <>
+              <AppText color="caution">
+                Discard the unreadable draft for this set? Unsaved input will be lost. Saved workout
+                results are kept.
+              </AppText>
+              <Button
+                label="Confirm discard draft"
+                disabled={busy || discarding}
+                onPress={() => void discardUnreadable()}
+              />
+              <Button
+                label="Keep saved draft"
+                variant="secondary"
+                disabled={busy || discarding}
+                onPress={() => setConfirmDiscard(false)}
+              />
+            </>
+          ) : (
+            <Button
+              label="Discard unreadable draft"
+              variant="secondary"
+              disabled={busy || discarding}
+              onPress={() => setConfirmDiscard(true)}
+            />
+          )
         ) : null}
       </>
     );

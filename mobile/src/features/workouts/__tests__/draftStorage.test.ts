@@ -90,6 +90,9 @@ it('does not overwrite a corrupt or unreadable draft during recovery', async () 
   data.set(workoutDraftKey(scope), '{broken');
   await expect(store.load(scope)).rejects.toThrow('Retry');
   expect(data.get(workoutDraftKey(scope))).toBe('{broken');
+  // Only an explicit discard command removes unreadable data and permits a fresh draft.
+  await store.clear(scope);
+  expect((await store.load(scope)).record).toBeNull();
   const offlineDisk = createWorkoutDraftStore({
     async getItem() {
       throw new Error('read failed');
