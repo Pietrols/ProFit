@@ -9,16 +9,26 @@ export function useWorkoutAwake(active: boolean): string | null {
   const [focused, setFocused] = useState(false);
   const [foreground, setForeground] = useState(AppState.currentState === 'active');
   const [error, setError] = useState<string | null>(null);
-  useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
+  useFocusEffect(
+    useCallback(() => {
+      setFocused(true);
+      return () => setFocused(false);
+    }, []),
+  );
   useEffect(() => {
-    const subscription = AppState.addEventListener('change', (state) => setForeground(state === 'active'));
+    const subscription = AppState.addEventListener('change', (state) =>
+      setForeground(state === 'active'),
+    );
     return () => subscription.remove();
   }, []);
   useEffect(() => {
     if (!active || !focused || !foreground) return;
     setError(null);
-    return awakeLease({ activate: activateKeepAwakeAsync, deactivate: deactivateKeepAwake },
-      `workout:${randomId()}`, () => setError('Screen wake lock unavailable. Check your screen timeout while training.'));
+    return awakeLease(
+      { activate: activateKeepAwakeAsync, deactivate: deactivateKeepAwake },
+      `workout:${randomId()}`,
+      () => setError('Screen wake lock unavailable. Check your screen timeout while training.'),
+    );
   }, [active, focused, foreground]);
   return error;
 }

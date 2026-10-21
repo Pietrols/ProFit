@@ -22,9 +22,14 @@ export function createRestAlerts(port: RestPort, now = Date.now) {
   };
   return {
     setUser(user: string | null) {
-      if (owner !== user) { owner = user; epoch++; revisions.clear(); }
+      if (owner !== user) {
+        owner = user;
+        epoch++;
+        revisions.clear();
+      }
       return enqueue(async () => {
-        for (const request of await port.list()) if (request.user !== owner) await port.cancel(request.id);
+        for (const request of await port.list())
+          if (request.user !== owner) await port.cancel(request.id);
       });
     },
     update(user: string, session: string, timer: TimerState | null) {
@@ -32,10 +37,13 @@ export function createRestAlerts(port: RestPort, now = Date.now) {
       const version = (revisions.get(session) ?? 0) + 1;
       revisions.set(session, version);
       const startedEpoch = epoch;
-      const current = () => owner === user && epoch === startedEpoch && revisions.get(session) === version;
+      const current = () =>
+        owner === user && epoch === startedEpoch && revisions.get(session) === version;
       return enqueue(async () => {
         if (!current()) return;
-        const requests = (await port.list()).filter((r) => r.user === user && r.session === session);
+        const requests = (await port.list()).filter(
+          (r) => r.user === user && r.session === session,
+        );
         let kept = false;
         for (const request of requests) {
           const intent = restAlertIntent(timer, request, now());
@@ -45,7 +53,10 @@ export function createRestAlerts(port: RestPort, now = Date.now) {
         if (!current() || kept) return;
         const intent = restAlertIntent(timer, null, now());
         if (!intent.schedule) return;
-        if (!await port.permitted()) throw new Error('Background alerts are off. Enable rest alerts or check notification settings.');
+        if (!(await port.permitted()))
+          throw new Error(
+            'Background alerts are off. Enable rest alerts or check notification settings.',
+          );
         if (!current() || intent.schedule.at <= now()) return;
         const id = await port.schedule({ ...intent.schedule, user, session });
         if (!current()) await port.cancel(id);
@@ -58,11 +69,18 @@ export function createRestAlerts(port: RestPort, now = Date.now) {
         const seen = new Set<string>();
         for (const request of await port.list()) {
           if (startedEpoch !== epoch) return;
-          if (request.user !== owner) { await port.cancel(request.id); continue; }
+          if (request.user !== owner) {
+            await port.cancel(request.id);
+            continue;
+          }
           // A newer explicit transition owns this session and is queued behind this read.
           if (versions.get(request.session) !== revisions.get(request.session)) continue;
           const timer = await read(request.user, request.session);
-          if (startedEpoch !== epoch || versions.get(request.session) !== revisions.get(request.session)) continue;
+          if (
+            startedEpoch !== epoch ||
+            versions.get(request.session) !== revisions.get(request.session)
+          )
+            continue;
           const stale = restAlertIntent(timer, request, now()).cancelId !== null;
           if (stale || seen.has(request.session)) await port.cancel(request.id);
           else seen.add(request.session);

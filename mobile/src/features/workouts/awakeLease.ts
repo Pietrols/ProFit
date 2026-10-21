@@ -4,6 +4,16 @@ type WakeLock = { activate(tag: string): Promise<void>; deactivate(tag: string):
 export function awakeLease(api: WakeLock, tag: string, onError: () => void): () => void {
   let released = false;
   const release = () => api.deactivate(tag).catch(onError);
-  void api.activate(tag).then(() => { if (released) void release(); }, () => { if (!released) onError(); });
-  return () => { released = true; void release(); };
+  void api.activate(tag).then(
+    () => {
+      if (released) void release();
+    },
+    () => {
+      if (!released) onError();
+    },
+  );
+  return () => {
+    released = true;
+    void release();
+  };
 }
