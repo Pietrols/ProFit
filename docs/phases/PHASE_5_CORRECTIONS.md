@@ -1,6 +1,10 @@
 # Phase 5 corrections: dependable workout logging
 
 Status: design and acceptance contract, 20 October 2026. Implementation is not complete.
+Execution update, 22 October (D52): Peter requested self-review and the remaining implementation
+before mobile testing. Physical checks previously blocking 5.8.7 move to final gate 5.7 without
+being marked passed. Continue 5.8.8 through 5.8.12 after confirmed review defects are fixed.
+Earlier dated checkpoint instructions to wait before 5.8.8 are superseded by this update.
 Branch: feat/workout-corrections, based on rebuild at
 850abec74ba48185c2c521f5be7801864a006149. Source of execution order: BUILD_PLAN.md.
 

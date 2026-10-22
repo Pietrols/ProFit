@@ -123,12 +123,13 @@ ESLint, Prettier and their required development configuration are approved.
   preserving legacy histories, dirty edits and tombstones before structural session changes.
 - [x] 5.8.6 Add select, do-later, skip/restore, add/remove/replace, reorder and set-count changes.
   Keep the original routine and performed results intact.
-- [ ] 5.8.7 Put the current set and relevant timer first, show next/overview, add unit-safe steppers,
+- [x] 5.8.7 Put the current set and relevant timer first, show next/overview, add unit-safe steppers,
   and preserve drafts across selection, reads and restarts.
   Implementation and rendered browser checks, including account switching during pending draft
-  recovery, are in PRs #11 and #12. Keep this box open for native keyboard, large-text,
-  screen-reader and offline process-recovery acceptance. Dated evidence is in
-  PHASE_5_CORRECTIONS.md; record device results in PHASE_5_NATIVE_ACCEPTANCE.md.
+  recovery, are merged in PRs #11 and #12. On 22 October Peter requested the remaining work and
+  self-review before mobile testing (D52). This box records implementation/automated acceptance;
+  native keyboard, large-text, screen-reader and offline process-recovery checks remain pending
+  in 5.7. Record them in PHASE_5_NATIVE_ACCEPTANCE.md, not as assumed passes here.
 - [ ] 5.8.8 Add paginated workout history, detail/correction, per-exercise comparison and
   planned-versus-actual finish summaries.
 - [ ] 5.8.9 Add idempotent one-tap rest-day completion and safe undo on Home.

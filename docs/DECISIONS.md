@@ -542,3 +542,19 @@ that server. It is not a standalone preview, store release, physical acceptance 
 replacement for the 5.7 background-notification gate. Trigger compilation when this acceptance
 workflow changes, rather than rebuilding native code for every documentation commit. A failed
 native compile must stay visible and be corrected or reported before claiming an APK exists.
+
+## D52. Finish the corrections and self-review before requesting device testing
+On 22 October Peter asked for the outstanding implementation, vulnerability/mix-up review and
+corrective work to be completed before the mobile testing handoff. Consolidate physical
+keyboard, font scaling, screen-reader, process-recovery and notification observations into
+the final 5.7 device gate. Step 5.8.7's implementation and automated/browser checks are complete;
+its physical evidence remains pending, not passed. Continue 5.8.8 through 5.8.12 in order after
+addressing confirmed isolation/data-loss defects found by the self-review. Phase 6 stays gated.
+
+Review async identity throughout API refresh, sync, media, profile and workout commands, not
+only the rendered draft form. Reproduce findings with tests before fixing them. Bind a request
+and its continuation to the originating sign-in/run, including same-account sign-out/sign-in.
+Late success/failure must not replace credentials, publish a foreign profile, send another
+account's pending records/photos or acknowledge a newer unsent edit. Preserve unsynced work.
+Use existing dependencies and small tested/pushed commits. Track coverage, defects, fixes and
+remaining work in PHASE_5_REVIEW.md; green tests are not a claim of a complete security audit.
