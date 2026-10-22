@@ -96,3 +96,26 @@ jobs:
             workout-browser-artifacts/
             /tmp/workout-preview.log
             /tmp/workout-chromedriver.log
+      - name: Export development app for account-switch checks
+        working-directory: mobile
+        run: npx --no-install expo export --dev --platform web --output-dir ../workout-account-web
+        env:
+          EXPO_PUBLIC_API_URL: /api
+          EXPO_PUBLIC_DEV_LOGIN: 'true'
+      - name: Switch accounts during draft recovery in Chrome
+        run: |
+          node --import ./backend/node_modules/tsx/dist/loader.mjs scripts/workout-preview.ts workout-account-web > /tmp/workout-account-preview.log 2>&1 &
+          PREVIEW_PID=$!
+          chromedriver --port=9515 > /tmp/workout-account-chromedriver.log 2>&1 &
+          DRIVER_PID=$!
+          trap 'kill "$PREVIEW_PID" "$DRIVER_PID" 2>/dev/null || true' EXIT
+          node scripts/workout-browser-account.mjs
+      - name: Preserve account-switch evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: workout-account-evidence
+          path: |
+            workout-browser-artifacts/account-*
+            /tmp/workout-account-preview.log
+            /tmp/workout-account-chromedriver.log

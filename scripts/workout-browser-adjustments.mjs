@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { waitFor } from './workout-browser-driver.mjs';
 
 export async function checkSessionDraftChanges(browser, base, session, row, output) {
+  const headers = { Authorization: 'Bearer workout-fixture' };
   await browser.clickText(`Adjust 2. ${row}`);
   await browser.clickText(`Do 2. ${row} later`);
   await waitFor(
@@ -41,6 +42,7 @@ export async function checkSessionDraftChanges(browser, base, session, row, outp
   // A profile change arriving from the API must not reinterpret an existing local draft.
   await fetch(`${base}/api/me`, {
     method: 'PATCH',
+    headers,
     body: JSON.stringify({ unitSystem: 'imperial' }),
   });
   await browser.command('POST', '/refresh', {});
@@ -71,6 +73,7 @@ export async function checkSessionDraftChanges(browser, base, session, row, outp
   // Restore the profile preference for the remaining screenshots, without touching either draft.
   await fetch(`${base}/api/me`, {
     method: 'PATCH',
+    headers,
     body: JSON.stringify({ unitSystem: 'metric' }),
   });
   await browser.navigate(`${base}/workouts/${session}`);
