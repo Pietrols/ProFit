@@ -98,10 +98,10 @@ export function createSyncEngine({
           for (const record of records) {
             if (rejected.has(`${name}/${record.id}`)) {
               // The server will never accept this version; stop resending it (see D17).
-              await tx.run(`UPDATE ${name} SET dirty = 0 WHERE id = ? AND user_id = ?`, [
-                record.id,
-                userId,
-              ]);
+              await tx.run(
+                `UPDATE ${name} SET dirty = 0 WHERE id = ? AND user_id = ? AND updated_at = ?`,
+                [record.id, userId, record.updatedAt],
+              );
             } else {
               // Applied, or ignored because the server already has a newer copy (it arrives in the
               // pull). Either way this edit is done, unless the row was edited again meanwhile.
