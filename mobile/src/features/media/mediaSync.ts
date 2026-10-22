@@ -1,5 +1,5 @@
 import type { ApiClient } from '../../lib/api/client';
-import { errorFromBody, NetworkError } from '../../lib/api/errors';
+import { ApiError, errorFromBody, NetworkError } from '../../lib/api/errors';
 import type { Database } from '../../lib/db/database';
 import { randomId } from '../../lib/randomId';
 import type { MediaFiles } from './files';
@@ -130,36 +130,48 @@ export function createMediaSync({ db, api, files, now = () => new Date() }: Opti
     // Null when it cannot be had right now (offline, not found, or no photos on this device).
     async photoUri(userId: string, photoId: string): Promise<string | null> {
       if (!files) return null;
-      const row = await db.first<Row>(
-        'SELECT id, local_path, uploaded FROM media WHERE id = ? AND user_id = ?',
-        [photoId, userId],
-      );
-      if (row?.local_path && files.exists(row.local_path)) return files.uri(row.local_path);
-      // Kept on this phone but the file is gone, and the server never got it: nothing to fetch.
-      if (row && row.uploaded !== ON_SERVER) return null;
-
-      const failed = failedAt.get(photoId);
-      if (failed !== undefined && now().getTime() - failed < RETRY_DOWNLOAD_MS) return null;
+      let check: () => void;
+      try {
+        check = api.captureSession(userId);
+        const row = await db.first<Row>(
+          'SELECT id, local_path, uploaded FROM media WHERE id = ? AND user_id = ?',
+          [photoId, userId],
+        );
+        check();
+        if (row?.local_path && files.exists(row.local_path)) return files.uri(row.local_path);
+        // A missing local file that never reached the server cannot be fetched.
+        if (row && row.uploaded !== ON_SERVER) return null;
+      } catch {
+        return null;
+      }
 
       const key = `${userId}/${photoId}`;
+      const failed = failedAt.get(key);
+      if (failed !== undefined && now().getTime() - failed < RETRY_DOWNLOAD_MS) return null;
       let pending = downloads.get(key);
       if (!pending) {
         pending = (async () => {
           try {
-            const path = await files.download(
-              api.url(`/media/${photoId}`),
-              photoId,
-              await api.authHeaders(),
-            );
-            await db.run(
-              `INSERT INTO media (id, user_id, local_path, content_type, uploaded, created_at) VALUES (?, ?, ?, ?, ?, ?)
-               ON CONFLICT(id) DO UPDATE SET local_path = excluded.local_path WHERE media.user_id = excluded.user_id`,
-              [photoId, userId, path, CONTENT_TYPE, ON_SERVER, now().toISOString()],
-            );
-            failedAt.delete(photoId);
-            return files.uri(path);
-          } catch {
-            failedAt.set(photoId, now().getTime());
+            const headers = await api.authHeaders();
+            check();
+            const path = await files.download(api.url(`/media/${photoId}`), photoId, headers);
+            check();
+            const cached = await db.transaction(async (tx) => {
+              check();
+              const result = await tx.run(
+                `INSERT INTO media (id, user_id, local_path, content_type, uploaded, created_at) VALUES (?, ?, ?, ?, ?, ?)
+                 ON CONFLICT(id) DO UPDATE SET local_path = excluded.local_path WHERE media.user_id = excluded.user_id`,
+                [photoId, userId, path, CONTENT_TYPE, ON_SERVER, now().toISOString()],
+              );
+              check();
+              return result.changes > 0;
+            });
+            check();
+            failedAt.delete(key);
+            return cached ? files.uri(path) : null;
+          } catch (error) {
+            if (!(error instanceof ApiError && error.code === 'SESSION_CHANGED'))
+              failedAt.set(key, now().getTime());
             return null;
           } finally {
             downloads.delete(key);
@@ -167,7 +179,13 @@ export function createMediaSync({ db, api, files, now = () => new Date() }: Opti
         })();
         downloads.set(key, pending);
       }
-      return pending;
+      const uri = await pending;
+      try {
+        check();
+        return uri;
+      } catch {
+        return null;
+      }
     },
   };
 }

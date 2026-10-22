@@ -100,3 +100,50 @@ describe('photo ownership across asynchronous work', () => {
     expect(await h.db.all('SELECT * FROM media')).toEqual([]);
   });
 });
+
+describe('photo download account changes', () => {
+  it('does not fetch a previous owner photo after its local lookup', async () => {
+    const h = await harness();
+    const first = h.db.first;
+    h.db.first = async <T>(sql: string, params?: SqlValue[]): Promise<T | null> => {
+      const row = await first<T>(sql, params);
+      h.change();
+      return row;
+    };
+    expect(await h.photos.photoUri(firstUser, 'photo')).toBeNull();
+    expect(h.files.download).not.toHaveBeenCalled();
+  });
+
+  it.each(['transfer', 'cache transaction'])(
+    'discards a late download after switching at %s',
+    async (boundary) => {
+      const h = await harness();
+      if (boundary === 'transfer') {
+        h.files.download = vi.fn(async () => {
+          h.change();
+          return 'media/download.jpg';
+        });
+      } else {
+        const transaction = h.db.transaction;
+        h.db.transaction = (action) => {
+          h.change();
+          return transaction(action);
+        };
+      }
+      expect(await h.photos.photoUri(firstUser, 'photo')).toBeNull();
+      expect(await h.db.all('SELECT * FROM media')).toEqual([]);
+    },
+  );
+
+  it('does not return an old local URI after its owner lookup completes', async () => {
+    const h = await harness();
+    const id = await h.photos.addPhoto(firstUser, 'content://photo');
+    const first = h.db.first;
+    h.db.first = async <T>(sql: string, params?: SqlValue[]): Promise<T | null> => {
+      const row = await first<T>(sql, params);
+      h.change();
+      return row;
+    };
+    expect(await h.photos.photoUri(firstUser, id)).toBeNull();
+  });
+});
