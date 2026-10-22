@@ -22,11 +22,32 @@ keyboard behavior, native font scaling or process recovery from a web export.
 
 Use an installed development build containing the current native dependencies. Expo Go and
 the generated Android JavaScript directory cannot run this acceptance. Existing development
-and preview APK profiles are in mobile/eas.json. Build/install instructions depend on the
-developer's configured Android tools or authenticated EAS account; no APK was produced here.
+and preview APK profiles are in mobile/eas.json. The CI development APK below is available;
+other builds need configured Android tools or an authenticated EAS account.
+
+## Available development APK
+
+[Download the CI artifact](https://github.com/Pietrols/ProFit/actions/runs/39746004222/artifacts/12412166761).
+Unzip it and use ProFit-acceptance-arm64.apk on an arm64 Android device. The build source is
+commit 21d7e08b7579c45755cec5554911a0b77f3fc005. Native run 39746004222 passes, including its
+500 mobile tests and APK signature verification. Record the Metro JavaScript commit separately
+if testing later compatible code. No phone test was performed by this build.
+
+The downloaded APK's SHA-256 was independently checked against its included SHA256SUMS:
+
+```text
+0d401c2ab3c4d86379dadbefe7ec2062634351638f3b579ccd24a81becfbb696
+```
+
+This 97,352,211-byte APK is debug-signed and contains the arm64 native libraries. It has no
+embedded JavaScript bundle, so it needs Metro. The archive also includes COMMIT.txt,
+SIGNING.txt, README.txt and the test worksheet as it existed at build time. The worksheet's
+original pre-build note is superseded by this build record. Check signing compatibility before
+installing over another build; preserve existing unsynced data if the certificates differ.
 
 For an existing compatible development build, point mobile/.env at the test API reachable
-from the phone, then run `npx expo start --clear` from mobile/. Sign-in setup is described in
+from the phone, then run `npx expo start --dev-client --clear` from mobile/ and open the
+development link in the installed client. Sign-in setup is described in
 docs/GOOGLE_SIGN_IN.md. Developer sign-in requires both existing opt-in development settings
 and a non-production API. Use disposable data and a server with the workout-structure schema
 and protocol 2 capability. Do not use the loopback-only browser fixture as a phone backend.

@@ -1105,6 +1105,26 @@ cases and both account-switch outcomes. Browser artifact 12411412690 and account
 12410544142 belong to the passing push run. Pending and isolated-account screenshots and
 both no-leak reports were inspected. A fresh Android JavaScript export also passes.
 
+### Installable Android development client
+
+D51 adds a separate acceptance build using Expo's generated Android project, its Gradle
+wrapper and the runner's existing Java/Android toolchain. No npm package or CI action was
+added, no generated native source was committed, and no EAS build or production signing
+credential was used. The current app configuration also passes prebuild in a disposable local
+checkout, preserving the repo's native-generation rules and unrelated icon edit.
+
+Native run 39746004222 passes at 21d7e08, including the 500 mobile tests and assembleDebug.
+Artifact 12412166761 contains ProFit-acceptance-arm64.apk, commit/checksum/certificate metadata,
+instructions and the device worksheet. Android apksigner verifies its debug signature. The
+downloaded APK's SHA-256 matches SHA256SUMS; its manifest, dex and 28 arm64 native libraries
+are present. Its size is 97,352,211 bytes. The build log retains SDK/native-library compiler
+warnings; no warning suppression or vendored-source edit was added.
+
+This is an actual APK, distinct from the earlier JavaScript exports. It is a development
+client with no embedded JavaScript bundle, so it needs the tester's Metro server and reachable
+test API. It cannot by itself prove offline cold launch or any physical interaction. The
+native worksheet links the download, records the hash and explains how to use the client.
+
 ### Native acceptance remains open
 
 Use PHASE_5_NATIVE_ACCEPTANCE.md to record the tested commit/build/device, keyboard and
