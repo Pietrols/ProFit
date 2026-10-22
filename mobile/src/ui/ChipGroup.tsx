@@ -47,7 +47,7 @@ export function ChipGroup<T extends string | number>({
               disabled={disabled}
               onPress={() => onChange(selected && clearable ? null : option.value)}
               style={({ pressed }) => ({
-                minHeight: touchTarget - 4,
+                minHeight: touchTarget,
                 minWidth: touchTarget,
                 opacity: disabled ? 0.45 : 1,
                 paddingHorizontal: space.lg,

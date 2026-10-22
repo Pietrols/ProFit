@@ -1,0 +1,70 @@
+name: Android acceptance client
+
+on:
+  push:
+    branches: [feat/workout-corrections]
+    paths: [.github/workflows/android-acceptance.yml]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: mobile
+    env:
+      CI: '1'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - name: Generate native project from app configuration
+        run: npx --no-install expo prebuild --platform android --no-install
+      - name: Compile arm64 development client with existing Android tools
+        run: |
+          set -o pipefail
+          export JAVA_HOME="$JAVA_HOME_17_X64"
+          export PATH="$JAVA_HOME/bin:$PATH"
+          cd android
+          ./gradlew :app:assembleDebug --no-daemon --max-workers=2 -PreactNativeArchitectures=arm64-v8a | tee /tmp/profit-android-build.log
+      - name: Verify and identify installable artifact
+        run: |
+          mkdir -p ../android-acceptance
+          cp android/app/build/outputs/apk/debug/app-debug.apk ../android-acceptance/ProFit-acceptance-arm64.apk
+          cp ../docs/phases/PHASE_5_NATIVE_ACCEPTANCE.md ../android-acceptance/DEVICE_CHECKS.md
+          git rev-parse HEAD > ../android-acceptance/COMMIT.txt
+          SIGNER=$(find "$ANDROID_HOME/build-tools" -name apksigner | sort -V | tail -n 1)
+          "$SIGNER" verify --verbose --print-certs ../android-acceptance/ProFit-acceptance-arm64.apk > ../android-acceptance/SIGNING.txt
+          cd ../android-acceptance
+          sha256sum ProFit-acceptance-arm64.apk > SHA256SUMS
+          cat > README.txt <<'PROFIT_CLIENT'
+          ProFit Android acceptance client, arm64 development build.
+          This APK loads JavaScript from your Metro server. It is not a standalone preview.
+          Check COMMIT.txt, SHA256SUMS and SIGNING.txt before identifying a tested build.
+          Install on a compatible Android phone, preserving any existing unsynced app data.
+          A signing mismatch requires a compatible build or a separate test device, not deletion of unsynced data.
+          From the matching repo commit, configure mobile/.env for your reachable test API.
+          Run npx expo start --dev-client --clear from mobile and open its development link in this client.
+          Follow DEVICE_CHECKS.md and record actual results. No physical test has run in CI.
+          PROFIT_CLIENT
+      - name: Preserve development APK and build evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: profit-android-acceptance
+          path: |
+            android-acceptance/
+            /tmp/profit-android-build.log
+            mobile/android/build/reports/problems/

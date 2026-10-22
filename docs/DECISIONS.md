@@ -492,3 +492,53 @@ remain required; storage tests cannot establish those results.
 If recovery cannot read a draft, offer Retry and a separate confirmed discard of that slot's
 draft. Never replace unreadable data merely because a read failed. Discard explains that unsaved
 input will be lost and saved results are kept. Other slots and accounts are unaffected.
+
+## D48. Rendered workout checks with the existing CI browser
+Use Chrome and ChromeDriver already installed on the GitHub Ubuntu runner to test the real web
+export. Node's built-in fetch can drive WebDriver without adding an npm dependency. Extend the
+D24 isolated, same-origin preview pattern with disposable Phase 5 fixtures and the existing fake
+sync server. Bind the fixture server to loopback and never use production credentials or data.
+
+Record narrow-width layout, theme, input/stepper behavior, exercise selection, draft recovery
+and accessibility-tree evidence. Upload screenshots and diagnostic output even when a check
+fails. A fixture/browser failure must fail its CI job. Fix product failures in separate small
+commits, then rerun the affected scenarios. Do not relabel browser input as a native keyboard
+test, browser accessibility inspection as a screen-reader test, or reload as a physical app kill.
+Step 5.8.7 and the final 5.7 phone gate remain open until their outstanding native checks pass.
+
+## D49. Prefill a new set from current performed work as well as relevant history
+Rendered acceptance exposed a blank weight on the second set even after the first set saved a
+load. New drafts now include this workout's eligible resolved results when selecting the latest
+value for the same exercise. Planned reps/time/distance and rest still take priority as before;
+notes, effort and done are not copied. Zero remains a real load. Corrections and deletions use
+the resolved current results, and a different exercise never inherits another exercise's load.
+Existing drafts keep their original units and entered text under D47. This adds no database
+read and does not expand the bounded historical query or introduce automatic progression.
+
+## D50. Exercise account changes during pending draft recovery through existing auth UI
+Keep the production web export checks from D48. Add a separate development web export with
+the existing opt-in developer sign-in enabled against two disposable fixture accounts. Use
+the actual sign-out confirmation and developer sign-in screens. Do not expose the auth store,
+change production login guards or substitute a localStorage token edit and reload for a live
+account transition.
+
+The browser harness may hold a draft storage read unresolved, matching the asynchronous
+native storage port, and release it only after the second account has signed in. Observe
+rendered inputs and draft writes throughout that transition. Verify each account recovers
+only its own draft, an old account's session is unavailable to the new account, and releasing
+the stale read cannot overwrite either account's input. This is browser fault injection,
+not a measurement of native SQLite timing or a physical account-switch test. Native keyboard,
+font scaling and screen-reader acceptance remain open in step 5.8.7.
+
+## D51. Build an Android acceptance client with the existing toolchain
+Generate Android through Expo prebuild in an isolated CI checkout, then use the generated
+Gradle wrapper and the runner's Android SDK/Java to assemble an arm64 development APK.
+Use the locked existing npm dependencies, no added package or CI action, no EAS build credits
+and no production signing credentials. Never commit or hand-edit the generated native project.
+
+Upload the development APK with commit, checksum and signing-certificate metadata. This client
+loads JavaScript from the tester's Metro server and needs a reachable test API configured on
+that server. It is not a standalone preview, store release, physical acceptance result or
+replacement for the 5.7 background-notification gate. Trigger compilation when this acceptance
+workflow changes, rather than rebuilding native code for every documentation commit. A failed
+native compile must stay visible and be corrected or reported before claiming an APK exists.

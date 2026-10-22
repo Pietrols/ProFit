@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import type { ScrollView } from 'react-native';
 import { useMe } from '@/features/auth/AuthProvider';
 import { SyncBanner } from '@/features/sync/SyncBanner';
-import { prefillFromSets, sessionTargets } from '@/features/workouts/logic';
+import { workoutPrefill } from '@/features/workouts/workoutPrefill';
 import { structuredWorkoutResults } from '@/features/workouts/structuredResults';
 import { chooseWorkoutSlot } from '@/features/workouts/workoutSelection';
 import { SessionExercises } from '@/features/workouts/SessionExercises';
@@ -146,15 +146,8 @@ function Workout({
   const nextItem = next ? itemView.items.find((item) => item.id === next.itemId) : null;
   const exercise = nextItem?.exercise;
   const initial = useMemo(
-    () =>
-      exercise
-        ? prefillFromSets(
-            exercise,
-            sessionTargets(exercise, session.snapshot.difficulty, session.easierToday),
-            current.previousSets,
-          )
-        : {},
-    [exercise, session.snapshot.difficulty, session.easierToday, current.previousSets],
+    () => (exercise ? workoutPrefill(current, exercise) : {}),
+    [current, exercise],
   );
   async function saveTimer(value: TimerState | null) {
     ++timerVersion.current;

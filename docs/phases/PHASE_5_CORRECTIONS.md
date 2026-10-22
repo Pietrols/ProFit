@@ -985,3 +985,151 @@ to 5.8.8 or treat this checkpoint as the phase's Done-when result.
 No browser executable or native device was available for these checks in this environment.
 Keep their acceptance status open. History, rest-day shortcuts, plate/per-side logging and
 notification/exact-alarm checks remain in their ordered steps. Phase 6 has not started.
+
+## Step 5.8.7 rendered-browser checkpoint, 22 October 2026
+
+PR #11 has merged. Follow-up work is in draft PR #12:
+https://github.com/Pietrols/ProFit/pull/12. Nine small commits add the browser harness, tested
+fixtures and fixes found during visual review. No dependency was added. Step 5.8.7 remains open
+for the native and account-switch acceptance below; do not proceed to 5.8.8 yet.
+
+### How the rendered checks run
+
+The new workout-browser CI job exports the actual mobile web app against a disposable,
+loopback-only API. It uses D24's isolation headers, the existing fake sync server, real browser
+SQLite/localStorage and Chrome/ChromeDriver already present on the runner. Node's built-in
+fetch drives WebDriver. It never signs in to a real account or uses production data.
+
+Both packages still run format, lint, typecheck and their existing suites. The backend job also
+checks harness formatting and runs two Node tests covering fixture isolation and driver failure
+handling. Browser assertions fail CI, with screenshots, accessibility-tree JSON and diagnostics
+uploaded as workout-browser-evidence even on a failed run. The workflow contains the exact
+export, fixture server and driver commands for reproducing the check with an existing browser.
+
+### Findings and corrective changes
+
+Visual review exposed narrower-than-44-pixel stepper buttons and 40-pixel increment choices.
+Button and ChipGroup now enforce the existing touchTarget token in both dimensions. Browser
+checks measure all four stepper controls and the expanded increment choices, then choose a
+different increment and restore the default.
+
+The second set also showed a blank weight immediately after logging 60 kg. New drafts now
+include eligible resolved results from the current workout when choosing the same exercise's
+latest values. Planned targets still take priority, zero load remains valid, and notes/effort/
+done are not copied. A deleted/incomplete result or a different exercise cannot supply that
+load. Existing drafts remain unchanged. D49 and four pure regression tests record this rule.
+No additional database read or broader history scan was introduced.
+
+### Verified evidence
+
+- Code 4d3fad4 passes all three jobs in PR CI run 39740405281: backend, mobile and workout-browser.
+  All 500 mobile tests across 78 files, 125 PostgreSQL backend tests, package tooling checks,
+  backend build and the two additional fixture/driver tests pass.
+- A fresh Android JavaScript export also passes after the fixes. This is not an APK, native
+  keyboard test or physical phone result.
+- All four 320/390-pixel by dark/light cases pass. Normal logging precedes configuration and
+  fits within an 844-pixel viewport, with no horizontal page overflow. Tests inspect accessible
+  increment labels, measured touch targets, increment choice and comma-decimal edits.
+- Exercise selection returns the current heading into view. Independent bench/row drafts
+  survive selection, offline reload and reconnect. Offline logging advances the slot once,
+  creates one synced result and prefills the next weight with 60 kg.
+- The 320-dark case additionally passes defer, skip with reason, restore and reorder while
+  retaining the row draft. Easier-today preserves the entered reps; a profile unit change keeps
+  existing drafts metric while a new occurrence uses pounds, a 5 lb step and its gentler target.
+- Rendered storage failures also pass: failed writes keep typed input, save retry succeeds,
+  failed reads block editing, read retry recovers the draft, cancelled discard leaves corrupt
+  data intact and confirmed discard recovers from saved work. Another slot's draft survives.
+- The initial browser artifact was visually inspected, then updated screenshots were inspected
+  after the fixes. Evidence artifact 12408873104 belongs to the passing PR run. It contains
+  current-set, selected-exercise, custom-field, rest, enlarged-text and pinned-unit screenshots.
+  Screenshot review confirms the corrected next-set weight and narrow-width layout. DOM text
+  enlargement is a browser check, not native font-scale or screen-reader acceptance.
+
+### Remaining acceptance and next action
+
+On the corrected native build, run the numeric-keyboard scenarios from the previous checkpoint,
+including first-tap logging/stepping, rapid taps, malformed/blank/zero input, busy state and
+validation errors. Use native large-text settings and a screen reader to verify labels, focus,
+announcements and reachable actions with long names and custom fields. Browser accessible-name
+checks do not prove spoken output or native focus behavior.
+
+The rendered account-switch-during-recovery scenario is still open. Existing scoped storage and
+read-owner tests pass, but do not substitute those for observing an actual account transition.
+Record these results before ticking 5.8.7. Physical airplane-mode/background notifications remain
+the final 5.7 gate; browser reload is not a physical app-kill test. Phase 6 has not started.
+
+## Step 5.8.7 account-recovery checkpoint, 22 October 2026
+
+The remaining rendered account-switch check now passes. Draft PR #12 also contains a small
+accessibility fix and a native acceptance worksheet. Step 5.8.7 remains unticked for the
+device scenarios below; history and Phase 6 have not started.
+
+### Verified account transition
+
+D50 extends the isolated browser harness with two disposable accounts and a separate
+development export using the existing opt-in developer sign-in. Production export checks
+remain unchanged. The test uses the actual sign-out confirmation and sign-in screens;
+it never exposes the auth store or edits tokens to simulate the account transition.
+
+A browser-only storage probe holds the first account's saved draft read unresolved, matching
+the asynchronous native storage port. Editing remains blocked and the recovery message is
+visible in the current card. After navigating back and switching accounts, the second account
+opens its own workout and saves a different draft before the old read is released.
+
+Both delayed success and delayed failure pass. Observed input assignments, DOM changes and
+draft writes contain no previous-account leak; the second draft remains unchanged, the first
+saved draft is retained, and each account recovers its own input after signing in again.
+The other account's session is unavailable. No result is created during these draft-only
+scenarios. Reports and screenshots record the pending form and isolated second-account form.
+This is browser fault injection, not a measured native storage race or physical phone test.
+
+The first harness run exposed a navigation-hydration race. A later duplicate run exposed a
+pointer click racing the selection-scroll animation. The harness now waits for the hydrated
+tab and stable scroll positions, without disabling app animations or adding arbitrary sleeps.
+These failures were corrected in separate small commits; they were not relabeled as passes.
+
+### Validation error announcement
+
+Submission errors previously rendered as plain text while field-level errors already used a
+polite live region. SetForm now follows that existing pattern. Each production browser case
+enters malformed weight, verifies the polite live-region error, preserves the entered text
+and confirms the slot has not advanced. Correcting the text still permits normal logging.
+Actual spoken feedback remains a TalkBack acceptance requirement.
+
+### Automated evidence
+
+Code 21d7e08 passes push CI run 39746004087 and PR CI run 39746011376. All three regular jobs
+are green: 500 mobile tests across 78 files, 125 PostgreSQL backend tests, both package
+format/lint/typechecks, backend build, two fixture/driver tests, all four production browser
+cases and both account-switch outcomes. Browser artifact 12411412690 and account artifact
+12410544142 belong to the passing push run. Pending and isolated-account screenshots and
+both no-leak reports were inspected. A fresh Android JavaScript export also passes.
+
+### Installable Android development client
+
+D51 adds a separate acceptance build using Expo's generated Android project, its Gradle
+wrapper and the runner's existing Java/Android toolchain. No npm package or CI action was
+added, no generated native source was committed, and no EAS build or production signing
+credential was used. The current app configuration also passes prebuild in a disposable local
+checkout, preserving the repo's native-generation rules and unrelated icon edit.
+
+Native run 39746004222 passes at 21d7e08, including the 500 mobile tests and assembleDebug.
+Artifact 12412166761 contains ProFit-acceptance-arm64.apk, commit/checksum/certificate metadata,
+instructions and the device worksheet. Android apksigner verifies its debug signature. The
+downloaded APK's SHA-256 matches SHA256SUMS; its manifest, dex and 28 arm64 native libraries
+are present. Its size is 97,352,211 bytes. The build log retains SDK/native-library compiler
+warnings; no warning suppression or vendored-source edit was added.
+
+This is an actual APK, distinct from the earlier JavaScript exports. It is a development
+client with no embedded JavaScript bundle, so it needs the tester's Metro server and reachable
+test API. It cannot by itself prove offline cold launch or any physical interaction. The
+native worksheet links the download, records the hash and explains how to use the client.
+
+### Native acceptance remains open
+
+Use PHASE_5_NATIVE_ACCEPTANCE.md to record the tested commit/build/device, keyboard and
+TalkBack versions, font/display settings, actual results and evidence. It covers first-tap
+keyboard controls, rapid adjustments, invalid/blank/zero/comma values, incomplete-result
+correction, distinct drafts, native large text, focus/spoken output and offline process
+recovery. Keep unobserved scenarios pending or blocked. An installable client or successful
+native compilation cannot supply those observations. Do not tick 5.8.7 or start 5.8.8 yet.

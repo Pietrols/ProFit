@@ -20,6 +20,7 @@ export function Button({ label, variant = 'primary', disabled, style, ...rest }:
       style={(state) => [
         {
           minHeight: touchTarget,
+          minWidth: touchTarget,
           paddingHorizontal: space.xl,
           borderRadius: radius.pill,
           alignItems: 'center',

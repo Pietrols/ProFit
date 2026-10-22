@@ -95,7 +95,11 @@ export function SetForm({
           />
         ),
       )}
-      {error ? <AppText color="caution">{error}</AppText> : null}
+      {error ? (
+        <AppText color="caution" accessibilityLiveRegion="polite">
+          {error}
+        </AppText>
+      ) : null}
       <Button
         label={busy ? 'Saving set' : submitLabel}
         disabled={busy}

@@ -125,9 +125,10 @@ ESLint, Prettier and their required development configuration are approved.
   Keep the original routine and performed results intact.
 - [ ] 5.8.7 Put the current set and relevant timer first, show next/overview, add unit-safe steppers,
   and preserve drafts across selection, reads and restarts.
-  Implementation is in draft PR #11. Automated checks and exports are recorded in
-  PHASE_5_CORRECTIONS.md. Keep this box open until the small-screen, keyboard and accessibility
-  scenarios in its implementation checkpoint pass.
+  Implementation and rendered browser checks, including account switching during pending draft
+  recovery, are in PRs #11 and #12. Keep this box open for native keyboard, large-text,
+  screen-reader and offline process-recovery acceptance. Dated evidence is in
+  PHASE_5_CORRECTIONS.md; record device results in PHASE_5_NATIVE_ACCEPTANCE.md.
 - [ ] 5.8.8 Add paginated workout history, detail/correction, per-exercise comparison and
   planned-versus-actual finish summaries.
 - [ ] 5.8.9 Add idempotent one-tap rest-day completion and safe undo on Home.
