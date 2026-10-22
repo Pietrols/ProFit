@@ -105,6 +105,19 @@ for (const width of [320, 390])
       await browser.screenshot(`${output}/${name}-selected.png`);
       await browser.fill('Weight (kg)', '10');
       await browser.fill('Set notes', 'Keep my row draft');
+      await browser.script(`
+        const input = document.querySelector('textarea[aria-label="Set notes"]');
+        let container = input?.parentElement;
+        while (container && container.scrollHeight <= container.clientHeight) container = container.parentElement;
+        if (!container) throw new Error('No scrolling workout container found.');
+        container.scrollTop += 1;
+      `);
+      await browser.settleScroll();
+      assert.equal(
+        await browser.script('return document.activeElement?.getAttribute("aria-label")'),
+        'Set notes',
+        'programmatic scrolling keeps the active web input focused',
+      );
       await waitFor(
         async () => (await browser.text()).includes('Draft saved on this phone'),
         'row draft saved',

@@ -1,6 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useRef, useState } from 'react';
-import { FlatList, View } from 'react-native';
+import { FlatList, Platform, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAuth } from '@/features/auth/AuthProvider';
 import { SyncBanner } from '@/features/sync/SyncBanner';
@@ -55,7 +55,7 @@ function History({ initial }: { initial: Filters }) {
         maxToRenderPerBatch={5}
         windowSize={5}
         keyboardShouldPersistTaps="handled"
-        keyboardDismissMode="on-drag"
+        keyboardDismissMode={Platform.OS === 'web' ? 'none' : 'on-drag'}
         contentContainerStyle={{
           paddingHorizontal: space.lg,
           paddingVertical: space.lg,

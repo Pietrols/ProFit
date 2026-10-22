@@ -589,3 +589,11 @@ Keep the existing 60-second retry grace and 15-minute access-token lifetime. Thi
 prevents refresh credentials surviving a completed sign-out; it does not introduce a server
 lookup for every already-issued access JWT. Controlled PostgreSQL tests hold a user-row FK
 lock to exercise refresh/sign-out overlap for the same token and for sibling retry tokens.
+
+## D55. Keep web input focus during automatic scrolling
+The rendered acceptance checks caught empty note/reason fields at text-entry time. Focus
+inspection found editable inputs becoming unfocused after a real pointer click. The installed
+React Native Web ScrollView adapter dismisses the keyboard for every scroll when on-drag is
+selected, including focus-driven/programmatic scrolling. Use none for web ScrollViews and keep
+the native on-drag policy. Test programmatic scroll focus retention with real browser input;
+do not fake input values, suppress animations or relabel this as physical keyboard acceptance.
