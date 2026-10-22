@@ -37,6 +37,8 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+      - name: Test isolated workout preview fixtures
+        run: node --import ./node_modules/tsx/dist/loader.mjs --test ../scripts/workout-preview.test.ts
 
   mobile:
     runs-on: ubuntu-latest
