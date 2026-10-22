@@ -505,3 +505,12 @@ fails. A fixture/browser failure must fail its CI job. Fix product failures in s
 commits, then rerun the affected scenarios. Do not relabel browser input as a native keyboard
 test, browser accessibility inspection as a screen-reader test, or reload as a physical app kill.
 Step 5.8.7 and the final 5.7 phone gate remain open until their outstanding native checks pass.
+
+## D49. Prefill a new set from current performed work as well as relevant history
+Rendered acceptance exposed a blank weight on the second set even after the first set saved a
+load. New drafts now include this workout's eligible resolved results when selecting the latest
+value for the same exercise. Planned reps/time/distance and rest still take priority as before;
+notes, effort and done are not copied. Zero remains a real load. Corrections and deletions use
+the resolved current results, and a different exercise never inherits another exercise's load.
+Existing drafts keep their original units and entered text under D47. This adds no database
+read and does not expand the bounded historical query or introduce automatic progression.

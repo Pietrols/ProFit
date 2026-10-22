@@ -84,6 +84,10 @@ for (const width of [320, 390])
         async () => (await browser.text()).includes('Set 2 of 3'),
         'saved set advances',
       );
+      await waitFor(
+        async () => (await browser.value('Weight (kg)')) === '60',
+        'next set uses current-workout load',
+      );
       await browser.screenshot(`${output}/${name}-rest.png`);
       await fetch(`${base}/fixture/online`);
       await browser.command('POST', '/refresh', {});
