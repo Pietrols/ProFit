@@ -96,11 +96,18 @@ export async function openBrowser(base = 'http://127.0.0.1:9515') {
       await command('POST', elementPath(value) + '/click', {});
     },
     async fill(label, text) {
+      await settleScroll();
       const value = await element(
         `input[aria-label=${JSON.stringify(label)}],textarea[aria-label=${JSON.stringify(label)}]`,
       );
       await command('POST', elementPath(value) + '/clear', {});
       await command('POST', elementPath(value) + '/value', { text });
+      await settleScroll();
+      const actual = await command('GET', elementPath(value) + '/property/value');
+      if (actual !== text)
+        throw new Error(
+          `Input ${label} did not accept its entered text: ${JSON.stringify(actual)}`,
+        );
     },
     value(label) {
       return script(
