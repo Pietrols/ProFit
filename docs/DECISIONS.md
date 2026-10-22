@@ -469,3 +469,26 @@ no values, fields or performance times are transferred. New exercise defaults fo
 existing library tracking rules. Targets remain editable for this workout. All related item
 writes and history invalidations commit together or roll back together. Plan rows and original
 session snapshots are never part of an adjustment write.
+
+## D47. Display-unit adjustments and durable set drafts
+Step 5.8.7 steppers add decimal digits exactly in the displayed unit, converting only on save.
+Reps step by one. Weight defaults to 2.5 kg or 5 lb, with a visible increment choice. Blank minus
+stays blank, blank plus starts at one increment and subtraction stops at zero. Malformed input
+and adjustments outside canonical logging limits report an error without changing the text.
+
+Draft recovery uses the existing local key-value store, scoped to account, session, item and
+slot. A draft pins its display units, exact canonical prefills and all entered text, including
+temporarily invalid input. A profile unit change applies to the next new draft; an existing
+draft visibly keeps its original units. Easier-today and background reads do not reset it.
+Only currently selected fields are submitted, while hidden draft fields remain recoverable.
+
+Persist writes in order across form unmount/remount. Failed writes retain in-memory text and
+show retry status. Block editing while recovery is unresolved; a failed read must not overwrite
+an unread draft. Compare the slot's saved-result revision, including deletions, during recovery.
+A newer logged or deleted result supersedes an older draft even if a crash prevented cleanup.
+No draft is synced or counted as performance. Physical keyboard and small-screen acceptance
+remain required; storage tests cannot establish those results.
+
+If recovery cannot read a draft, offer Retry and a separate confirmed discard of that slot's
+draft. Never replace unreadable data merely because a read failed. Discard explains that unsaved
+input will be lost and saved results are kept. Other slots and accounts are unaffected.

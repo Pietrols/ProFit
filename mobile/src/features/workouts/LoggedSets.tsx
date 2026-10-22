@@ -4,14 +4,16 @@ import { Button } from '@/ui/Button';
 import { Card } from '@/ui/Card';
 import { LoggedSetValues } from './LoggedSetValues';
 import { SetConflict, type SetConflictState } from './SetConflict';
-import { SetForm } from './SetForm';
-import { SetConflictError, type SetRecord, type SetUndoReceipt } from './setChanges';
+import { DraftSetForm } from './DraftSetForm';
+import { plannedItemId } from './structureIdentity';
+import { SetConflictError, setRevision, type SetRecord, type SetUndoReceipt } from './setChanges';
 import type { SessionItem, WorkoutResult } from './structureTypes';
 import type { SetValues, SnapshotExercise, WorkoutSession } from './types';
 import type { useWorkout } from './useWorkout';
 import { setLabel, type Units } from './workoutForm';
 
 export function LoggedSets({
+  user,
   session,
   logs,
   items = [],
@@ -23,6 +25,7 @@ export function LoggedSets({
   changed,
   deleted,
 }: {
+  user: string;
   session: WorkoutSession;
   logs: readonly WorkoutResult[];
   items?: readonly SessionItem[];
@@ -146,14 +149,29 @@ export function LoggedSets({
           <AppText color="text2">
             The original logging time is kept. Saving does not restart rest.
           </AppText>
-          <SetForm
-            key={editing.record.id}
+          <DraftSetForm
+            key={`${editing.record.id}/${setRevision(editing.record)}`}
+            scope={{
+              user,
+              session: session.id,
+              item:
+                'itemId' in editing.record
+                  ? editing.record.itemId
+                  : plannedItemId(session.id, editing.record.exercisePosition),
+              slot: editing.record.id,
+            }}
+            baseRevision={setRevision(editing.record)}
             exercise={exercise}
             initial={editing.record.values}
             units={editing.units}
             busy={busy || !!conflict}
             submitLabel="Save correction"
             onLog={(values) => change(editing.record, values, editing.units)}
+            cleanupFailed={() =>
+              setMessage(
+                'Correction saved. Old draft cleanup failed. Saved results take precedence when reopening.',
+              )
+            }
           />
           <Button label="Cancel correction" variant="secondary" disabled={busy} onPress={close} />
         </Card>

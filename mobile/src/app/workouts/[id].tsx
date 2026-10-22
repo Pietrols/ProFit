@@ -1,13 +1,17 @@
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ScrollView } from 'react-native';
 import { useMe } from '@/features/auth/AuthProvider';
 import { SyncBanner } from '@/features/sync/SyncBanner';
 import { prefillFromSets, sessionTargets } from '@/features/workouts/logic';
 import { structuredWorkoutResults } from '@/features/workouts/structuredResults';
 import { chooseWorkoutSlot } from '@/features/workouts/workoutSelection';
 import { SessionExercises } from '@/features/workouts/SessionExercises';
-import { SetForm } from '@/features/workouts/SetForm';
+import { DraftSetForm } from '@/features/workouts/DraftSetForm';
+import { draftResultRevision } from '@/features/workouts/draftRecord';
 import { TimerControls } from '@/features/workouts/TimerControls';
+import { TimerReadout } from '@/features/workouts/TimerReadout';
+import { workoutPreview } from '@/features/workouts/workoutPreview';
 import { SessionClock } from '@/features/workouts/SessionClock';
 import { LoggedSets } from '@/features/workouts/LoggedSets';
 import {
@@ -21,12 +25,7 @@ import type { StructuredWorkoutDetail } from '@/features/workouts/structuredDeta
 import { useWorkoutAwake } from '@/features/workouts/useWorkoutAwake';
 import { useWorkoutAlerts } from '@/features/workouts/WorkoutAlerts';
 import type { SetValues } from '@/features/workouts/types';
-import {
-  recordLabel,
-  setLabel,
-  volumeLabel,
-  type SetDraftEntry,
-} from '@/features/workouts/workoutForm';
+import { recordLabel, setLabel, volumeLabel } from '@/features/workouts/workoutForm';
 import { randomId } from '@/lib/randomId';
 import { kvStore } from '@/lib/storage/local';
 import { AppText } from '@/ui/AppText';
@@ -102,12 +101,12 @@ function Workout({
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const lock = useRef(false);
+  const scroll = useRef<ScrollView>(null);
   const [confirm, setConfirm] = useState<'completed' | 'abandoned' | null>(null);
   const [lastSet, setLastSet] = useState<string | null>(null);
   const [correcting, setCorrecting] = useState(false);
   const [adjusting, setAdjusting] = useState(false);
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
-  const [drafts, setDrafts] = useState(() => new Map<string, SetDraftEntry>());
   useEffect(() => {
     let live = true;
     const version = ++timerVersion.current;
@@ -134,7 +133,9 @@ function Workout({
     [current, selectedItemId],
   );
   const next = selection.current;
-  const draftKey = next ? `${next.id}/${units}` : '';
+  const preview = useMemo(() => workoutPreview(current, next), [current, next]);
+  const draftRevision = next ? draftResultRevision(current.resultRecords, next.id) : 'new';
+  const draftKey = next ? `${next.id}/${draftRevision}` : '';
   const changesBlocked =
     busy || correcting || adjusting || workouts.stale || !!workouts.error || !summary.available;
   const savedNext = next ? logs.find((log) => log.id === next.id) : null;
@@ -182,7 +183,8 @@ function Workout({
     void run(action).catch(() => {});
   };
   async function log(values: SetValues) {
-    if (!next || !nextItem || !exercise || savedNext || changesBlocked) return;
+    if (!next || !nextItem || !exercise || savedNext || changesBlocked || lock.current)
+      throw new Error('Refresh this set before logging it. Your draft is kept.');
     await run(async () => {
       const id = await workouts.log({
         item: nextItem,
@@ -190,11 +192,6 @@ function Workout({
         values,
         difficulty: session.snapshot.difficulty,
         easierToday: session.easierToday,
-      });
-      setDrafts((previous) => {
-        const remaining = new Map(previous);
-        remaining.delete(draftKey);
-        return remaining;
       });
       setLastSet(values.done === false ? null : id);
       try {
@@ -227,19 +224,8 @@ function Workout({
     setConfirm(null);
   }
   return (
-    <Screen title={session.snapshot.dayName}>
+    <Screen title={session.snapshot.dayName} scrollRef={scroll}>
       <SyncBanner />
-      <Card>
-        <AppText variant="label">{active ? 'In progress' : session.status}</AppText>
-        <SessionClock startedAt={session.startedAt} endedAt={session.endedAt} />
-        <AppText>
-          {summary.completed} / {summary.total} current target sets logged
-        </AppText>
-        <AppText color="text2">
-          Original routine: {summary.originalCompleted} / {summary.originalTotal} sets logged.
-          Omitted: {summary.originalOmitted}. Additional logged sets: {summary.addedCompleted}.
-        </AppText>
-      </Card>
       {workouts.error ? (
         <>
           <AppText color="caution">{workouts.error}</AppText>
@@ -273,60 +259,41 @@ function Workout({
           <AppText color="text2">Loading saved timer</AppText>
         )
       ) : null}
-      {active ? (
-        <>
-          <Card>
-            <TimerControls
-              timer={timer}
-              busy={busy || !ready}
-              start={(config) => fire(() => saveTimer(startTimer(config, Date.now(), randomId())))}
-              pause={() => fire(() => saveTimer(timer ? pauseTimer(timer, Date.now()) : null))}
-              resume={() => fire(() => saveTimer(timer ? resumeTimer(timer, Date.now()) : null))}
-              clear={() => fire(() => saveTimer(null))}
-            />
-            <AppText variant="caption" color="text2">
-              Rest alerts use your phone notifications. Silent mode and phone settings can suppress
-              or delay them.
-            </AppText>
-            {alertError ? <AppText color="caution">{alertError}</AppText> : null}
-            <Button
-              label="Enable rest alerts"
-              variant="secondary"
-              disabled={busy || !ready}
-              onPress={() =>
-                fire(async () => {
-                  try {
-                    await enable();
-                    await alerts.update(user, session.id, timer);
-                  } catch (e) {
-                    report(e);
-                  }
-                })
-              }
-            />
-          </Card>
-        </>
-      ) : null}
       {active && exercise && next ? (
         <Card>
           <AppText variant="title">{exercise.name}</AppText>
-          <AppText color="text2">{setLabel(next.setIndex, exercise.sets)}</AppText>
+          <AppText color="text2">
+            {setLabel(next.setIndex, exercise.sets)} · {summary.completed} / {summary.total} target
+            sets logged
+          </AppText>
+          {timer ? (
+            <TimerReadout
+              compact
+              timer={timer}
+              busy={busy || !ready}
+              pause={() => fire(() => saveTimer(pauseTimer(timer, Date.now())))}
+              resume={() => fire(() => saveTimer(resumeTimer(timer, Date.now())))}
+            />
+          ) : null}
           {savedNext ? (
             <AppText color="caution">
               This set has an incomplete saved result. Use Edit in Logged sets below to review it,
               or delete the saved result before logging a new performance.
             </AppText>
           ) : (
-            <SetForm
+            <DraftSetForm
               key={draftKey}
+              scope={{ user, session: session.id, item: next.itemId, slot: next.id }}
+              baseRevision={draftRevision}
               exercise={exercise}
               initial={initial}
               units={units}
               busy={changesBlocked || !ready}
               onLog={log}
-              savedDraft={drafts.get(draftKey)}
-              onDraftChange={(entry) =>
-                setDrafts((previous) => new Map(previous).set(draftKey, entry))
+              cleanupFailed={() =>
+                setError(
+                  'Set saved. Old draft cleanup failed. Saved results take precedence when reopening.',
+                )
               }
             />
           )}
@@ -341,7 +308,26 @@ function Workout({
               ? 'No sets logged. Review any omitted work before finishing.'
               : 'Review your logged sets and finish when you are ready.'}
           </AppText>
+          {timer ? (
+            <TimerReadout
+              compact
+              timer={timer}
+              busy={busy || !ready}
+              pause={() => fire(() => saveTimer(pauseTimer(timer, Date.now())))}
+              resume={() => fire(() => saveTimer(resumeTimer(timer, Date.now())))}
+            />
+          ) : null}
         </Card>
+      ) : null}
+      {active && next ? (
+        <AppText variant="caption" color="text2">
+          {selection.following
+            ? `Next set: ${itemView.items.find((item) => item.id === selection.following!.itemId)?.exercise.name}, set ${selection.following.setIndex + 1}. `
+            : 'Last pending set. '}
+          {preview
+            ? `Next exercise: ${preview.ordinal}. ${preview.item.exercise.name}, ${preview.remaining} sets remaining.`
+            : 'No other exercises pending.'}
+        </AppText>
       ) : null}
       {active ? (
         <SessionExercises
@@ -351,6 +337,7 @@ function Workout({
           select={(itemId) => {
             setSelectedItemId(itemId);
             setLastSet(null);
+            scroll.current?.scrollTo({ y: 0, animated: true });
           }}
           change={(item, change) =>
             run(async () => {
@@ -390,6 +377,52 @@ function Workout({
           editingChanged={setAdjusting}
         />
       ) : null}
+      <Card>
+        <AppText variant="label">{active ? 'In progress' : session.status}</AppText>
+        <SessionClock startedAt={session.startedAt} endedAt={session.endedAt} />
+        <AppText>
+          {summary.completed} / {summary.total} current target sets logged
+        </AppText>
+        <AppText color="text2">
+          Original routine: {summary.originalCompleted} / {summary.originalTotal} sets logged.
+          Omitted: {summary.originalOmitted}. Additional logged sets: {summary.addedCompleted}.
+        </AppText>
+      </Card>
+      {active ? (
+        <>
+          <Card>
+            <TimerControls
+              showReadout={!summary.available}
+              timer={timer}
+              busy={busy || !ready}
+              start={(config) => fire(() => saveTimer(startTimer(config, Date.now(), randomId())))}
+              pause={() => fire(() => saveTimer(timer ? pauseTimer(timer, Date.now()) : null))}
+              resume={() => fire(() => saveTimer(timer ? resumeTimer(timer, Date.now()) : null))}
+              clear={() => fire(() => saveTimer(null))}
+            />
+            <AppText variant="caption" color="text2">
+              Rest alerts use your phone notifications. Silent mode and phone settings can suppress
+              or delay them.
+            </AppText>
+            {alertError ? <AppText color="caution">{alertError}</AppText> : null}
+            <Button
+              label="Enable rest alerts"
+              variant="secondary"
+              disabled={busy || !ready}
+              onPress={() =>
+                fire(async () => {
+                  try {
+                    await enable();
+                    await alerts.update(user, session.id, timer);
+                  } catch (e) {
+                    report(e);
+                  }
+                })
+              }
+            />
+          </Card>
+        </>
+      ) : null}
       {summary.records
         .filter((r) => !active || r.setId === lastSet)
         .map((r) => (
@@ -423,6 +456,7 @@ function Workout({
         </Card>
       )}
       <LoggedSets
+        user={user}
         session={session}
         logs={logs}
         items={itemView.items}
