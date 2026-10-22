@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { openBrowser, waitFor } from './workout-browser-driver.mjs';
 import { checkDraftFailures } from './workout-browser-errors.mjs';
+import { checkSessionDraftChanges } from './workout-browser-adjustments.mjs';
 
 const base = 'http://127.0.0.1:8082';
 const session = '00000000-0000-4000-8000-000000000044';
@@ -128,6 +129,8 @@ for (const width of [320, 390])
         async () => (await browser.value('Set notes')) === 'Keep my row draft',
         'other draft after reload',
       );
+      if (width === 320 && theme === 'dark')
+        await checkSessionDraftChanges(browser, base, session, row, output);
       await browser.script(`
       document.activeElement?.blur();
       for (const el of document.querySelectorAll('div,input,textarea')) {
