@@ -1,6 +1,7 @@
 import { createApiClient } from '../../lib/api/client';
 import { ApiError, isNetworkError } from '../../lib/api/errors';
 import { singleFlight } from '../../lib/singleFlight';
+import { orderedKeyValue } from '../../lib/storage/ordered';
 import {
   applyPatch,
   isEmptyPatch,
@@ -54,6 +55,7 @@ export const meKey = (userId: string) => `profit.me.${userId}`;
 export const pendingKey = (userId: string) => `profit.pendingProfile.${userId}`;
 
 export function createAuthStore(deps: Deps) {
+  deps = { ...deps, secure: orderedKeyValue(deps.secure), kv: orderedKeyValue(deps.kv) };
   let snapshot: AuthSnapshot = { status: 'loading' };
   let auth: StoredAuth | null = null; // tokens and user, in memory
   let confirmed: Me | null = null; // last profile the server sent
