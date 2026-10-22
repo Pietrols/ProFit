@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import express, { Router } from 'express';
 import { z } from 'zod';
@@ -46,10 +47,11 @@ export function mediaRouter(db: Db, store: MediaStore): Router {
         .where(eq(media.id, id));
       if (!existing || existing.userId !== userId) throw notFound('No such image.');
 
-      await store.write(userId, id, bytes);
+      const fileRevision = createHash('sha256').update(bytes).digest('hex');
+      await store.write(userId, id, bytes, fileRevision);
       const saved = await db
         .update(media)
-        .set({ contentType: type, bytes: bytes.length })
+        .set({ contentType: type, bytes: bytes.length, fileRevision })
         .where(and(eq(media.id, id), eq(media.userId, userId)))
         .returning({ id: media.id });
       if (!saved.length) throw notFound('No such image.');
@@ -62,7 +64,7 @@ export function mediaRouter(db: Db, store: MediaStore): Router {
     const { id } = parseInput(Params, req.params);
     const [row] = await db.select().from(media).where(eq(media.id, id));
     if (!row || row.userId !== currentUserId(res)) throw notFound('No such image.');
-    const bytes = await store.read(row.userId, id).catch(() => null);
+    const bytes = await store.read(row.userId, id, row.fileRevision).catch(() => null);
     if (!bytes) throw notFound('No such image.');
     res
       .set({ 'Content-Type': row.contentType, 'Cache-Control': 'private, max-age=86400' })
