@@ -38,7 +38,7 @@ jobs:
       - run: npm test
       - run: npm run build
       - name: Test isolated workout preview fixtures
-        run: node --import ./node_modules/tsx/dist/loader.mjs --test ../scripts/workout-preview.test.ts
+        run: node --import ./node_modules/tsx/dist/loader.mjs --test ../scripts/workout-*.test.*
 
   mobile:
     runs-on: ubuntu-latest
