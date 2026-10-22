@@ -83,8 +83,11 @@ app's database. Fault-injected disk errors are separately covered by the browser
 
 For N8, state how the app was stopped. Force-stop, process eviction and a browser refresh are
 different operations. A shutdown before the saved acknowledgement can only recover the last
-durable write. This scenario does not prove background notification delivery after force-stop;
-the original airplane-mode/background-alert check belongs to the later 5.7 gate.
+durable write. Use a build with embedded JavaScript for offline cold launch, or separately
+establish that the tested development client can load its cached bundle offline. Failure to
+reach Metro is a blocked launch check, not evidence of lost drafts. This scenario does not
+prove background notification delivery after force-stop; the original airplane-mode/background-
+alert check belongs to the later 5.7 gate.
 
 For N10/N11, also test the incomplete-result correction form. Pause or dismiss any active
 countdown while reviewing spoken feedback, then separately verify that normal timer updates

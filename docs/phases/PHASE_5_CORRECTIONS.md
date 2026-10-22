@@ -1057,3 +1057,59 @@ The rendered account-switch-during-recovery scenario is still open. Existing sco
 read-owner tests pass, but do not substitute those for observing an actual account transition.
 Record these results before ticking 5.8.7. Physical airplane-mode/background notifications remain
 the final 5.7 gate; browser reload is not a physical app-kill test. Phase 6 has not started.
+
+## Step 5.8.7 account-recovery checkpoint, 22 October 2026
+
+The remaining rendered account-switch check now passes. Draft PR #12 also contains a small
+accessibility fix and a native acceptance worksheet. Step 5.8.7 remains unticked for the
+device scenarios below; history and Phase 6 have not started.
+
+### Verified account transition
+
+D50 extends the isolated browser harness with two disposable accounts and a separate
+development export using the existing opt-in developer sign-in. Production export checks
+remain unchanged. The test uses the actual sign-out confirmation and sign-in screens;
+it never exposes the auth store or edits tokens to simulate the account transition.
+
+A browser-only storage probe holds the first account's saved draft read unresolved, matching
+the asynchronous native storage port. Editing remains blocked and the recovery message is
+visible in the current card. After navigating back and switching accounts, the second account
+opens its own workout and saves a different draft before the old read is released.
+
+Both delayed success and delayed failure pass. Observed input assignments, DOM changes and
+draft writes contain no previous-account leak; the second draft remains unchanged, the first
+saved draft is retained, and each account recovers its own input after signing in again.
+The other account's session is unavailable. No result is created during these draft-only
+scenarios. Reports and screenshots record the pending form and isolated second-account form.
+This is browser fault injection, not a measured native storage race or physical phone test.
+
+The first harness run exposed a navigation-hydration race. A later duplicate run exposed a
+pointer click racing the selection-scroll animation. The harness now waits for the hydrated
+tab and stable scroll positions, without disabling app animations or adding arbitrary sleeps.
+These failures were corrected in separate small commits; they were not relabeled as passes.
+
+### Validation error announcement
+
+Submission errors previously rendered as plain text while field-level errors already used a
+polite live region. SetForm now follows that existing pattern. Each production browser case
+enters malformed weight, verifies the polite live-region error, preserves the entered text
+and confirms the slot has not advanced. Correcting the text still permits normal logging.
+Actual spoken feedback remains a TalkBack acceptance requirement.
+
+### Automated evidence
+
+Code 21d7e08 passes push CI run 39746004087 and PR CI run 39746011376. All three regular jobs
+are green: 500 mobile tests across 78 files, 125 PostgreSQL backend tests, both package
+format/lint/typechecks, backend build, two fixture/driver tests, all four production browser
+cases and both account-switch outcomes. Browser artifact 12411412690 and account artifact
+12410544142 belong to the passing push run. Pending and isolated-account screenshots and
+both no-leak reports were inspected. A fresh Android JavaScript export also passes.
+
+### Native acceptance remains open
+
+Use PHASE_5_NATIVE_ACCEPTANCE.md to record the tested commit/build/device, keyboard and
+TalkBack versions, font/display settings, actual results and evidence. It covers first-tap
+keyboard controls, rapid adjustments, invalid/blank/zero/comma values, incomplete-result
+correction, distinct drafts, native large text, focus/spoken output and offline process
+recovery. Keep unobserved scenarios pending or blocked. An installable client or successful
+native compilation cannot supply those observations. Do not tick 5.8.7 or start 5.8.8 yet.
