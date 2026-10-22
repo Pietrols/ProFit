@@ -15,10 +15,14 @@ await waitFor(() => fetch(`${base}/fixture/state`).then((r) => r.ok), 'account f
 await waitFor(() => fetch('http://127.0.0.1:9515/status').then((r) => r.ok), 'ChromeDriver');
 
 async function openYou(browser) {
-  const element = await browser.command('POST', '/element', {
-    using: 'css selector',
-    value: 'a[href="/you"]',
-  });
+  const element = await waitFor(
+    () =>
+      browser.command('POST', '/element', {
+        using: 'css selector',
+        value: 'a[href="/you"]',
+      }),
+    'hydrated You tab',
+  );
   await browser.command(
     'POST',
     `/element/${element['element-6066-11e4-a52e-4f735466cecf']}/click`,
