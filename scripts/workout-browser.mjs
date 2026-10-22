@@ -4,6 +4,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { openBrowser, waitFor } from './workout-browser-driver.mjs';
 import { checkDraftFailures } from './workout-browser-errors.mjs';
 import { checkSessionDraftChanges } from './workout-browser-adjustments.mjs';
+import { checkWorkoutHistory } from './workout-browser-history.mjs';
 
 const base = 'http://127.0.0.1:8082';
 const session = '00000000-0000-4000-8000-000000000044';
@@ -171,6 +172,7 @@ for (const width of [320, 390])
     `);
       await browser.screenshot(`${output}/${name}-enlarged-text.png`);
       await writeFile(`${output}/${name}-layout.json`, JSON.stringify(layout, null, 2));
+      await checkWorkoutHistory(browser, base, output, name);
       console.log(
         `PASS ${name}: current-set layout, labels, steppers, selection, offline reload and single result`,
       );

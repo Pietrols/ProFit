@@ -133,7 +133,27 @@ for (const outcome of ['resolve', 'reject']) {
     );
     const state = await fetch(`${base}/fixture/state`).then((r) => r.json());
     assert.equal(state.records.filter((record) => record.collection === 'set_logs').length, 0);
-    console.log(`PASS account switch with delayed ${outcome}: no draft leak, overwrite or result`);
+    await fetch(`${base}/fixture/history`, { method: 'POST' });
+    await browser.navigate(`${base}/workouts/history`);
+    await waitFor(
+      async () => (await browser.text()).includes('History session 30'),
+      'first account saved history',
+    );
+    await browser.navigate(base);
+    await switchAccount(browser, 'second-workout@example.invalid');
+    await browser.navigate(`${base}/workouts/history`);
+    await waitFor(
+      async () => (await browser.text()).includes('No saved workouts here'),
+      'second account empty history',
+    );
+    assert(
+      !(await browser.text()).includes('History session 30'),
+      'saved history remains account scoped',
+    );
+    await browser.screenshot(`${output}/account-${outcome}-history-isolated.png`);
+    console.log(
+      `PASS account switch with delayed ${outcome}: no draft leak, overwrite or result, and saved history isolation`,
+    );
   } catch (error) {
     await browser.screenshot(`${output}/account-${outcome}-failure.png`).catch(() => {});
     await writeFile(
