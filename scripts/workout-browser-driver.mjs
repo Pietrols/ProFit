@@ -59,9 +59,10 @@ export async function openBrowser(base = 'http://127.0.0.1:9515') {
         params: { width, height, deviceScaleFactor: 1, mobile: true },
       });
     },
-    async clickText(text) {
-      if (text.includes('"')) throw new Error('Use an unquoted fixture label.');
-      const value = await element(`//*[@role="button" and normalize-space(.)="${text}"]`, 'xpath');
+    async clickText(text, role = 'button') {
+      if (text.includes('"') || !['button', 'radio'].includes(role))
+        throw new Error('Use a supported fixture role and unquoted label.');
+      const value = await element(`//*[@role="${role}" and normalize-space(.)="${text}"]`, 'xpath');
       await command('POST', elementPath(value) + '/click', {});
     },
     async clickLabel(label) {

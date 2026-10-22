@@ -55,6 +55,18 @@ for (const width of [320, 390])
       assert(ax.nodes.some((node) => node.name?.value === 'Increase weight by 2.5 kg'));
       await writeFile(`${output}/${name}-accessibility.json`, JSON.stringify(ax, null, 2));
 
+      await browser.clickText('Weight step: 2.5 kg');
+      const choices = await browser.script(
+        "return [...document.querySelectorAll('[role=radio]')].map((el) => el.getBoundingClientRect().toJSON())",
+      );
+      assert(
+        choices.length && choices.every((rect) => rect.width >= 44 && rect.height >= 44),
+        'increment choices have 44-pixel touch targets',
+      );
+      await browser.clickText('1.25', 'radio');
+      await browser.clickText('Weight step: 1.25 kg');
+      await browser.clickText('2.5', 'radio');
+
       await browser.fill('Weight (kg)', '60,75');
       await browser.clickLabel('Increase weight by 2.5 kg');
       assert.equal(await browser.value('Weight (kg)'), '63.25');
@@ -64,6 +76,19 @@ for (const width of [320, 390])
       await browser.clickText('Choose or adjust exercises');
       await browser.clickText(`Train 2. ${row} now`);
       await waitFor(async () => (await browser.value('Reps')) === '10', 'selected exercise form');
+      await waitFor(
+        () =>
+          browser.script(
+            `
+        const title = [...document.querySelectorAll('div')].find((el) => !el.children.length && el.textContent === arguments[0]);
+        const top = title?.getBoundingClientRect().top;
+        return top >= 0 && top < 300;
+      `,
+            [row],
+          ),
+        'selected current exercise returns into view',
+      );
+      await browser.screenshot(`${output}/${name}-selected.png`);
       await browser.fill('Weight (kg)', '10');
       await browser.fill('Set notes', 'Keep my row draft');
       await waitFor(
@@ -102,12 +127,16 @@ for (const width of [320, 390])
         'other draft after reload',
       );
       await browser.script(`
+      document.activeElement?.blur();
       for (const el of document.querySelectorAll('div,input,textarea')) {
         if (el.children.length || (!el.textContent && !el.matches('input,textarea'))) continue;
         const style = getComputedStyle(el);
         el.style.fontSize = parseFloat(style.fontSize) * 1.5 + 'px';
         const line = parseFloat(style.lineHeight);
         if (Number.isFinite(line)) el.style.lineHeight = line * 1.5 + 'px';
+      }
+      for (const el of document.querySelectorAll('div')) {
+        if (['auto', 'scroll'].includes(getComputedStyle(el).overflowY)) el.scrollTop = 0;
       }
     `);
       await browser.screenshot(`${output}/${name}-enlarged-text.png`);
