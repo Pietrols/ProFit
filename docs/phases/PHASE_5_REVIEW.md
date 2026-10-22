@@ -16,19 +16,39 @@ Run automated tests during implementation; request the final phone checks after 
 5. Produce a fresh corrected native build and consolidate the physical scenarios under 5.7.
    Keep Phase 6 blocked until acceptance and review are complete.
 
-## Findings under reproduction
+## Confirmed findings and corrections
 
-| Id | Source and failure candidate | Required regression |
+| Id | Reproduced failure | Correction and evidence |
 |---|---|---|
-| R1 | lib/api/client.ts shares refresh globally and saves/expires the current session after a late response | A refresh completes or fails after B signs in, including A signing in again: B/new A credentials survive; no old request retries with the new account |
-| R2 | sync/engine.ts checks owner after negotiation but not during media, row reads, push/pull batches or transaction admission | Switch during each boundary: no foreign upload, pull application, cursor advance, dirty acknowledgement or stale status |
-| R3 | Rejected push acknowledgement clears dirty without matching the sent revision | A newer valid edit made while the rejected version is in flight remains dirty and syncs |
-| R4 | Profile cache/pending writes publish after awaits using mutable current state | Delayed old reads/writes cannot publish another account's profile or erase a new account's pending edit |
-| R5 | Media upload/download obtains current auth after selecting another owner's local photo | Bind owner and transfer retries; late download must not cache a foreign image under the caller |
-| R6 | Backend media upload checks ownership before file IO, then upserts without an ownership condition | Concurrent claims of one id cannot modify another owner's metadata or content |
+| R1 | Late API refresh could overwrite/expire a newer sign-in or retry an old request under it | Scoped request/refresh lifetime and expected user binding; seven deterministic API identity regressions |
+| R2 | Account changes during sync row reads and transaction admission could continue an obsolete run | Run generation, live owner and API identity checks at awaited boundaries; five boundary regressions |
+| R3 | Rejection of an in-flight version cleared a newer valid edit's dirty flag | Acknowledgements match the sent edit timestamp; regression confirms the newer edit reaches the server |
+| R4 | A delayed profile save could persist B's private pending note under A; old sign-out/login could replace a newer sign-in | Ordered storage per key, auth generations, owned cache validation and withdrawn screens during sign-in persistence; durable-storage and auth race regressions |
+| R5 | Selected photos could upload/retry as a new account; late download/local lookup could return or cache an obsolete photo | Bind picks, transfers, retries and transactions to expected user/sign-in; owner-scoped failure backoff and render-time URI gate; eleven media isolation/presentation regressions |
+| R6 | Two accounts could both pass the upload ownership check, then mutate one media row | Atomic owner reservation before file IO and conditional owned metadata publication; concurrent-claim PostgreSQL regression passed in CI |
+| R7 | Eight simultaneous writes sharing a timestamp produced seven ENOENT failures; separate file/metadata replacement could mismatch bytes and MIME type | Unique temporary files and immutable SHA-256 revisions published atomically with metadata (D53); local stress now 8/8, with replacement/failure/legacy regressions in CI |
 
-Candidates become confirmed findings only when a failing regression establishes the behavior.
-Do not equate these first-party findings with dependency vulnerability scan results.
+These are first-party findings, separate from the dependency scan below. They establish failures
+and specific protections, not an exhaustive security guarantee. Local account ownership guards
+cannot revoke a network transfer already sent with its original owner's valid credentials.
+Such a transfer remains attributed to that owner; obsolete work cannot retry as a new account.
+
+## Dependency scan and limits
+
+Read-only `npm audit --omit=dev --json` found zero backend production advisories. Mobile reports
+26 affected package entries (20 high, six moderate), which trace to four distinct advisories;
+transitive entries are not 26 independent defects. No dependency or lockfile was changed.
+
+| Advisory | Locked path and reachability review | Follow-up |
+|---|---|---|
+| [braces stack exhaustion](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm) | braces 3.0.3 through Metro/build tooling; no ProFit user-facing pattern evaluator found | Advisory lists no patched release; keep untrusted patterns out of build inputs and recheck supported Expo updates before release |
+| [node-forge RSA verification](https://github.com/advisories/GHSA-86w9-cpqp-85rv) | node-forge 1.4.0 through Expo CLI code-signing tooling, not ProFit's backend JWT verifier | Advisory lists no patched release; review signing/update trust and supported upstream fix before release |
+| [URI decoder denial of service](https://github.com/advisories/GHSA-vcc3-ghjq-m6fr) | decode-uri-component 0.2.2 through query-string 7.1.3 and Expo Router; installed Router fork uses URLSearchParams for inbound parsing, but also bundles a core parser | Finish native/deep-link boundary validation before handoff; 0.5.0 is ESM and cannot be blindly substituted into the locked CommonJS caller |
+| [uuid buffer bounds](https://github.com/advisories/GHSA-w5hq-g745-h8pq) | uuid 7.0.3 through xcode tooling calls v4; advisory concerns caller-buffer v3/v5/v6 | Affected API use not found on this path. ProFit's own deterministic IDs use its own module; recheck upstream tooling update before release |
+
+Do not run audit force-fixes that downgrade native packages or migrate the app to an unplanned
+Expo SDK. A remaining advisory must retain its reachability/mitigation record; a clean first-party
+regression suite does not erase it. Long-term release hardening remains Phase 11.
 
 ## Original review traceability
 
@@ -51,3 +71,17 @@ Baseline: merged PR #12 has 500 mobile tests, 125 backend tests, four production
 two delayed-draft account-switch cases and a verified arm64 development APK. This baseline
 does not establish safety of untested background sync/profile/media account transitions.
 New regressions, fixes, exact commits and CI results will be recorded below.
+
+### Review validation checkpoint
+
+- 529 mobile tests across 84 files pass after R1-R5, plus both packages' formatting, lint and
+  typecheck gates. Backend builds locally. PostgreSQL remains provided by CI under build rule 8.
+- API owner-binding commit f47426c passed push/PR CI (39864254164 / 39864261822), including the
+  production browser and delayed-draft account-switch scenarios.
+- Backend owner reservation 4f745e3 passed push/PR CI (39865148494 / 39865154867), including the
+  new PostgreSQL concurrency regression. Immutable media publication 04a72a0
+  passed push/PR CI (39865731485 / 39865738674), including its new PostgreSQL regressions.
+- All changes are separate reviewable commits. Generated Drizzle snapshots are isolated from
+  behavioral fixes. The unrelated local app-icon edit is excluded from every commit.
+- Next: complete 5.8.8 history/comparison, then 5.8.9 through 5.8.12. Physical acceptance stays
+  pending in 5.7 and Phase 6 remains blocked. No phone result or completeness score is inferred.
