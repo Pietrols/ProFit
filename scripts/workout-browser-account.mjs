@@ -61,6 +61,27 @@ for (const outcome of ['resolve', 'reject']) {
     await browser.clickText(`Train 2. ${row} now`);
     await waitFor(async () => (await browser.value('Reps')) === '10', 'different slot');
     await holdAccountDraftRead(browser, firstUser, secondUser, '61.75', outcome);
+    const still = await browser.command('POST', '/execute/async', {
+      script: `
+        const done = arguments[0];
+        const deadline = performance.now() + 5000;
+        let previous;
+        let stableFrames = 0;
+        function observe() {
+          const positions = [...document.querySelectorAll('div')]
+            .filter((element) => element.scrollHeight > element.clientHeight)
+            .map((element) => element.scrollTop).join(',');
+          stableFrames = positions === previous ? stableFrames + 1 : 0;
+          previous = positions;
+          if (stableFrames >= 4) return done(true);
+          if (performance.now() >= deadline) return done(false);
+          requestAnimationFrame(observe);
+        }
+        requestAnimationFrame(observe);
+      `,
+      args: [],
+    });
+    assert.equal(still, true, 'selection scroll settles before the next pointer click');
     await browser.clickText('Train 1. Bench press now');
     await waitFor(() => browser.script('return !!window.profitAccountProbe.heldKey'), 'held read');
     assert((await browser.text()).includes('Recovering saved set draft'));
