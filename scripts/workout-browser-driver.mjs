@@ -70,6 +70,15 @@ export async function openBrowser(base = 'http://127.0.0.1:9515') {
     });
     if (!still) throw new Error('Scrolling did not settle before the next pointer action.');
   }
+  async function preparePointer(value) {
+    await script(
+      `
+      arguments[0].scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+    `,
+      [value],
+    );
+    await settleScroll();
+  }
   return {
     command,
     script,
@@ -88,11 +97,13 @@ export async function openBrowser(base = 'http://127.0.0.1:9515') {
         throw new Error('Use a supported fixture role and unquoted label.');
       await settleScroll();
       const value = await element(`//*[@role="${role}" and normalize-space(.)="${text}"]`, 'xpath');
+      await preparePointer(value);
       await command('POST', elementPath(value) + '/click', {});
     },
     async clickLabel(label) {
       await settleScroll();
       const value = await element(`[aria-label=${JSON.stringify(label)}]`);
+      await preparePointer(value);
       await command('POST', elementPath(value) + '/click', {});
     },
     async fill(label, text) {
@@ -101,6 +112,7 @@ export async function openBrowser(base = 'http://127.0.0.1:9515') {
         `input[aria-label=${JSON.stringify(label)}],textarea[aria-label=${JSON.stringify(label)}]`,
       );
       await command('POST', elementPath(value) + '/clear', {});
+      await preparePointer(value);
       await command('POST', elementPath(value) + '/click', {});
       await settleScroll();
       const editable = await script(
