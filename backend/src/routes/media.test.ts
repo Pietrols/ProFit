@@ -78,6 +78,62 @@ describe('media', () => {
     expect((await upload(other, JPEG)).status).toBe(404);
   });
 
+  it('keeps a concurrent foreign claim from modifying the first owner metadata', async () => {
+    const first = await signIn('first@example.com');
+    const second = await signIn('second@example.com');
+    const store = mediaStore(dir);
+    let release!: () => void;
+    let entered!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const writing = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let writes = 0;
+    const racingApp = createApp(config, createLogger(config), {
+      db: database.db,
+      verifyGoogle: rejectGoogle,
+      media: {
+        ...store,
+        async write(user, id, bytes) {
+          writes += 1;
+          if (writes === 1) {
+            entered();
+            await held;
+          }
+          await store.write(user, id, bytes);
+        },
+      },
+    });
+    const send = (token: string, bytes: Buffer, type: string) =>
+      request(racingApp)
+        .put(`/media/${ID}`)
+        .set('Authorization', `Bearer ${token}`)
+        .set('Content-Type', type)
+        .send(bytes);
+    const pending = send(first, JPEG, 'image/jpeg').then((response) => response);
+    await writing;
+    let foreign;
+    try {
+      foreign = await send(second, PNG, 'image/png');
+    } finally {
+      release();
+    }
+    expect((await pending).status).toBe(201);
+    expect(foreign.status).toBe(404);
+    expect(writes).toBe(1);
+    const image = await request(racingApp)
+      .get(`/media/${ID}`)
+      .set('Authorization', `Bearer ${first}`);
+    expect(image.headers['content-type']).toBe('image/jpeg');
+    expect(image.body).toEqual(JPEG);
+    expect(
+      (await request(racingApp).get(`/media/${ID}`).set('Authorization', `Bearer ${second}`))
+        .status,
+    ).toBe(404);
+  });
+
   it('refuses other file types, mislabelled files, empty bodies and bad ids', async () => {
     const token = await signIn('peter@example.com');
     expect((await upload(token, Buffer.from('<svg/>'), 'image/svg+xml')).status).toBe(415);
