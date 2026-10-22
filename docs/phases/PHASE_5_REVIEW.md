@@ -27,11 +27,26 @@ Run automated tests during implementation; request the final phone checks after 
 | R5 | Selected photos could upload/retry as a new account; late download/local lookup could return or cache an obsolete photo | Bind picks, transfers, retries and transactions to expected user/sign-in; owner-scoped failure backoff and render-time URI gate; eleven media isolation/presentation regressions |
 | R6 | Two accounts could both pass the upload ownership check, then mutate one media row | Atomic owner reservation before file IO and conditional owned metadata publication; concurrent-claim PostgreSQL regression passed in CI |
 | R7 | Eight simultaneous writes sharing a timestamp produced seven ENOENT failures; separate file/metadata replacement could mismatch bytes and MIME type | Unique temporary files and immutable SHA-256 revisions published atomically with metadata (D53); local stress now 8/8, with replacement/failure/legacy regressions in CI |
+| R9 | A concurrent family revoke could miss a newly issued refresh token, including a sibling retry branch | Whole-family transaction locks before issuance/revocation (D54); both controlled PostgreSQL race tests pass, backend total 132 at f787f11 |
+| R10 | Production accepted the publicly known development signing key when explicitly supplied, and accepted padding-only keys | Reproduced with the production loader, then rejected the development key, padded variants and whitespace-only/short padded values; configuration regression added |
+| R11 | Default error serialization included Drizzle SQL parameters and nested private profile/workout text | Reproduced with the actual previous logger; the replacement retains bounded diagnostic frames and SQLSTATE while excluding messages, queries, params and causes; real logger serialization regressions added |
+
 
 These are first-party findings, separate from the dependency scan below. They establish failures
 and specific protections, not an exhaustive security guarantee. Local account ownership guards
 cannot revoke a network transfer already sent with its original owner's valid credentials.
 Such a transfer remains attributed to that owner; obsolete work cannot retry as a new account.
+
+### Further boundaries to verify before handoff
+
+- A valid access JWT retains its existing short lifetime after sign-out (D54). Do not claim
+  instant server invalidation of every issued access token from the refresh-family fix.
+- Alert owner transitions: WorkoutAlerts currently skips loading snapshots and local sign-out
+  publishes only after durable storage cleanup. Reproduce delayed sign-in/sign-out cancellation
+  in 5.8.11, preserving legitimate persisted alerts while startup identity is still unknown.
+- Browser text entry: inspect the actual input before testing recovery. One failed CI screenshot
+  showed an empty note before navigation, and the stronger driver then caught an unaccepted
+  adjustment reason. Focus/editability diagnostics and scroll settling are being verified.
 
 ## Dependency scan and limits
 
