@@ -492,3 +492,16 @@ remain required; storage tests cannot establish those results.
 If recovery cannot read a draft, offer Retry and a separate confirmed discard of that slot's
 draft. Never replace unreadable data merely because a read failed. Discard explains that unsaved
 input will be lost and saved results are kept. Other slots and accounts are unaffected.
+
+## D48. Rendered workout checks with the existing CI browser
+Use Chrome and ChromeDriver already installed on the GitHub Ubuntu runner to test the real web
+export. Node's built-in fetch can drive WebDriver without adding an npm dependency. Extend the
+D24 isolated, same-origin preview pattern with disposable Phase 5 fixtures and the existing fake
+sync server. Bind the fixture server to loopback and never use production credentials or data.
+
+Record narrow-width layout, theme, input/stepper behavior, exercise selection, draft recovery
+and accessibility-tree evidence. Upload screenshots and diagnostic output even when a check
+fails. A fixture/browser failure must fail its CI job. Fix product failures in separate small
+commits, then rerun the affected scenarios. Do not relabel browser input as a native keyboard
+test, browser accessibility inspection as a screen-reader test, or reload as a physical app kill.
+Step 5.8.7 and the final 5.7 phone gate remain open until their outstanding native checks pass.
