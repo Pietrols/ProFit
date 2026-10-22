@@ -39,6 +39,8 @@ jobs:
       - run: npm run build
       - name: Test isolated workout preview fixtures
         run: node --import ./node_modules/tsx/dist/loader.mjs --test ../scripts/workout-*.test.*
+      - name: Check browser harness formatting
+        run: npx --no-install prettier --check '../scripts/workout-*.{ts,mjs}'
 
   mobile:
     runs-on: ubuntu-latest

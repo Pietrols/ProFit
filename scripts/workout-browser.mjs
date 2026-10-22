@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { openBrowser, waitFor } from './workout-browser-driver.mjs';
+import { checkDraftFailures } from './workout-browser-errors.mjs';
 
 const base = 'http://127.0.0.1:8082';
 const session = '00000000-0000-4000-8000-000000000044';
@@ -113,6 +114,7 @@ for (const width of [320, 390])
         async () => (await browser.value('Weight (kg)')) === '60',
         'next set uses current-workout load',
       );
+      if (width === 320 && theme === 'dark') await checkDraftFailures(browser);
       await browser.screenshot(`${output}/${name}-rest.png`);
       await fetch(`${base}/fixture/online`);
       await browser.command('POST', '/refresh', {});
