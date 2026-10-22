@@ -223,8 +223,12 @@ describe('sync engine', () => {
     const api = server.clientFor(PETER);
     const post = api.post;
     let changed = false;
-    api.post = async (path, body, options) => {
-      const result = await post(path, body, options);
+    api.post = async <T>(
+      path: string,
+      body?: unknown,
+      options?: { auth?: boolean },
+    ): Promise<T> => {
+      const result = await post<T>(path, body, options);
       if (path === '/sync/push' && !changed) {
         changed = true;
         await saveWeight(db, PETER, { date: '2026-10-07', weightKg: 80 }, tick());
