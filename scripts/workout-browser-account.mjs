@@ -65,6 +65,16 @@ for (const outcome of ['resolve', 'reject']) {
     await waitFor(() => browser.script('return !!window.profitAccountProbe.heldKey'), 'held read');
     assert((await browser.text()).includes('Recovering saved set draft'));
     assert.equal(await browser.value('Weight (kg)'), null, 'no editable input before recovery');
+    await waitFor(
+      () =>
+        browser.script(`
+          const message = [...document.querySelectorAll('div')].find((element) =>
+            !element.children.length && element.textContent === 'Recovering saved set draft');
+          const top = message?.getBoundingClientRect().top;
+          return top >= 0 && top < 400;
+        `),
+      'pending recovery returns into view before capture',
+    );
     await browser.screenshot(`${output}/account-${outcome}-pending.png`);
 
     // Browser Back pops the app's Resume navigation. No reload, token edit or store injection.
