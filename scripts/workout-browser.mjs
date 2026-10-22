@@ -31,7 +31,9 @@ for (const width of [320, 390])
       const save = buttons.find((el) => el.textContent === 'Log set');
       const settings = buttons.find((el) => el.textContent === 'Timer settings');
       return { width: innerWidth, overflow: document.documentElement.scrollWidth > innerWidth,
-        save: save?.getBoundingClientRect().toJSON(), settings: settings?.getBoundingClientRect().toJSON() };
+        save: save?.getBoundingClientRect().toJSON(), settings: settings?.getBoundingClientRect().toJSON(),
+        steppers: buttons.filter((el) => /^(Increase|Decrease) (reps|weight)/.test(el.getAttribute('aria-label') ?? ''))
+          .map((el) => el.getBoundingClientRect().toJSON()) };
     `);
       assert.equal(layout.width, width);
       assert.equal(layout.overflow, false, 'no horizontal page overflow');
@@ -40,6 +42,11 @@ for (const width of [320, 390])
         'logging precedes settings',
       );
       assert(layout.save.bottom <= 844, 'normal logging fits before configuration');
+      assert.equal(layout.steppers.length, 4);
+      assert(
+        layout.steppers.every((rect) => rect.width >= 44 && rect.height >= 44),
+        '44-pixel touch targets',
+      );
       await browser.screenshot(`${output}/${name}-current.png`);
       const ax = await browser.command('POST', '/goog/cdp/execute', {
         cmd: 'Accessibility.getFullAXTree',
