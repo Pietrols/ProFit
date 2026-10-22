@@ -16,11 +16,25 @@ export const fixtureAuth = {
     accessTokenExpiresAt: '2999-01-01T00:00:00.000Z',
   },
 };
+export const secondFixtureSessionId = '00000000-0000-4000-8000-000000000054';
+export const secondFixtureAuth = {
+  user: {
+    ...fixtureUser,
+    id: '00000000-0000-4000-8000-000000000051',
+    email: 'second-workout@example.invalid',
+    displayName: 'Second workout test',
+  },
+  session: {
+    ...fixtureAuth.session,
+    accessToken: 'second-workout-fixture',
+    refreshToken: 'second-workout-fixture',
+  },
+};
 
-export async function workoutFixture() {
+export async function workoutFixture(auth = fixtureAuth, sessionId = fixtureSessionId) {
   const updatedAt = new Date().toISOString();
   const server = fakeSyncServer();
-  const client = server.clientFor(fixtureUser.id);
+  const client = server.clientFor(auth.user.id);
   const snapshot: WorkoutSnapshot = {
     planName: 'Browser acceptance',
     dayName: 'Workout acceptance',
@@ -64,7 +78,7 @@ export async function workoutFixture() {
     changes: {
       workout_sessions: [
         {
-          id: fixtureSessionId,
+          id: sessionId,
           planId: '00000000-0000-4000-8000-000000000042',
           dayId: '00000000-0000-4000-8000-000000000043',
           localDate: updatedAt.slice(0, 10),
@@ -93,5 +107,5 @@ export async function workoutFixture() {
     onboardingStatus: 'skipped',
     updatedAt,
   };
-  return { server, client, profile };
+  return { server, client, profile, auth };
 }

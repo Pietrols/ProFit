@@ -4,7 +4,13 @@ import { once } from 'node:events';
 import { readFile } from 'node:fs/promises';
 import { extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { fixtureAuth, fixtureUser, workoutFixture } from './workout-fixture';
+import {
+  fixtureAuth,
+  fixtureUser,
+  secondFixtureAuth,
+  secondFixtureSessionId,
+  workoutFixture,
+} from './workout-fixture';
 
 const mime: Record<string, string> = {
   '.html': 'text/html',
@@ -18,7 +24,9 @@ const mime: Record<string, string> = {
 
 export async function startWorkoutPreview(directory: string, port = 0) {
   const root = resolve(directory);
-  let fixture = await workoutFixture();
+  const createFixtures = () =>
+    Promise.all([workoutFixture(), workoutFixture(secondFixtureAuth, secondFixtureSessionId)]);
+  let fixtures = await createFixtures();
   const server = createServer(async (req, res) => {
     res.setHeader('Cross-Origin-Opener-Policy', 'same-origin');
     res.setHeader('Cross-Origin-Embedder-Policy', 'require-corp');
@@ -31,29 +39,55 @@ export async function startWorkoutPreview(directory: string, port = 0) {
     try {
       const url = new URL(req.url ?? '/', 'http://localhost');
       if (url.pathname === '/fixture/reset' && req.method === 'POST') {
-        fixture = await workoutFixture();
+        fixtures = await createFixtures();
         json({ reset: true });
         return;
       }
       if (url.pathname === '/fixture/state') {
-        json({ online: fixture.server.state.online, records: [...fixture.server.rows.values()] });
+        json({
+          online: fixtures[0]!.server.state.online,
+          records: fixtures.flatMap((fixture) => [...fixture.server.rows.values()]),
+        });
         return;
       }
       if (['/fixture/offline', '/fixture/online'].includes(url.pathname)) {
-        fixture.server.state.online = url.pathname.endsWith('/online');
-        json({ online: fixture.server.state.online });
+        const online = url.pathname.endsWith('/online');
+        for (const fixture of fixtures) fixture.server.state.online = online;
+        json({ online });
         return;
       }
       if (url.pathname.startsWith('/api/')) {
-        if (!fixture.server.state.online) {
+        if (!fixtures[0]!.server.state.online) {
           req.socket.destroy();
           return;
         }
         let body = '';
         for await (const chunk of req) body += chunk;
+        if (req.method === 'POST' && url.pathname === '/api/auth/dev') {
+          const { email } = JSON.parse(body);
+          const account = fixtures.find((fixture) => fixture.auth.user.email === email);
+          if (!account) {
+            res.statusCode = 401;
+            json({ error: { code: 'UNAUTHENTICATED', message: 'Unknown fixture account.' } });
+          } else json({ ...account.auth, profile: account.profile });
+          return;
+        }
+        if (req.method === 'POST' && url.pathname === '/api/auth/sign-out') {
+          res.statusCode = 204;
+          res.end();
+          return;
+        }
+        const fixture = fixtures.find(
+          (account) => req.headers.authorization === `Bearer ${account.auth.session.accessToken}`,
+        );
+        if (!fixture) {
+          res.statusCode = 401;
+          json({ error: { code: 'UNAUTHENTICATED', message: 'Use a fixture session.' } });
+          return;
+        }
         if (url.pathname === '/api/me') {
           if (req.method === 'PATCH') Object.assign(fixture.profile, JSON.parse(body));
-          json({ user: fixtureUser, profile: fixture.profile });
+          json({ user: fixture.auth.user, profile: fixture.profile });
         } else if (req.method === 'POST' && url.pathname === '/api/sync/push') {
           json(await fixture.client.post('/sync/push', JSON.parse(body)));
         } else {
@@ -71,7 +105,9 @@ export async function startWorkoutPreview(directory: string, port = 0) {
       let bytes = await readFile(file);
       if (extname(file) === '.html') {
         const auth = JSON.stringify(JSON.stringify(fixtureAuth));
-        const me = JSON.stringify(JSON.stringify({ user: fixtureUser, profile: fixture.profile }));
+        const me = JSON.stringify(
+          JSON.stringify({ user: fixtureUser, profile: fixtures[0]!.profile }),
+        );
         const script = `if (!localStorage.getItem('profit.auth')) { localStorage.setItem('profit.auth', ${auth}); localStorage.setItem('profit.me.${fixtureUser.id}', ${me}); }`;
         bytes = Buffer.from(bytes.toString().replace('<head>', `<head><script>${script}</script>`));
       }
