@@ -47,9 +47,33 @@ export async function openBrowser(base = 'http://127.0.0.1:9515') {
   const element = (value, using = 'css selector') =>
     waitFor(() => command('POST', '/element', { using, value }), `element ${value}`);
   const elementPath = (value) => `/element/${value['element-6066-11e4-a52e-4f735466cecf']}`;
+  async function settleScroll() {
+    const still = await command('POST', '/execute/async', {
+      script: `
+        const done = arguments[0];
+        const deadline = performance.now() + 5000;
+        let previous;
+        let stableFrames = 0;
+        function observe() {
+          const positions = [...document.querySelectorAll('div'), document.scrollingElement]
+            .filter((element) => element && element.scrollHeight > element.clientHeight)
+            .map((element) => element.scrollTop).join(',');
+          stableFrames = positions === previous ? stableFrames + 1 : 0;
+          previous = positions;
+          if (stableFrames >= 4) return done(true);
+          if (performance.now() >= deadline) return done(false);
+          requestAnimationFrame(observe);
+        }
+        requestAnimationFrame(observe);
+      `,
+      args: [],
+    });
+    if (!still) throw new Error('Scrolling did not settle before the next pointer action.');
+  }
   return {
     command,
     script,
+    settleScroll,
     async navigate(url) {
       await command('POST', '/url', { url });
     },
@@ -62,10 +86,12 @@ export async function openBrowser(base = 'http://127.0.0.1:9515') {
     async clickText(text, role = 'button') {
       if (text.includes('"') || !['button', 'radio'].includes(role))
         throw new Error('Use a supported fixture role and unquoted label.');
+      await settleScroll();
       const value = await element(`//*[@role="${role}" and normalize-space(.)="${text}"]`, 'xpath');
       await command('POST', elementPath(value) + '/click', {});
     },
     async clickLabel(label) {
+      await settleScroll();
       const value = await element(`[aria-label=${JSON.stringify(label)}]`);
       await command('POST', elementPath(value) + '/click', {});
     },
