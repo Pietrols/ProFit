@@ -51,6 +51,10 @@ export function SyncProvider({ children }: { children: ReactNode }) {
             api: auth.api,
             collections: syncedCollections,
             beforePush: photos.uploadPending,
+            owner: () => {
+              const current = auth.getSnapshot();
+              return current.status === 'signedIn' ? current.userId : null;
+            },
           })
         : null,
     [db, auth, photos],

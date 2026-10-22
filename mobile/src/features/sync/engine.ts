@@ -1,5 +1,5 @@
 import type { ApiClient } from '../../lib/api/client';
-import { isNetworkError, messageFor } from '../../lib/api/errors';
+import { ApiError, isNetworkError, messageFor } from '../../lib/api/errors';
 import type { Database, Sql } from '../../lib/db/database';
 import { fromWire, toWire, type Collection, type WireRecord } from './collections';
 import { negotiateSync, SYNC_PROTOCOL } from './protocol';
@@ -34,6 +34,7 @@ type Options = {
   // Runs before records are pushed (photo uploads, so the server has a photo before the records
   // that point at it). Returns problems to report; throws to end the run like a failed push.
   beforePush?: (userId: string) => Promise<string[]>;
+  owner?: () => string | null;
   now?: () => Date;
 };
 
@@ -42,6 +43,7 @@ export function createSyncEngine({
   api,
   collections,
   beforePush,
+  owner,
   now = () => new Date(),
 }: Options) {
   let status: SyncStatus = {
@@ -52,6 +54,7 @@ export function createSyncEngine({
     problem: null,
   };
   let currentUser: string | null = null;
+  let generation = 0;
   const listeners = new Set<() => void>();
 
   function setStatus(patch: Partial<SyncStatus>) {
@@ -71,9 +74,10 @@ export function createSyncEngine({
     return total;
   }
 
-  async function pushAll(userId: string): Promise<string[]> {
+  async function pushAll(userId: string, check: () => void): Promise<string[]> {
     const problems: string[] = [];
     for (let round = 0; round < MAX_ROUNDS; round += 1) {
+      check();
       const changes: Record<string, WireRecord[]> = {};
       let sent = 0;
       for (const c of collections) {
@@ -81,6 +85,7 @@ export function createSyncEngine({
           `SELECT * FROM ${c.name} WHERE user_id = ? AND dirty = 1 LIMIT ${BATCH}`,
           [userId],
         );
+        check();
         if (rows.length) changes[c.name] = rows.map((row) => toWire(c, row));
         sent += rows.length;
       }
@@ -90,12 +95,15 @@ export function createSyncEngine({
         protocol: SYNC_PROTOCOL,
         changes,
       });
+      check();
       const rejected = new Set(response.rejected.map((r) => `${r.collection}/${r.id}`));
       for (const r of response.rejected) problems.push(r.reason);
 
       await db.transaction(async (tx) => {
+        check();
         for (const [name, records] of Object.entries(changes)) {
           for (const record of records) {
+            check();
             if (rejected.has(`${name}/${record.id}`)) {
               // The server will never accept this version; stop resending it (see D17).
               await tx.run(
@@ -112,16 +120,24 @@ export function createSyncEngine({
             }
           }
         }
+        check();
       });
     }
     return problems;
   }
 
-  async function applyRemote(tx: Sql, collection: Collection, userId: string, record: WireRecord) {
+  async function applyRemote(
+    tx: Sql,
+    collection: Collection,
+    userId: string,
+    record: WireRecord,
+    check: () => void,
+  ) {
     const local = await tx.first<{ updated_at: string; dirty: number }>(
       `SELECT updated_at, dirty FROM ${collection.name} WHERE id = ?`,
       [record.id],
     );
+    check();
     // A local edit newer than the server's copy wins; it goes up on the next push.
     if (local && local.dirty === 1 && local.updated_at > record.updatedAt) return;
     const { columns, values } = fromWire(collection, record);
@@ -133,19 +149,26 @@ export function createSyncEngine({
     );
   }
 
-  async function pullAll(userId: string) {
+  async function pullAll(userId: string, check: () => void) {
     for (let round = 0; round < MAX_ROUNDS; round += 1) {
+      check();
       const state = await db.first<{ cursor: number }>(
         'SELECT cursor FROM sync_state WHERE user_id = ?',
         [userId],
       );
+      check();
       const since = state?.cursor ?? 0;
       const page = await api.get<PullResponse>(
         `/sync/pull?protocol=${SYNC_PROTOCOL}&since=${since}&limit=${BATCH}`,
       );
+      check();
       await db.transaction(async (tx) => {
+        check();
         for (const c of collections) {
-          for (const record of page.changes[c.name] ?? []) await applyRemote(tx, c, userId, record);
+          for (const record of page.changes[c.name] ?? []) {
+            check();
+            await applyRemote(tx, c, userId, record, check);
+          }
         }
         // Saved with the rows, so a crash halfway through never skips or repeats a page.
         await tx.run(
@@ -153,6 +176,7 @@ export function createSyncEngine({
            ON CONFLICT(user_id) DO UPDATE SET cursor = excluded.cursor, last_synced_at = excluded.last_synced_at`,
           [userId, page.cursor, now().toISOString()],
         );
+        check();
       });
       if (!page.hasMore) return;
     }
@@ -181,18 +205,30 @@ export function createSyncEngine({
   async function runOnce() {
     const userId = currentUser;
     if (!userId) return;
-    setStatus({ syncing: true });
+    const epoch = generation;
+    const owned = () =>
+      epoch === generation && currentUser === userId && (!owner || owner() === userId);
+    if (!owned()) return;
     try {
+      const sessionCheck = api.captureSession();
+      const check = () => {
+        if (!owned()) throw new ApiError(401, 'SESSION_CHANGED', 'Your sign-in changed.');
+        sessionCheck();
+      };
+      check();
+      setStatus({ syncing: true });
       await negotiateSync(api);
-      if (currentUser !== userId) return;
+      check();
       const problems = beforePush ? await beforePush(userId) : [];
-      problems.push(...(await pushAll(userId)));
-      await pullAll(userId);
-      if (currentUser !== userId) return;
+      check();
+      problems.push(...(await pushAll(userId, check)));
+      await pullAll(userId, check);
+      check();
       const state = await db.first<{ last_synced_at: string | null }>(
         'SELECT last_synced_at FROM sync_state WHERE user_id = ?',
         [userId],
       );
+      check();
       setStatus({
         offline: false,
         lastSyncedAt: state?.last_synced_at ?? null,
@@ -201,12 +237,14 @@ export function createSyncEngine({
           : null,
       });
     } catch (error) {
-      if (currentUser !== userId) return;
+      if (!owned() || (error instanceof ApiError && error.code === 'SESSION_CHANGED')) return;
       if (isNetworkError(error)) setStatus({ offline: true });
       else setStatus({ problem: messageFor(error) });
     } finally {
-      if (currentUser === userId)
-        setStatus({ syncing: false, pending: await countPending(userId) });
+      if (owned()) {
+        const pending = await countPending(userId);
+        if (owned()) setStatus({ syncing: false, pending });
+      }
     }
   }
 
@@ -219,21 +257,21 @@ export function createSyncEngine({
 
     // Which signed-in user's rows to sync; null when signed out.
     async setUser(userId: string | null) {
+      const epoch = ++generation;
       currentUser = userId;
-      if (!userId)
-        return setStatus({
-          syncing: false,
-          pending: 0,
-          offline: false,
-          lastSyncedAt: null,
-          problem: null,
-        });
+      setStatus({ syncing: false, pending: 0, offline: false, lastSyncedAt: null, problem: null });
+      if (!userId) return;
       const state = await db.first<{ last_synced_at: string | null }>(
         'SELECT last_synced_at FROM sync_state WHERE user_id = ?',
         [userId],
       );
+      if (epoch !== generation || currentUser !== userId) return;
+      const pending = await countPending(userId);
+      if (epoch !== generation || currentUser !== userId) return;
       setStatus({
-        pending: await countPending(userId),
+        syncing: false,
+        offline: false,
+        pending,
         lastSyncedAt: state?.last_synced_at ?? null,
         problem: null,
       });
@@ -246,7 +284,13 @@ export function createSyncEngine({
 
     // Call after a local write so the pending count is right straight away, then sync.
     async noteLocalChange() {
-      if (currentUser) setStatus({ pending: await countPending(currentUser) });
+      const userId = currentUser;
+      const epoch = generation;
+      if (userId) {
+        const pending = await countPending(userId);
+        if (epoch !== generation || currentUser !== userId) return;
+        setStatus({ pending });
+      }
       await run();
     },
   };
