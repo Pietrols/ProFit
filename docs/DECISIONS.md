@@ -576,3 +576,16 @@ revision readable; first uploads with no file remain 404 and can be retried by t
 Old immutable revisions may remain on disk. Do not delete them during upload because a reader
 may still hold that revision. Retention/garbage collection belongs with the Phase 11 media
 backup and account-deletion work, and must preserve the current published revision.
+
+## D54. Serialize refresh issuance and sign-out for the whole token family
+The pre-device review found that locking only the presented refresh-token row does not
+serialize sibling retry tokens or prevent a concurrent sign-out statement from missing a
+newly inserted child token. Both operations now take the same transaction-scoped PostgreSQL
+advisory lock, derived from a namespaced SHA-256 family id, before reading revocation state
+or publishing/revoking children. The lock releases automatically on commit or rollback.
+An accidental lock-key collision can only serialize unrelated families, never grant access.
+
+Keep the existing 60-second retry grace and 15-minute access-token lifetime. This change
+prevents refresh credentials surviving a completed sign-out; it does not introduce a server
+lookup for every already-issued access JWT. Controlled PostgreSQL tests hold a user-row FK
+lock to exercise refresh/sign-out overlap for the same token and for sibling retry tokens.
