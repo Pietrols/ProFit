@@ -985,3 +985,75 @@ to 5.8.8 or treat this checkpoint as the phase's Done-when result.
 No browser executable or native device was available for these checks in this environment.
 Keep their acceptance status open. History, rest-day shortcuts, plate/per-side logging and
 notification/exact-alarm checks remain in their ordered steps. Phase 6 has not started.
+
+## Step 5.8.7 rendered-browser checkpoint, 22 October 2026
+
+PR #11 has merged. Follow-up work is in draft PR #12:
+https://github.com/Pietrols/ProFit/pull/12. Nine small commits add the browser harness, tested
+fixtures and fixes found during visual review. No dependency was added. Step 5.8.7 remains open
+for the native and account-switch acceptance below; do not proceed to 5.8.8 yet.
+
+### How the rendered checks run
+
+The new workout-browser CI job exports the actual mobile web app against a disposable,
+loopback-only API. It uses D24's isolation headers, the existing fake sync server, real browser
+SQLite/localStorage and Chrome/ChromeDriver already present on the runner. Node's built-in
+fetch drives WebDriver. It never signs in to a real account or uses production data.
+
+Both packages still run format, lint, typecheck and their existing suites. The backend job also
+checks harness formatting and runs two Node tests covering fixture isolation and driver failure
+handling. Browser assertions fail CI, with screenshots, accessibility-tree JSON and diagnostics
+uploaded as workout-browser-evidence even on a failed run. The workflow contains the exact
+export, fixture server and driver commands for reproducing the check with an existing browser.
+
+### Findings and corrective changes
+
+Visual review exposed narrower-than-44-pixel stepper buttons and 40-pixel increment choices.
+Button and ChipGroup now enforce the existing touchTarget token in both dimensions. Browser
+checks measure all four stepper controls and the expanded increment choices, then choose a
+different increment and restore the default.
+
+The second set also showed a blank weight immediately after logging 60 kg. New drafts now
+include eligible resolved results from the current workout when choosing the same exercise's
+latest values. Planned targets still take priority, zero load remains valid, and notes/effort/
+done are not copied. A deleted/incomplete result or a different exercise cannot supply that
+load. Existing drafts remain unchanged. D49 and four pure regression tests record this rule.
+No additional database read or broader history scan was introduced.
+
+### Verified evidence
+
+- Code 4d3fad4 passes all three jobs in PR CI run 39740405281: backend, mobile and workout-browser.
+  All 500 mobile tests across 78 files, 125 PostgreSQL backend tests, package tooling checks,
+  backend build and the two additional fixture/driver tests pass.
+- A fresh Android JavaScript export also passes after the fixes. This is not an APK, native
+  keyboard test or physical phone result.
+- All four 320/390-pixel by dark/light cases pass. Normal logging precedes configuration and
+  fits within an 844-pixel viewport, with no horizontal page overflow. Tests inspect accessible
+  increment labels, measured touch targets, increment choice and comma-decimal edits.
+- Exercise selection returns the current heading into view. Independent bench/row drafts
+  survive selection, offline reload and reconnect. Offline logging advances the slot once,
+  creates one synced result and prefills the next weight with 60 kg.
+- The 320-dark case additionally passes defer, skip with reason, restore and reorder while
+  retaining the row draft. Easier-today preserves the entered reps; a profile unit change keeps
+  existing drafts metric while a new occurrence uses pounds, a 5 lb step and its gentler target.
+- Rendered storage failures also pass: failed writes keep typed input, save retry succeeds,
+  failed reads block editing, read retry recovers the draft, cancelled discard leaves corrupt
+  data intact and confirmed discard recovers from saved work. Another slot's draft survives.
+- The initial browser artifact was visually inspected, then updated screenshots were inspected
+  after the fixes. Evidence artifact 12408873104 belongs to the passing PR run. It contains
+  current-set, selected-exercise, custom-field, rest, enlarged-text and pinned-unit screenshots.
+  Screenshot review confirms the corrected next-set weight and narrow-width layout. DOM text
+  enlargement is a browser check, not native font-scale or screen-reader acceptance.
+
+### Remaining acceptance and next action
+
+On the corrected native build, run the numeric-keyboard scenarios from the previous checkpoint,
+including first-tap logging/stepping, rapid taps, malformed/blank/zero input, busy state and
+validation errors. Use native large-text settings and a screen reader to verify labels, focus,
+announcements and reachable actions with long names and custom fields. Browser accessible-name
+checks do not prove spoken output or native focus behavior.
+
+The rendered account-switch-during-recovery scenario is still open. Existing scoped storage and
+read-owner tests pass, but do not substitute those for observing an actual account transition.
+Record these results before ticking 5.8.7. Physical airplane-mode/background notifications remain
+the final 5.7 gate; browser reload is not a physical app-kill test. Phase 6 has not started.
