@@ -83,6 +83,7 @@ export function createAuthStore(deps: Deps) {
     fetch: deps.fetch,
     now: deps.now,
     getSession: () => auth?.session ?? null,
+    getUserId: () => auth?.user.id ?? null,
     saveSession: async (session) => {
       if (!auth) return;
       auth = { ...auth, session };

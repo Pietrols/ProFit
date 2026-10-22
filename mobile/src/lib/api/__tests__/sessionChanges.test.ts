@@ -18,6 +18,20 @@ function deferred<T>() {
 }
 
 describe('API session changes during requests', () => {
+  it('refuses work labelled with another user before a request or transfer begins', () => {
+    let userId = 'second';
+    const api = createApiClient({
+      baseUrl: 'http://api.test',
+      getSession: () => session('second'),
+      getUserId: () => userId,
+      saveSession: async () => {},
+      onSessionExpired: () => {},
+    });
+    expect(() => api.captureSession('first')).toThrow('sign-in changed');
+    const check = api.captureSession('second');
+    userId = 'first';
+    expect(check).toThrow('sign-in changed');
+  });
   it.each(['success', 'refused', 'native headers'])(
     'does not replace or expire a newer sign-in after an old refresh: %s',
     async (outcome) => {

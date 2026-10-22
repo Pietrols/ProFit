@@ -10,6 +10,7 @@ type Options = {
   baseUrl: string;
   // The session currently held by the app, or null when signed out.
   getSession: () => Session | null;
+  getUserId?: () => string | null;
   // Called with every new pair of tokens. Must persist them before resolving: once the API has
   // rotated the refresh token, the old one is spent.
   saveSession: (session: Session) => Promise<void>;
@@ -24,7 +25,7 @@ type RequestOptions = { body?: unknown; auth?: boolean };
 
 export type ApiClient = {
   // Capture before asynchronous local reads or native transfers; call at each continuation.
-  captureSession: () => () => void;
+  captureSession: (userId?: string) => () => void;
   request: <T>(method: string, path: string, options?: RequestOptions) => Promise<T>;
   get: <T>(path: string) => Promise<T>;
   post: <T>(path: string, body?: unknown, options?: { auth?: boolean }) => Promise<T>;
@@ -59,10 +60,15 @@ export function createApiClient(options: Options): ApiClient {
     if (!scope || currentScope() !== scope)
       throw new ApiError(401, 'SESSION_CHANGED', 'Your sign-in changed. Try again.');
   }
-  function captureSession() {
+  function captureSession(userId?: string) {
     const scope = currentScope();
-    checkScope(scope);
-    return () => checkScope(scope);
+    const check = () => {
+      checkScope(scope);
+      if (userId !== undefined && options.getUserId && options.getUserId() !== userId)
+        throw new ApiError(401, 'SESSION_CHANGED', 'Your sign-in changed. Try again.');
+    };
+    check();
+    return check;
   }
 
   async function send(

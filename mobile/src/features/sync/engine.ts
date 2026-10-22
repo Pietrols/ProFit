@@ -210,7 +210,7 @@ export function createSyncEngine({
       epoch === generation && currentUser === userId && (!owner || owner() === userId);
     if (!owned()) return;
     try {
-      const sessionCheck = api.captureSession();
+      const sessionCheck = api.captureSession(userId);
       const check = () => {
         if (!owned()) throw new ApiError(401, 'SESSION_CHANGED', 'Your sign-in changed.');
         sessionCheck();
