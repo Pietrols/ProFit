@@ -86,6 +86,7 @@ function ThemedNavigation() {
       <Stack screenOptions={{ headerTitleStyle: { fontFamily: fontFamilies.bodySemiBold } }}>
         <Stack.Protected guard={area === 'app'}>
           <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen name="workouts/exercise" options={{ title: 'Exercise results' }} />
           <Stack.Screen name="workouts/history" options={{ title: 'Workout history' }} />
           <Stack.Screen name="workouts/[id]" options={{ title: 'Workout' }} />
           <Stack.Screen name="plans/index" options={{ title: 'My plans' }} />

@@ -1,3 +1,4 @@
+import { router } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { View } from 'react-native';
 import { useAppTheme } from '@/theme/ThemeProvider';
@@ -80,6 +81,19 @@ export function SessionComparison({
               label={`${open ? 'Hide' : 'Review'} ${name} comparison`}
               variant="secondary"
               onPress={() => setExpanded(open ? null : row.id)}
+            />
+            <Button
+              label={`Recent results for ${name}`}
+              variant="secondary"
+              onPress={() =>
+                router.push({
+                  pathname: '/workouts/exercise',
+                  params: {
+                    exerciseId: item?.exercise.exerciseId ?? row.original!.exerciseId,
+                    name,
+                  },
+                })
+              }
             />
             {open ? (
               <>

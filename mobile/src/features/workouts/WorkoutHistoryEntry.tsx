@@ -22,7 +22,8 @@ export function WorkoutHistoryEntry({
         {session.localDate} · {session.snapshot.planName}
       </AppText>
       <AppText>
-        {session.snapshot.restDay ? 'Rest day' : session.status} · {savedResults} saved results
+        {session.snapshot.restDay ? `Rest day, ${session.status}` : session.status} · {savedResults}{' '}
+        saved results
       </AppText>
       {!session.snapshot.restDay && ended !== null ? (
         <AppText color="text2">
