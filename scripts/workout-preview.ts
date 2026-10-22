@@ -4,6 +4,7 @@ import { once } from 'node:events';
 import { readFile } from 'node:fs/promises';
 import { extname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { seedWorkoutHistory } from './workout-history-fixture';
 import {
   fixtureAuth,
   fixtureUser,
@@ -41,6 +42,10 @@ export async function startWorkoutPreview(directory: string, port = 0) {
       if (url.pathname === '/fixture/reset' && req.method === 'POST') {
         fixtures = await createFixtures();
         json({ reset: true });
+        return;
+      }
+      if (url.pathname === '/fixture/history' && req.method === 'POST') {
+        json(await seedWorkoutHistory(fixtures[0]!));
         return;
       }
       if (url.pathname === '/fixture/state') {

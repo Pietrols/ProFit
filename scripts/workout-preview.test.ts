@@ -65,6 +65,25 @@ test('isolates the exported app and serves protocol-compatible disposable workou
       401,
     );
     assert.equal((await fetch(`${base}/api/auth/sign-out`, { method: 'POST' })).status, 204);
+    const history = await fetch(`${base}/fixture/history`, { method: 'POST' }).then((r) =>
+      r.json(),
+    );
+    assert.equal(history.seeded, 30);
+    const historyPull = await fetch(`${base}/api/sync/pull?since=0&protocol=2`, { headers }).then(
+      (r) => r.json(),
+    );
+    assert.equal(historyPull.changes.workout_sessions.length, 31);
+    assert.equal(historyPull.changes.set_logs.length, 29);
+    assert(
+      historyPull.changes.workout_sessions.some(
+        (row: { id: string }) => row.id === history.latestId,
+      ),
+    );
+    const isolated = await fetch(`${base}/api/sync/pull?since=0&protocol=2`, {
+      headers: secondHeaders,
+    }).then((r) => r.json());
+    assert.equal(isolated.changes.workout_sessions.length, 1);
+    assert.equal((isolated.changes.set_logs ?? []).length, 0);
     await fetch(`${base}/fixture/offline`);
     await assert.rejects(fetch(`${base}/api/me`));
     await fetch(`${base}/fixture/reset`, { method: 'POST' });
