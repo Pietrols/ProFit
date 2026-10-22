@@ -74,6 +74,18 @@ for (const width of [320, 390])
       assert.equal(await browser.value('Weight (kg)'), '63.25');
       await browser.clickLabel('Decrease weight by 2.5 kg');
       assert.equal(await browser.value('Weight (kg)'), '60.75');
+      await browser.fill('Weight (kg)', 'invalid');
+      await browser.clickText('Log set');
+      await waitFor(
+        () =>
+          browser.script(`
+            return [...document.querySelectorAll('[aria-live="polite"]')]
+              .some((element) => element.textContent === 'Enter a valid weight (kg).');
+          `),
+        'validation error exposed as a polite live region',
+      );
+      assert.equal(await browser.value('Weight (kg)'), 'invalid', 'invalid draft stays editable');
+      assert((await browser.text()).includes('Set 1 of 3'), 'validation does not advance the slot');
       await browser.fill('Weight (kg)', '60');
       await browser.clickText('Choose or adjust exercises');
       await browser.clickText(`Train 2. ${row} now`);
