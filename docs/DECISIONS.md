@@ -558,3 +558,21 @@ Late success/failure must not replace credentials, publish a foreign profile, se
 account's pending records/photos or acknowledge a newer unsent edit. Preserve unsynced work.
 Use existing dependencies and small tested/pushed commits. Track coverage, defects, fixes and
 remaining work in PHASE_5_REVIEW.md; green tests are not a claim of a complete security audit.
+
+## D53. Publish media bytes and metadata as one revision
+The pre-device review reproduced temporary-file collisions for concurrent uploads. It also
+identified that replacing one owner's file and then updating metadata in a separate operation
+can pair an older MIME type with newer bytes. Reserving ownership fixes the cross-account
+claim race but cannot make those separate resources atomic.
+
+Use a nullable SHA-256 file revision on the existing backend media row. Write immutable bytes
+under owner/id/revision first, then atomically publish their revision, MIME type and size in the
+owned row. GET reads the revision it selected, even if another upload completes meanwhile.
+Existing rows with no revision retain the original owner/id file path. No mobile wire change
+or new dependency is required. Use Node's crypto functions and unique temporary names, and
+keep file IO outside database transactions. A failed write leaves the previous published
+revision readable; first uploads with no file remain 404 and can be retried by their owner.
+
+Old immutable revisions may remain on disk. Do not delete them during upload because a reader
+may still hold that revision. Retention/garbage collection belongs with the Phase 11 media
+backup and account-deletion work, and must preserve the current published revision.
