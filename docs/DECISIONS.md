@@ -529,3 +529,16 @@ only its own draft, an old account's session is unavailable to the new account, 
 the stale read cannot overwrite either account's input. This is browser fault injection,
 not a measurement of native SQLite timing or a physical account-switch test. Native keyboard,
 font scaling and screen-reader acceptance remain open in step 5.8.7.
+
+## D51. Build an Android acceptance client with the existing toolchain
+Generate Android through Expo prebuild in an isolated CI checkout, then use the generated
+Gradle wrapper and the runner's Android SDK/Java to assemble an arm64 development APK.
+Use the locked existing npm dependencies, no added package or CI action, no EAS build credits
+and no production signing credentials. Never commit or hand-edit the generated native project.
+
+Upload the development APK with commit, checksum and signing-certificate metadata. This client
+loads JavaScript from the tester's Metro server and needs a reachable test API configured on
+that server. It is not a standalone preview, store release, physical acceptance result or
+replacement for the 5.7 background-notification gate. Trigger compilation when this acceptance
+workflow changes, rather than rebuilding native code for every documentation commit. A failed
+native compile must stay visible and be corrected or reported before claiming an APK exists.
