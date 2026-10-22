@@ -31,16 +31,26 @@ export function createMediaSync({ db, api, files, now = () => new Date() }: Opti
   const downloads = new Map<string, Promise<string | null>>();
   const failedAt = new Map<string, number>();
 
-  async function uploadOne(path: string, id: string): Promise<{ status: number; body: string }> {
+  async function uploadOne(
+    path: string,
+    id: string,
+    check: () => void,
+  ): Promise<{ status: number; body: string }> {
     if (!files) throw new Error('Photos are not available here.');
     const url = api.url(`/media/${id}`);
     const send = async (refresh: boolean) => {
+      check();
       const headers = await api.authHeaders({ refresh });
+      check();
+      let answer: { status: number; body: string };
       try {
-        return await files.upload(path, url, headers, CONTENT_TYPE);
+        answer = await files.upload(path, url, headers, CONTENT_TYPE);
       } catch {
+        check();
         throw new NetworkError();
       }
+      check();
+      return answer;
     };
     const first = await send(false);
     if (first.status !== 401 || errorFromBody(401, first.body).code !== 'TOKEN_EXPIRED')
@@ -55,12 +65,19 @@ export function createMediaSync({ db, api, files, now = () => new Date() }: Opti
     // Keeps a picked photo for the signed-in user and returns the id records point at.
     async addPhoto(userId: string, sourceUri: string): Promise<string> {
       if (!files) throw new Error('Photos are not available here.');
+      const check = api.captureSession(userId);
       const id = randomId();
       const path = await files.keep(sourceUri, id);
-      await db.run(
-        'INSERT INTO media (id, user_id, local_path, content_type, uploaded, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [id, userId, path, CONTENT_TYPE, WAITING, now().toISOString()],
-      );
+      check();
+      await db.transaction(async (tx) => {
+        check();
+        await tx.run(
+          'INSERT INTO media (id, user_id, local_path, content_type, uploaded, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+          [id, userId, path, CONTENT_TYPE, WAITING, now().toISOString()],
+        );
+        check();
+      });
+      check();
       return id;
     },
 
@@ -68,23 +85,38 @@ export function createMediaSync({ db, api, files, now = () => new Date() }: Opti
     // server cannot be reached, so the sync run reports being offline and tries again later.
     async uploadPending(userId: string): Promise<string[]> {
       if (!files) return [];
+      const check = api.captureSession(userId);
+      const mark = async (id: string, uploaded: number) => {
+        await db.transaction(async (tx) => {
+          check();
+          await tx.run('UPDATE media SET uploaded = ? WHERE id = ? AND user_id = ?', [
+            uploaded,
+            id,
+            userId,
+          ]);
+          check();
+        });
+        check();
+      };
       const problems: string[] = [];
       const rows = await db.all<Row>(
         'SELECT id, local_path, uploaded FROM media WHERE user_id = ? AND uploaded = ?',
         [userId, WAITING],
       );
+      check();
       for (const row of rows) {
+        check();
         if (!row.local_path || !files.exists(row.local_path)) {
-          await db.run('UPDATE media SET uploaded = ? WHERE id = ?', [REFUSED, row.id]);
+          await mark(row.id, REFUSED);
           problems.push('A photo was removed from this phone before it was saved to the server.');
           continue;
         }
-        const answer = await uploadOne(row.local_path, row.id);
+        const answer = await uploadOne(row.local_path, row.id, check);
         if (answer.status >= 200 && answer.status < 300) {
-          await db.run('UPDATE media SET uploaded = ? WHERE id = ?', [ON_SERVER, row.id]);
+          await mark(row.id, ON_SERVER);
         } else if (answer.status >= 400 && answer.status < 500 && answer.status !== 401) {
           // Wrong type, too big, or not ours: sending it again will not change the answer.
-          await db.run('UPDATE media SET uploaded = ? WHERE id = ?', [REFUSED, row.id]);
+          await mark(row.id, REFUSED);
           problems.push(errorFromBody(answer.status, answer.body).message);
         } else {
           // Signed out on the server, or a server fault: stop here and try again on the next run.

@@ -228,6 +228,7 @@ describe('photo sync', () => {
     const sync = fakeSyncServer();
     const media = fakeMediaServer(sync.state);
     const api = {
+      captureSession: () => () => {},
       url: (path: string) => `http://api.test${path}`,
       authHeaders: async (o?: { refresh?: boolean }) => ({
         Authorization: o?.refresh ? 'Bearer new' : 'Bearer old',
