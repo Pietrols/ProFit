@@ -40,11 +40,16 @@ const EnvSchema = z
         path: ['DATABASE_URL'],
         message: 'is required in production',
       });
-    if (!env.JWT_SECRET || env.JWT_SECRET.length < 32) {
+    if (
+      !env.JWT_SECRET ||
+      env.JWT_SECRET.trim().length < 32 ||
+      env.JWT_SECRET.trim() === DEV_JWT_SECRET
+    ) {
       ctx.addIssue({
         code: 'custom',
         path: ['JWT_SECRET'],
-        message: 'must be set to at least 32 characters in production',
+        message:
+          'must be a private signing secret of at least 32 non-padding characters in production',
       });
     }
     if (!env.GOOGLE_CLIENT_IDS.trim())
