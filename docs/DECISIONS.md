@@ -514,3 +514,18 @@ notes, effort and done are not copied. Zero remains a real load. Corrections and
 the resolved current results, and a different exercise never inherits another exercise's load.
 Existing drafts keep their original units and entered text under D47. This adds no database
 read and does not expand the bounded historical query or introduce automatic progression.
+
+## D50. Exercise account changes during pending draft recovery through existing auth UI
+Keep the production web export checks from D48. Add a separate development web export with
+the existing opt-in developer sign-in enabled against two disposable fixture accounts. Use
+the actual sign-out confirmation and developer sign-in screens. Do not expose the auth store,
+change production login guards or substitute a localStorage token edit and reload for a live
+account transition.
+
+The browser harness may hold a draft storage read unresolved, matching the asynchronous
+native storage port, and release it only after the second account has signed in. Observe
+rendered inputs and draft writes throughout that transition. Verify each account recovers
+only its own draft, an old account's session is unavailable to the new account, and releasing
+the stale read cannot overwrite either account's input. This is browser fault injection,
+not a measurement of native SQLite timing or a physical account-switch test. Native keyboard,
+font scaling and screen-reader acceptance remain open in step 5.8.7.
