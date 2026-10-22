@@ -101,6 +101,18 @@ export async function openBrowser(base = 'http://127.0.0.1:9515') {
         `input[aria-label=${JSON.stringify(label)}],textarea[aria-label=${JSON.stringify(label)}]`,
       );
       await command('POST', elementPath(value) + '/clear', {});
+      await command('POST', elementPath(value) + '/click', {});
+      await settleScroll();
+      const editable = await script(
+        `
+        const element = arguments[0];
+        return { focused: document.activeElement === element,
+          readOnly: element.readOnly, disabled: element.disabled };
+      `,
+        [value],
+      );
+      if (!editable.focused || editable.readOnly || editable.disabled)
+        throw new Error(`Input ${label} is not ready for typing: ${JSON.stringify(editable)}`);
       await command('POST', elementPath(value) + '/value', { text });
       await settleScroll();
       const actual = await command('GET', elementPath(value) + '/property/value');
