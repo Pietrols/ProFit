@@ -51,6 +51,18 @@ describe('database and auth settings', () => {
     expect(() => loadConfig({ ...production, JWT_SECRET: 'short' })).toThrow(/JWT_SECRET/);
   });
 
+  it('rejects the public development key, padded versions and blank signing keys in production', () => {
+    const development = loadConfig({}).JWT_SECRET;
+    for (const JWT_SECRET of [
+      development,
+      ` ${development} `,
+      ' '.repeat(40),
+      'short'.padEnd(40),
+    ]) {
+      expect(() => loadConfig({ ...production, JWT_SECRET })).toThrow(/private signing secret/);
+    }
+  });
+
   it('refuses developer sign-in in production but allows it in development', () => {
     expect(() => loadConfig({ ...production, AUTH_DEV_LOGIN: 'true' })).toThrow(/AUTH_DEV_LOGIN/);
     expect(loadConfig({ AUTH_DEV_LOGIN: 'true' }).AUTH_DEV_LOGIN).toBe(true);

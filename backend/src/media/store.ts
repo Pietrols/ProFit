@@ -1,8 +1,9 @@
-import { mkdir, readFile, rename, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
+import { mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-// Image files on disk: MEDIA_DIR/<user id>/<media id>. Ids are UUIDs checked by the route, so they
-// are safe to use as path parts.
+// Legacy files use owner/id; published replacements use owner/id.revision. The route supplies
+// checked UUIDs and a SHA-256 hex revision, never user-provided path components.
 
 export const MAX_MEDIA_BYTES = 5 * 1024 * 1024;
 
@@ -24,16 +25,23 @@ export function matchesType(bytes: Buffer, type: MediaType): boolean {
 }
 
 export function mediaStore(root: string) {
-  const pathOf = (userId: string, id: string) => join(root, userId, id);
+  const pathOf = (userId: string, id: string, revision?: string | null) =>
+    join(root, userId, revision ? `${id}.${revision}` : id);
   return {
     // Writes to a temporary name first, so a reader never sees half a file.
-    async write(userId: string, id: string, bytes: Buffer): Promise<void> {
+    async write(userId: string, id: string, bytes: Buffer, revision?: string): Promise<void> {
       await mkdir(join(root, userId), { recursive: true });
-      const temp = `${pathOf(userId, id)}.${process.pid}.${Date.now()}.tmp`;
-      await writeFile(temp, bytes);
-      await rename(temp, pathOf(userId, id));
+      const destination = pathOf(userId, id, revision);
+      const temp = `${destination}.${randomUUID()}.tmp`;
+      try {
+        await writeFile(temp, bytes, { flag: 'wx' });
+        await rename(temp, destination);
+      } finally {
+        await rm(temp, { force: true });
+      }
     },
-    read: (userId: string, id: string) => readFile(pathOf(userId, id)),
+    read: (userId: string, id: string, revision?: string | null) =>
+      readFile(pathOf(userId, id, revision)),
   };
 }
 

@@ -61,27 +61,7 @@ for (const outcome of ['resolve', 'reject']) {
     await browser.clickText(`Train 2. ${row} now`);
     await waitFor(async () => (await browser.value('Reps')) === '10', 'different slot');
     await holdAccountDraftRead(browser, firstUser, secondUser, '61.75', outcome);
-    const still = await browser.command('POST', '/execute/async', {
-      script: `
-        const done = arguments[0];
-        const deadline = performance.now() + 5000;
-        let previous;
-        let stableFrames = 0;
-        function observe() {
-          const positions = [...document.querySelectorAll('div')]
-            .filter((element) => element.scrollHeight > element.clientHeight)
-            .map((element) => element.scrollTop).join(',');
-          stableFrames = positions === previous ? stableFrames + 1 : 0;
-          previous = positions;
-          if (stableFrames >= 4) return done(true);
-          if (performance.now() >= deadline) return done(false);
-          requestAnimationFrame(observe);
-        }
-        requestAnimationFrame(observe);
-      `,
-      args: [],
-    });
-    assert.equal(still, true, 'selection scroll settles before the next pointer click');
+    await browser.settleScroll();
     await browser.clickText('Train 1. Bench press now');
     await waitFor(() => browser.script('return !!window.profitAccountProbe.heldKey'), 'held read');
     assert((await browser.text()).includes('Recovering saved set draft'));
@@ -153,7 +133,27 @@ for (const outcome of ['resolve', 'reject']) {
     );
     const state = await fetch(`${base}/fixture/state`).then((r) => r.json());
     assert.equal(state.records.filter((record) => record.collection === 'set_logs').length, 0);
-    console.log(`PASS account switch with delayed ${outcome}: no draft leak, overwrite or result`);
+    await fetch(`${base}/fixture/history`, { method: 'POST' });
+    await browser.navigate(`${base}/workouts/history`);
+    await waitFor(
+      async () => (await browser.text()).includes('History session 30'),
+      'first account saved history',
+    );
+    await browser.navigate(base);
+    await switchAccount(browser, 'second-workout@example.invalid');
+    await browser.navigate(`${base}/workouts/history`);
+    await waitFor(
+      async () => (await browser.text()).includes('No saved workouts here'),
+      'second account empty history',
+    );
+    assert(
+      !(await browser.text()).includes('History session 30'),
+      'saved history remains account scoped',
+    );
+    await browser.screenshot(`${output}/account-${outcome}-history-isolated.png`);
+    console.log(
+      `PASS account switch with delayed ${outcome}: no draft leak, overwrite or result, and saved history isolation`,
+    );
   } catch (error) {
     await browser.screenshot(`${output}/account-${outcome}-failure.png`).catch(() => {});
     await writeFile(

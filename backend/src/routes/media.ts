@@ -1,4 +1,5 @@
-import { eq } from 'drizzle-orm';
+import { createHash } from 'node:crypto';
+import { and, eq } from 'drizzle-orm';
 import express, { Router } from 'express';
 import { z } from 'zod';
 import type { Db } from '../db/client.js';
@@ -35,18 +36,25 @@ export function mediaRouter(db: Db, store: MediaStore): Router {
       if (!matchesType(bytes, type))
         throw badRequest(`The file is not a ${type.split('/')[1]!.toUpperCase()} image.`);
 
-      // An id already used by someone else is answered as if it did not exist, so ids reveal nothing.
+      // Claim the id atomically before file IO. A failed write stays owned and can be retried.
+      await db
+        .insert(media)
+        .values({ id, userId, contentType: type, bytes: bytes.length })
+        .onConflictDoNothing({ target: media.id });
       const [existing] = await db
         .select({ userId: media.userId })
         .from(media)
         .where(eq(media.id, id));
-      if (existing && existing.userId !== userId) throw notFound('No such image.');
+      if (!existing || existing.userId !== userId) throw notFound('No such image.');
 
-      await store.write(userId, id, bytes);
-      await db
-        .insert(media)
-        .values({ id, userId, contentType: type, bytes: bytes.length })
-        .onConflictDoUpdate({ target: media.id, set: { contentType: type, bytes: bytes.length } });
+      const fileRevision = createHash('sha256').update(bytes).digest('hex');
+      await store.write(userId, id, bytes, fileRevision);
+      const saved = await db
+        .update(media)
+        .set({ contentType: type, bytes: bytes.length, fileRevision })
+        .where(and(eq(media.id, id), eq(media.userId, userId)))
+        .returning({ id: media.id });
+      if (!saved.length) throw notFound('No such image.');
       res.status(201).json({ id, contentType: type, bytes: bytes.length });
     },
   );
@@ -56,7 +64,7 @@ export function mediaRouter(db: Db, store: MediaStore): Router {
     const { id } = parseInput(Params, req.params);
     const [row] = await db.select().from(media).where(eq(media.id, id));
     if (!row || row.userId !== currentUserId(res)) throw notFound('No such image.');
-    const bytes = await store.read(row.userId, id).catch(() => null);
+    const bytes = await store.read(row.userId, id, row.fileRevision).catch(() => null);
     if (!bytes) throw notFound('No such image.');
     res
       .set({ 'Content-Type': row.contentType, 'Cache-Control': 'private, max-age=86400' })

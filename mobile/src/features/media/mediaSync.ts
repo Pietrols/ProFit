@@ -1,5 +1,5 @@
 import type { ApiClient } from '../../lib/api/client';
-import { errorFromBody, NetworkError } from '../../lib/api/errors';
+import { ApiError, errorFromBody, NetworkError } from '../../lib/api/errors';
 import type { Database } from '../../lib/db/database';
 import { randomId } from '../../lib/randomId';
 import type { MediaFiles } from './files';
@@ -31,16 +31,26 @@ export function createMediaSync({ db, api, files, now = () => new Date() }: Opti
   const downloads = new Map<string, Promise<string | null>>();
   const failedAt = new Map<string, number>();
 
-  async function uploadOne(path: string, id: string): Promise<{ status: number; body: string }> {
+  async function uploadOne(
+    path: string,
+    id: string,
+    check: () => void,
+  ): Promise<{ status: number; body: string }> {
     if (!files) throw new Error('Photos are not available here.');
     const url = api.url(`/media/${id}`);
     const send = async (refresh: boolean) => {
+      check();
       const headers = await api.authHeaders({ refresh });
+      check();
+      let answer: { status: number; body: string };
       try {
-        return await files.upload(path, url, headers, CONTENT_TYPE);
+        answer = await files.upload(path, url, headers, CONTENT_TYPE);
       } catch {
+        check();
         throw new NetworkError();
       }
+      check();
+      return answer;
     };
     const first = await send(false);
     if (first.status !== 401 || errorFromBody(401, first.body).code !== 'TOKEN_EXPIRED')
@@ -55,12 +65,19 @@ export function createMediaSync({ db, api, files, now = () => new Date() }: Opti
     // Keeps a picked photo for the signed-in user and returns the id records point at.
     async addPhoto(userId: string, sourceUri: string): Promise<string> {
       if (!files) throw new Error('Photos are not available here.');
+      const check = api.captureSession(userId);
       const id = randomId();
       const path = await files.keep(sourceUri, id);
-      await db.run(
-        'INSERT INTO media (id, user_id, local_path, content_type, uploaded, created_at) VALUES (?, ?, ?, ?, ?, ?)',
-        [id, userId, path, CONTENT_TYPE, WAITING, now().toISOString()],
-      );
+      check();
+      await db.transaction(async (tx) => {
+        check();
+        await tx.run(
+          'INSERT INTO media (id, user_id, local_path, content_type, uploaded, created_at) VALUES (?, ?, ?, ?, ?, ?)',
+          [id, userId, path, CONTENT_TYPE, WAITING, now().toISOString()],
+        );
+        check();
+      });
+      check();
       return id;
     },
 
@@ -68,23 +85,38 @@ export function createMediaSync({ db, api, files, now = () => new Date() }: Opti
     // server cannot be reached, so the sync run reports being offline and tries again later.
     async uploadPending(userId: string): Promise<string[]> {
       if (!files) return [];
+      const check = api.captureSession(userId);
+      const mark = async (id: string, uploaded: number) => {
+        await db.transaction(async (tx) => {
+          check();
+          await tx.run('UPDATE media SET uploaded = ? WHERE id = ? AND user_id = ?', [
+            uploaded,
+            id,
+            userId,
+          ]);
+          check();
+        });
+        check();
+      };
       const problems: string[] = [];
       const rows = await db.all<Row>(
         'SELECT id, local_path, uploaded FROM media WHERE user_id = ? AND uploaded = ?',
         [userId, WAITING],
       );
+      check();
       for (const row of rows) {
+        check();
         if (!row.local_path || !files.exists(row.local_path)) {
-          await db.run('UPDATE media SET uploaded = ? WHERE id = ?', [REFUSED, row.id]);
+          await mark(row.id, REFUSED);
           problems.push('A photo was removed from this phone before it was saved to the server.');
           continue;
         }
-        const answer = await uploadOne(row.local_path, row.id);
+        const answer = await uploadOne(row.local_path, row.id, check);
         if (answer.status >= 200 && answer.status < 300) {
-          await db.run('UPDATE media SET uploaded = ? WHERE id = ?', [ON_SERVER, row.id]);
+          await mark(row.id, ON_SERVER);
         } else if (answer.status >= 400 && answer.status < 500 && answer.status !== 401) {
           // Wrong type, too big, or not ours: sending it again will not change the answer.
-          await db.run('UPDATE media SET uploaded = ? WHERE id = ?', [REFUSED, row.id]);
+          await mark(row.id, REFUSED);
           problems.push(errorFromBody(answer.status, answer.body).message);
         } else {
           // Signed out on the server, or a server fault: stop here and try again on the next run.
@@ -98,36 +130,48 @@ export function createMediaSync({ db, api, files, now = () => new Date() }: Opti
     // Null when it cannot be had right now (offline, not found, or no photos on this device).
     async photoUri(userId: string, photoId: string): Promise<string | null> {
       if (!files) return null;
-      const row = await db.first<Row>(
-        'SELECT id, local_path, uploaded FROM media WHERE id = ? AND user_id = ?',
-        [photoId, userId],
-      );
-      if (row?.local_path && files.exists(row.local_path)) return files.uri(row.local_path);
-      // Kept on this phone but the file is gone, and the server never got it: nothing to fetch.
-      if (row && row.uploaded !== ON_SERVER) return null;
-
-      const failed = failedAt.get(photoId);
-      if (failed !== undefined && now().getTime() - failed < RETRY_DOWNLOAD_MS) return null;
+      let check: () => void;
+      try {
+        check = api.captureSession(userId);
+        const row = await db.first<Row>(
+          'SELECT id, local_path, uploaded FROM media WHERE id = ? AND user_id = ?',
+          [photoId, userId],
+        );
+        check();
+        if (row?.local_path && files.exists(row.local_path)) return files.uri(row.local_path);
+        // A missing local file that never reached the server cannot be fetched.
+        if (row && row.uploaded !== ON_SERVER) return null;
+      } catch {
+        return null;
+      }
 
       const key = `${userId}/${photoId}`;
+      const failed = failedAt.get(key);
+      if (failed !== undefined && now().getTime() - failed < RETRY_DOWNLOAD_MS) return null;
       let pending = downloads.get(key);
       if (!pending) {
         pending = (async () => {
           try {
-            const path = await files.download(
-              api.url(`/media/${photoId}`),
-              photoId,
-              await api.authHeaders(),
-            );
-            await db.run(
-              `INSERT INTO media (id, user_id, local_path, content_type, uploaded, created_at) VALUES (?, ?, ?, ?, ?, ?)
-               ON CONFLICT(id) DO UPDATE SET local_path = excluded.local_path WHERE media.user_id = excluded.user_id`,
-              [photoId, userId, path, CONTENT_TYPE, ON_SERVER, now().toISOString()],
-            );
-            failedAt.delete(photoId);
-            return files.uri(path);
-          } catch {
-            failedAt.set(photoId, now().getTime());
+            const headers = await api.authHeaders();
+            check();
+            const path = await files.download(api.url(`/media/${photoId}`), photoId, headers);
+            check();
+            const cached = await db.transaction(async (tx) => {
+              check();
+              const result = await tx.run(
+                `INSERT INTO media (id, user_id, local_path, content_type, uploaded, created_at) VALUES (?, ?, ?, ?, ?, ?)
+                 ON CONFLICT(id) DO UPDATE SET local_path = excluded.local_path WHERE media.user_id = excluded.user_id`,
+                [photoId, userId, path, CONTENT_TYPE, ON_SERVER, now().toISOString()],
+              );
+              check();
+              return result.changes > 0;
+            });
+            check();
+            failedAt.delete(key);
+            return cached ? files.uri(path) : null;
+          } catch (error) {
+            if (!(error instanceof ApiError && error.code === 'SESSION_CHANGED'))
+              failedAt.set(key, now().getTime());
             return null;
           } finally {
             downloads.delete(key);
@@ -135,7 +179,13 @@ export function createMediaSync({ db, api, files, now = () => new Date() }: Opti
         })();
         downloads.set(key, pending);
       }
-      return pending;
+      const uri = await pending;
+      try {
+        check();
+        return uri;
+      } catch {
+        return null;
+      }
     },
   };
 }

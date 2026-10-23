@@ -217,6 +217,33 @@ describe('sync engine', () => {
     expect(server.state.pushes).toBe(pushesAfterFirst);
   });
 
+  it('keeps a newer valid edit when the older version is rejected in flight', async () => {
+    const server = fakeSyncServer();
+    const db = await testDatabase();
+    const api = server.clientFor(PETER);
+    const post = api.post;
+    let changed = false;
+    api.post = async <T>(
+      path: string,
+      body?: unknown,
+      options?: { auth?: boolean },
+    ): Promise<T> => {
+      const result = await post<T>(path, body, options);
+      if (path === '/sync/push' && !changed) {
+        changed = true;
+        await saveWeight(db, PETER, { date: '2026-10-07', weightKg: 80 }, tick());
+      }
+      return result;
+    };
+    const engine = createSyncEngine({ db, api, collections: syncedCollections });
+    await engine.setUser(PETER);
+    await saveWeight(db, PETER, { date: '2026-10-07', weightKg: 900 }, tick());
+    await engine.sync();
+    expect([...server.rows.values()].map((row) => row.record.weightKg)).toEqual([80]);
+    expect(await weights(db)).toEqual([['2026-10-07', 80]]);
+    expect(await db.first('SELECT dirty FROM weight_entries')).toEqual({ dirty: 0 });
+  });
+
   it('pages through more changes than fit in one pull', async () => {
     const server = fakeSyncServer();
     const a = await phone(server);

@@ -1,3 +1,5 @@
+import { eq } from 'drizzle-orm';
+import { media } from '../db/schema.js';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -76,6 +78,156 @@ describe('media', () => {
       (await request(app).get(`/media/${ID}`).set('Authorization', `Bearer ${other}`)).status,
     ).toBe(404);
     expect((await upload(other, JPEG)).status).toBe(404);
+  });
+
+  it('keeps a concurrent foreign claim from modifying the first owner metadata', async () => {
+    const first = await signIn('first@example.com');
+    const second = await signIn('second@example.com');
+    const store = mediaStore(dir);
+    let release!: () => void;
+    let entered!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const writing = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    let writes = 0;
+    const racingApp = createApp(config, createLogger(config), {
+      db: database.db,
+      verifyGoogle: rejectGoogle,
+      media: {
+        ...store,
+        async write(user, id, bytes, revision) {
+          writes += 1;
+          if (writes === 1) {
+            entered();
+            await held;
+          }
+          await store.write(user, id, bytes, revision);
+        },
+      },
+    });
+    const send = (token: string, bytes: Buffer, type: string) =>
+      request(racingApp)
+        .put(`/media/${ID}`)
+        .set('Authorization', `Bearer ${token}`)
+        .set('Content-Type', type)
+        .send(bytes);
+    const pending = send(first, JPEG, 'image/jpeg').then((response) => response);
+    await writing;
+    let foreign;
+    try {
+      foreign = await send(second, PNG, 'image/png');
+    } finally {
+      release();
+    }
+    expect((await pending).status).toBe(201);
+    expect(foreign.status).toBe(404);
+    expect(writes).toBe(1);
+    const image = await request(racingApp)
+      .get(`/media/${ID}`)
+      .set('Authorization', `Bearer ${first}`);
+    expect(image.headers['content-type']).toBe('image/jpeg');
+    expect(image.body).toEqual(JPEG);
+    expect(
+      (await request(racingApp).get(`/media/${ID}`).set('Authorization', `Bearer ${second}`))
+        .status,
+    ).toBe(404);
+  });
+
+  it('publishes the file and metadata together when same-owner uploads finish out of order', async () => {
+    const token = await signIn('peter@example.com');
+    const store = mediaStore(dir);
+    let release!: () => void;
+    let entered!: () => void;
+    const held = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const writing = new Promise<void>((resolve) => {
+      entered = resolve;
+    });
+    const racingApp = createApp(config, createLogger(config), {
+      db: database.db,
+      verifyGoogle: rejectGoogle,
+      media: {
+        ...store,
+        async write(user, id, bytes, revision) {
+          await store.write(user, id, bytes, revision);
+          if (bytes.equals(JPEG)) {
+            entered();
+            await held;
+          }
+        },
+      },
+    });
+    const send = (bytes: Buffer, type: string) =>
+      request(racingApp)
+        .put(`/media/${ID}`)
+        .set('Authorization', `Bearer ${token}`)
+        .set('Content-Type', type)
+        .send(bytes);
+    const first = send(JPEG, 'image/jpeg').then((response) => response);
+    await writing;
+    try {
+      expect((await send(PNG, 'image/png')).status).toBe(201);
+      const image = await request(racingApp)
+        .get(`/media/${ID}`)
+        .set('Authorization', `Bearer ${token}`);
+      expect(image.headers['content-type']).toBe('image/png');
+      expect(image.body).toEqual(PNG);
+    } finally {
+      release();
+    }
+    expect((await first).status).toBe(201);
+    const image = await request(racingApp)
+      .get(`/media/${ID}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(image.headers['content-type']).toBe('image/jpeg');
+    expect(image.body).toEqual(JPEG);
+  });
+
+  it('keeps the published image readable after a failed replacement and allows a retry', async () => {
+    const token = await signIn('peter@example.com');
+    await upload(token, JPEG);
+    const store = mediaStore(dir);
+    let fail = true;
+    const failingApp = createApp(config, createLogger(config), {
+      db: database.db,
+      verifyGoogle: rejectGoogle,
+      media: {
+        ...store,
+        async write(user, id, bytes, revision) {
+          if (fail) throw new Error('Storage unavailable');
+          await store.write(user, id, bytes, revision);
+        },
+      },
+    });
+    const send = () =>
+      request(failingApp)
+        .put(`/media/${ID}`)
+        .set('Authorization', `Bearer ${token}`)
+        .set('Content-Type', 'image/png')
+        .send(PNG);
+    expect((await send()).status).toBe(500);
+    const image = await request(failingApp)
+      .get(`/media/${ID}`)
+      .set('Authorization', `Bearer ${token}`);
+    expect(image.headers['content-type']).toBe('image/jpeg');
+    expect(image.body).toEqual(JPEG);
+    fail = false;
+    expect((await send()).status).toBe(201);
+  });
+
+  it('continues reading legacy files without a published revision', async () => {
+    const token = await signIn('legacy@example.com');
+    await upload(token, JPEG);
+    const [row] = await database.db.select().from(media).where(eq(media.id, ID));
+    await mediaStore(dir).write(row!.userId, ID, JPEG);
+    await database.db.update(media).set({ fileRevision: null }).where(eq(media.id, ID));
+    const image = await request(app).get(`/media/${ID}`).set('Authorization', `Bearer ${token}`);
+    expect(image.status).toBe(200);
+    expect(image.body).toEqual(JPEG);
   });
 
   it('refuses other file types, mislabelled files, empty bodies and bad ids', async () => {

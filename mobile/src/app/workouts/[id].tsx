@@ -13,6 +13,7 @@ import { TimerControls } from '@/features/workouts/TimerControls';
 import { TimerReadout } from '@/features/workouts/TimerReadout';
 import { workoutPreview } from '@/features/workouts/workoutPreview';
 import { SessionClock } from '@/features/workouts/SessionClock';
+import { SessionComparison } from '@/features/workouts/SessionComparison';
 import { LoggedSets } from '@/features/workouts/LoggedSets';
 import {
   loadWorkoutTimer,
@@ -448,6 +449,7 @@ function Workout({
           ) : null}
         </Card>
       )}
+      {!active || confirm ? <SessionComparison detail={current} units={units} /> : null}
       <LoggedSets
         user={user}
         session={session}

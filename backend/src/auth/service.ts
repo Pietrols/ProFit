@@ -88,10 +88,18 @@ export async function refreshSession(ctx: AuthContext, refreshToken: string): Pr
   // The transaction returns null instead of throwing, so a revocation inside it is committed
   // (throwing would roll it back and the stolen token's family would stay valid).
   const session = await ctx.db.transaction(async (tx): Promise<Session | null> => {
+    const tokenHash = hashToken(refreshToken);
+    const [identity] = await tx
+      .select({ familyId: refreshTokens.familyId })
+      .from(refreshTokens)
+      .where(eq(refreshTokens.tokenHash, tokenHash));
+    if (!identity) return null;
+    await lockFamily(tx, identity.familyId);
+    // Re-read after the family lock so a completed sign-out is visible before issuing a child.
     const [row] = await tx
       .select()
       .from(refreshTokens)
-      .where(eq(refreshTokens.tokenHash, hashToken(refreshToken)))
+      .where(eq(refreshTokens.tokenHash, tokenHash))
       .for('update');
 
     if (!row || row.revokedAt || row.expiresAt <= now) return null;
@@ -114,11 +122,15 @@ export async function refreshSession(ctx: AuthContext, refreshToken: string): Pr
 
 // Ends the sign-in this token belongs to. Unknown tokens are ignored so signing out always succeeds.
 export async function signOut(ctx: AuthContext, refreshToken: string): Promise<void> {
-  const [row] = await ctx.db
-    .select({ familyId: refreshTokens.familyId })
-    .from(refreshTokens)
-    .where(eq(refreshTokens.tokenHash, hashToken(refreshToken)));
-  if (row) await revokeFamily(ctx.db, row.familyId, ctx.now());
+  await ctx.db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({ familyId: refreshTokens.familyId })
+      .from(refreshTokens)
+      .where(eq(refreshTokens.tokenHash, hashToken(refreshToken)));
+    if (!row) return;
+    await lockFamily(tx, row.familyId);
+    await revokeFamily(tx, row.familyId, ctx.now());
+  });
 }
 
 async function revokeFamily(db: Db, familyId: string, now: Date): Promise<void> {
@@ -126,4 +138,12 @@ async function revokeFamily(db: Db, familyId: string, now: Date): Promise<void> 
     .update(refreshTokens)
     .set({ revokedAt: now })
     .where(and(eq(refreshTokens.familyId, familyId), isNull(refreshTokens.revokedAt)));
+}
+
+// Sibling retry tokens share one family. Locking one token row cannot serialize their issuance
+// against family revocation. A transaction-scoped lock is released on commit or rollback.
+async function lockFamily(db: Db, familyId: string): Promise<void> {
+  const digest = hashToken(`profit:auth-family:${familyId}`).slice(0, 16);
+  const key = BigInt.asIntN(64, BigInt(`0x${digest}`)).toString();
+  await db.execute(sql`SELECT pg_advisory_xact_lock(${key}::bigint)`);
 }

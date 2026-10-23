@@ -542,3 +542,58 @@ that server. It is not a standalone preview, store release, physical acceptance 
 replacement for the 5.7 background-notification gate. Trigger compilation when this acceptance
 workflow changes, rather than rebuilding native code for every documentation commit. A failed
 native compile must stay visible and be corrected or reported before claiming an APK exists.
+
+## D52. Finish the corrections and self-review before requesting device testing
+On 22 October Peter asked for the outstanding implementation, vulnerability/mix-up review and
+corrective work to be completed before the mobile testing handoff. Consolidate physical
+keyboard, font scaling, screen-reader, process-recovery and notification observations into
+the final 5.7 device gate. Step 5.8.7's implementation and automated/browser checks are complete;
+its physical evidence remains pending, not passed. Continue 5.8.8 through 5.8.12 in order after
+addressing confirmed isolation/data-loss defects found by the self-review. Phase 6 stays gated.
+
+Review async identity throughout API refresh, sync, media, profile and workout commands, not
+only the rendered draft form. Reproduce findings with tests before fixing them. Bind a request
+and its continuation to the originating sign-in/run, including same-account sign-out/sign-in.
+Late success/failure must not replace credentials, publish a foreign profile, send another
+account's pending records/photos or acknowledge a newer unsent edit. Preserve unsynced work.
+Use existing dependencies and small tested/pushed commits. Track coverage, defects, fixes and
+remaining work in PHASE_5_REVIEW.md; green tests are not a claim of a complete security audit.
+
+## D53. Publish media bytes and metadata as one revision
+The pre-device review reproduced temporary-file collisions for concurrent uploads. It also
+identified that replacing one owner's file and then updating metadata in a separate operation
+can pair an older MIME type with newer bytes. Reserving ownership fixes the cross-account
+claim race but cannot make those separate resources atomic.
+
+Use a nullable SHA-256 file revision on the existing backend media row. Write immutable bytes
+under owner/id/revision first, then atomically publish their revision, MIME type and size in the
+owned row. GET reads the revision it selected, even if another upload completes meanwhile.
+Existing rows with no revision retain the original owner/id file path. No mobile wire change
+or new dependency is required. Use Node's crypto functions and unique temporary names, and
+keep file IO outside database transactions. A failed write leaves the previous published
+revision readable; first uploads with no file remain 404 and can be retried by their owner.
+
+Old immutable revisions may remain on disk. Do not delete them during upload because a reader
+may still hold that revision. Retention/garbage collection belongs with the Phase 11 media
+backup and account-deletion work, and must preserve the current published revision.
+
+## D54. Serialize refresh issuance and sign-out for the whole token family
+The pre-device review found that locking only the presented refresh-token row does not
+serialize sibling retry tokens or prevent a concurrent sign-out statement from missing a
+newly inserted child token. Both operations now take the same transaction-scoped PostgreSQL
+advisory lock, derived from a namespaced SHA-256 family id, before reading revocation state
+or publishing/revoking children. The lock releases automatically on commit or rollback.
+An accidental lock-key collision can only serialize unrelated families, never grant access.
+
+Keep the existing 60-second retry grace and 15-minute access-token lifetime. This change
+prevents refresh credentials surviving a completed sign-out; it does not introduce a server
+lookup for every already-issued access JWT. Controlled PostgreSQL tests hold a user-row FK
+lock to exercise refresh/sign-out overlap for the same token and for sibling retry tokens.
+
+## D55. Keep web input focus during automatic scrolling
+The rendered acceptance checks caught empty note/reason fields at text-entry time. Focus
+inspection found editable inputs becoming unfocused after a real pointer click. The installed
+React Native Web ScrollView adapter dismisses the keyboard for every scroll when on-drag is
+selected, including focus-driven/programmatic scrolling. Use none for web ScrollViews and keep
+the native on-drag policy. Test programmatic scroll focus retention with real browser input;
+do not fake input values, suppress animations or relabel this as physical keyboard acceptance.

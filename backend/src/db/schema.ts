@@ -160,6 +160,8 @@ export const media = pgTable('media', {
     .references(() => users.id, { onDelete: 'cascade' }),
   contentType: text('content_type').notNull(),
   bytes: integer('bytes').notNull(),
+  // Null retains the original owner/id file path for existing uploads.
+  fileRevision: text('file_revision'),
   createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
 });
 

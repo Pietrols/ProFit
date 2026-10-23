@@ -1,5 +1,5 @@
 import type { ReactNode, Ref } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useAppTheme } from '@/theme/ThemeProvider';
 import { AppText } from './AppText';
@@ -42,7 +42,7 @@ export function Screen({ title, eyebrow, children, scroll = true, scrollRef }: P
           ref={scrollRef}
           contentContainerStyle={styles.grow}
           keyboardShouldPersistTaps="handled"
-          keyboardDismissMode="on-drag"
+          keyboardDismissMode={Platform.OS === 'web' ? 'none' : 'on-drag'}
         >
           {body}
         </ScrollView>

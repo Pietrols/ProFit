@@ -1,6 +1,6 @@
 import { createApiClient } from '../../lib/api/client';
 import { ApiError, isNetworkError } from '../../lib/api/errors';
-import { singleFlight } from '../../lib/singleFlight';
+import { orderedKeyValue } from '../../lib/storage/ordered';
 import {
   applyPatch,
   isEmptyPatch,
@@ -54,10 +54,13 @@ export const meKey = (userId: string) => `profit.me.${userId}`;
 export const pendingKey = (userId: string) => `profit.pendingProfile.${userId}`;
 
 export function createAuthStore(deps: Deps) {
+  deps = { ...deps, secure: orderedKeyValue(deps.secure), kv: orderedKeyValue(deps.kv) };
   let snapshot: AuthSnapshot = { status: 'loading' };
   let auth: StoredAuth | null = null; // tokens and user, in memory
   let confirmed: Me | null = null; // last profile the server sent
   let pending: ProfilePatch = {};
+  let generation = 0;
+  let flushing: { generation: number; promise: Promise<void> } | null = null;
   const listeners = new Set<() => void>();
 
   function publish(next: AuthSnapshot) {
@@ -80,6 +83,7 @@ export function createAuthStore(deps: Deps) {
     fetch: deps.fetch,
     now: deps.now,
     getSession: () => auth?.session ?? null,
+    getUserId: () => auth?.user.id ?? null,
     saveSession: async (session) => {
       if (!auth) return;
       auth = { ...auth, session };
@@ -93,12 +97,15 @@ export function createAuthStore(deps: Deps) {
   // Forgets the sign-in on this phone. Unsent profile edits stay, filed under the user, and are
   // sent the next time that user signs in here.
   async function endLocally(notice: string | null) {
+    const current = ++generation;
     const userId = auth?.user.id;
     auth = null;
     confirmed = null;
     pending = {};
     await deps.secure.removeItem(AUTH_KEY);
+    if (current !== generation) return;
     if (userId) await deps.kv.removeItem(meKey(userId));
+    if (current !== generation) return;
     publish({ status: 'signedOut', notice });
   }
 
@@ -107,45 +114,68 @@ export function createAuthStore(deps: Deps) {
     else await deps.kv.setItem(pendingKey(userId), JSON.stringify(pending));
   }
 
-  async function saveConfirmed(me: Me) {
-    confirmed = me;
+  async function saveConfirmed(me: Me, current: number): Promise<boolean> {
+    if (current !== generation) return false;
+    if (me.user.id !== auth?.user.id) throw new Error('The profile did not match this sign-in.');
     await deps.kv.setItem(meKey(me.user.id), JSON.stringify(me));
+    if (current !== generation) return false;
+    confirmed = me;
+    return true;
   }
 
   // Sends unsent profile edits. Safe to call any time; overlapping calls share one request.
-  const flush = singleFlight(async (): Promise<void> => {
+  function flush(): Promise<void> {
+    if (flushing?.generation === generation) return flushing.promise;
+    const current = generation;
+    const promise = flushCurrent(current).finally(() => {
+      if (flushing?.promise === promise) flushing = null;
+    });
+    flushing = { generation: current, promise };
+    return promise;
+  }
+  async function flushCurrent(current: number): Promise<void> {
     if (!auth || isEmptyPatch(pending)) return;
     const userId = auth.user.id;
     const sent = pending;
     try {
       const me = await api.patch<Me>('/me', sent);
-      if (auth?.user.id !== userId) return; // signed out while the request was on its way
-      await saveConfirmed(me);
+      if (current !== generation || auth?.user.id !== userId) return;
+      if (!(await saveConfirmed(me, current))) return;
       pending = remainingAfterSend(sent, pending);
       await savePending(userId);
+      if (current !== generation) return;
       publishSignedIn();
     } catch (error) {
-      if (isNetworkError(error) || auth?.user.id !== userId) return;
+      if (isNetworkError(error) || current !== generation || auth?.user.id !== userId) return;
       if (error instanceof ApiError && error.status === 400) {
         // The server will never accept these values, so retrying forever would block every later
         // edit. Drop them, keep the server's profile, and say what happened.
         pending = remainingAfterSend(sent, pending);
         await savePending(userId);
+        if (current !== generation) return;
         publishSignedIn(`Some profile changes were not saved: ${error.message}`);
         return;
       }
       throw error;
     }
-  });
+  }
 
-  async function completeSignIn(response: SignInResponse) {
+  async function completeSignIn(response: SignInResponse, current: number): Promise<boolean> {
+    if (current !== generation) return false;
+    current = ++generation;
+    publish({ status: 'loading' });
     const user = response.user;
     auth = { session: response.session, user };
+    confirmed = null;
+    pending = {};
     await deps.secure.setItem(AUTH_KEY, JSON.stringify(auth));
-    await saveConfirmed({ user, profile: response.profile });
-    pending = parsePatch(await deps.kv.getItem(pendingKey(user.id)));
+    if (!(await saveConfirmed({ user, profile: response.profile }, current))) return false;
+    const savedPending = await deps.kv.getItem(pendingKey(user.id));
+    if (current !== generation) return false;
+    pending = parsePatch(savedPending);
     publishSignedIn();
     void flush().catch(() => {});
+    return true;
   }
 
   return {
@@ -160,10 +190,18 @@ export function createAuthStore(deps: Deps) {
     // Called once at launch. Signs in from what is stored on the phone, so it works offline,
     // then catches up with the server in the background.
     async init(): Promise<void> {
-      auth = parseStoredAuth(await deps.secure.getItem(AUTH_KEY));
+      const current = ++generation;
+      const stored = await deps.secure.getItem(AUTH_KEY);
+      if (current !== generation) return;
+      auth = parseStoredAuth(stored);
       if (!auth) return publish({ status: 'signedOut', notice: null });
-      confirmed = parseMe(await deps.kv.getItem(meKey(auth.user.id)));
-      pending = parsePatch(await deps.kv.getItem(pendingKey(auth.user.id)));
+      const userId = auth.user.id;
+      const savedMe = await deps.kv.getItem(meKey(userId));
+      if (current !== generation) return;
+      const savedPending = await deps.kv.getItem(pendingKey(userId));
+      if (current !== generation) return;
+      confirmed = parseMe(savedMe, userId);
+      pending = parsePatch(savedPending);
       publishSignedIn();
       void this.sync();
     },
@@ -171,12 +209,14 @@ export function createAuthStore(deps: Deps) {
     // Sends unsent edits, then fetches the latest profile. Offline it quietly does nothing.
     async sync(): Promise<void> {
       if (!auth) return;
+      const current = generation;
       const userId = auth.user.id;
       try {
         await flush();
+        if (current !== generation) return;
         const me = await api.get<Me>('/me');
-        if (auth?.user.id !== userId) return;
-        await saveConfirmed(me);
+        if (current !== generation || auth?.user.id !== userId) return;
+        if (!(await saveConfirmed(me, current))) return;
         publishSignedIn(snapshot.status === 'signedIn' ? snapshot.syncError : null);
       } catch {
         // Offline, or the sign-in ended (handled by onSessionExpired). Try again next time.
@@ -185,24 +225,33 @@ export function createAuthStore(deps: Deps) {
 
     // Resolves to false when the user closed Google's account picker.
     async signInWithGoogle(): Promise<boolean> {
+      const current = ++generation;
       const idToken = await deps.google.getIdToken();
-      if (!idToken) return false;
-      await completeSignIn(
+      if (!idToken || current !== generation) return false;
+      return completeSignIn(
         await api.post<SignInResponse>('/auth/google', { idToken }, { auth: false }),
+        current,
       );
-      return true;
     },
 
     async signInForDevelopment(email: string, name?: string): Promise<void> {
+      const current = ++generation;
       const body = name ? { email, name } : { email };
-      await completeSignIn(await api.post<SignInResponse>('/auth/dev', body, { auth: false }));
+      await completeSignIn(
+        await api.post<SignInResponse>('/auth/dev', body, { auth: false }),
+        current,
+      );
     },
 
     // Saves the edit on the phone straight away, then tries to send it.
     async updateProfile(patch: ProfilePatch): Promise<void> {
-      if (!auth) throw new Error('Sign in before editing your profile.');
+      if (!auth || snapshot.status !== 'signedIn' || snapshot.userId !== auth.user.id)
+        throw new Error('Sign in before editing your profile.');
+      const current = generation;
+      const userId = auth.user.id;
       pending = mergePatches(pending, patch);
-      await savePending(auth.user.id);
+      await savePending(userId);
+      if (current !== generation || auth?.user.id !== userId) return;
       publishSignedIn();
       await flush().catch(() => {});
     },
@@ -210,14 +259,18 @@ export function createAuthStore(deps: Deps) {
     // Tries to send unsent edits first. Whatever cannot be sent stays on the phone (see endLocally).
     async signOut(): Promise<void> {
       if (!auth) return;
+      const current = generation;
       const refreshToken = auth.session.refreshToken;
       await flush().catch(() => {});
+      if (current !== generation) return;
       try {
         await api.post('/auth/sign-out', { refreshToken }, { auth: false });
       } catch {
         // Offline: the server-side sign-in simply expires on its own.
       }
+      if (current !== generation) return;
       await deps.google.signOut();
+      if (current !== generation) return;
       await endLocally(
         isEmptyPatch(pending)
           ? null
@@ -229,11 +282,11 @@ export function createAuthStore(deps: Deps) {
 
 export type AuthStore = ReturnType<typeof createAuthStore>;
 
-function parseMe(raw: string | null): Me | null {
+function parseMe(raw: string | null, userId: string): Me | null {
   if (!raw) return null;
   try {
     const value = JSON.parse(raw) as Partial<Me> | null;
-    return value?.user && value.profile ? (value as Me) : null;
+    return value?.user?.id === userId && value.profile ? (value as Me) : null;
   } catch {
     return null;
   }

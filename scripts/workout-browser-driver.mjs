@@ -47,9 +47,42 @@ export async function openBrowser(base = 'http://127.0.0.1:9515') {
   const element = (value, using = 'css selector') =>
     waitFor(() => command('POST', '/element', { using, value }), `element ${value}`);
   const elementPath = (value) => `/element/${value['element-6066-11e4-a52e-4f735466cecf']}`;
+  async function settleScroll() {
+    const still = await command('POST', '/execute/async', {
+      script: `
+        const done = arguments[0];
+        const deadline = performance.now() + 5000;
+        let previous;
+        let stableFrames = 0;
+        function observe() {
+          const positions = [...document.querySelectorAll('div'), document.scrollingElement]
+            .filter((element) => element && element.scrollHeight > element.clientHeight)
+            .map((element) => element.scrollTop).join(',');
+          stableFrames = positions === previous ? stableFrames + 1 : 0;
+          previous = positions;
+          if (stableFrames >= 4) return done(true);
+          if (performance.now() >= deadline) return done(false);
+          requestAnimationFrame(observe);
+        }
+        requestAnimationFrame(observe);
+      `,
+      args: [],
+    });
+    if (!still) throw new Error('Scrolling did not settle before the next pointer action.');
+  }
+  async function preparePointer(value) {
+    await script(
+      `
+      arguments[0].scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' });
+    `,
+      [value],
+    );
+    await settleScroll();
+  }
   return {
     command,
     script,
+    settleScroll,
     async navigate(url) {
       await command('POST', '/url', { url });
     },
@@ -62,19 +95,43 @@ export async function openBrowser(base = 'http://127.0.0.1:9515') {
     async clickText(text, role = 'button') {
       if (text.includes('"') || !['button', 'radio'].includes(role))
         throw new Error('Use a supported fixture role and unquoted label.');
+      await settleScroll();
       const value = await element(`//*[@role="${role}" and normalize-space(.)="${text}"]`, 'xpath');
+      await preparePointer(value);
       await command('POST', elementPath(value) + '/click', {});
     },
     async clickLabel(label) {
+      await settleScroll();
       const value = await element(`[aria-label=${JSON.stringify(label)}]`);
+      await preparePointer(value);
       await command('POST', elementPath(value) + '/click', {});
     },
     async fill(label, text) {
+      await settleScroll();
       const value = await element(
         `input[aria-label=${JSON.stringify(label)}],textarea[aria-label=${JSON.stringify(label)}]`,
       );
       await command('POST', elementPath(value) + '/clear', {});
+      await preparePointer(value);
+      await command('POST', elementPath(value) + '/click', {});
+      await settleScroll();
+      const editable = await script(
+        `
+        const element = arguments[0];
+        return { focused: document.activeElement === element,
+          readOnly: element.readOnly, disabled: element.disabled };
+      `,
+        [value],
+      );
+      if (!editable.focused || editable.readOnly || editable.disabled)
+        throw new Error(`Input ${label} is not ready for typing: ${JSON.stringify(editable)}`);
       await command('POST', elementPath(value) + '/value', { text });
+      await settleScroll();
+      const actual = await command('GET', elementPath(value) + '/property/value');
+      if (actual !== text)
+        throw new Error(
+          `Input ${label} did not accept its entered text: ${JSON.stringify(actual)}`,
+        );
     },
     value(label) {
       return script(
