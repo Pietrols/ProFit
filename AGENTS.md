@@ -8,3 +8,5 @@ Instructions for coding agents (Codex and others) working on ProFit.
    review at the end of each phase.
 3. Mobile code: also read `mobile/AGENTS.md` before touching Expo APIs.
 4. Never use em dashes in anything you write.
+5. Every commit is authored and committed as Peter Kabamba: see "Commit authorship" at the end of
+   `CLAUDE.md` and set the two `git config` lines before your first commit.

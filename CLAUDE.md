@@ -76,3 +76,17 @@ using an Expo API. If `npx expo install` cannot reach Expo's servers, take the v
     checks in CI. Fix warnings rather than adding blanket rule disables or feature-folder ignores.
 14. **Product acceptance.** Test the user scenarios as well as pure functions. Complete
     `docs/phases/PHASE_5_CORRECTIONS.md` before Phase 6. CI cannot prove a real-phone result.
+
+## Commit authorship (Peter, 26 October 2026)
+
+Every commit is authored and committed as the owner, whichever model or person writes it:
+
+```bash
+git config user.name "Peter Kabamba"
+git config user.email "178684704+Pietrols@users.noreply.github.com"
+```
+
+- Run both lines in the clone before the first commit of a session.
+- After committing, check with `git log -1 --format='%an <%ae> | %cn <%ce>'`. If either name or email is anything else, fix it before pushing: `git commit --amend --reset-author --no-edit`.
+- An AI model may name itself in one `Co-Authored-By:` line at the end of the commit message. It is never the author or the committer.
+- Why: GitHub only counts a commit on Peter's contribution graph when it is authored with an email on his account and reaches `main`. The address above is his private GitHub address, so it counts without publishing his personal email.
